@@ -10,7 +10,7 @@ export async function updateGym(
   formData: FormData
 ): Promise<{ error?: string }> {
   const supabase = createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const { data: { user } } = await (await supabase).auth.getUser();
 
   if (!user || user.role !== USER_ROLES.OWNER) {
     return { error: 'Unauthorized' };
@@ -22,7 +22,7 @@ export async function updateGym(
     phone: formData.get('phone') as string,
   };
 
-  const { error } = await supabase
+  const { error } = await (await supabase)
     .from('gyms')
     .update(rawData)
     .eq('id', gymId)

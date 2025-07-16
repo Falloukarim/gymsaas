@@ -6,10 +6,10 @@ import { redirect } from 'next/navigation';
 
 export async function deleteGym(gymId: string): Promise<{ error?: string }> {
   const supabase = createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const { data: { user } } = await (await supabase).auth.getUser();
 
   // Vérifier qu'aucun membre n'est associé
-  const { count: membersCount } = await supabase
+  const { count: membersCount } = await (await supabase)
     .from('members')
     .select('*', { count: 'exact', head: true })
     .eq('gym_id', gymId);
@@ -18,7 +18,7 @@ export async function deleteGym(gymId: string): Promise<{ error?: string }> {
     return { error: 'Impossible de supprimer : membres existants' };
   }
 
-  const { error } = await supabase
+  const { error } = await (await supabase)
     .from('gyms')
     .delete()
     .eq('id', gymId)

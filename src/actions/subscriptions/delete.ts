@@ -10,7 +10,7 @@ export async function deleteSubscription(
   const supabase = createClient();
 
   // Vérifier les membres utilisant cet abonnement
-  const { count: membersCount } = await supabase
+  const { count: membersCount } = await (await supabase)
     .from('members')
     .select('*', { count: 'exact', head: true })
     .eq('subscription_id', subscriptionId);
@@ -19,7 +19,7 @@ export async function deleteSubscription(
     return { error: 'Subscription is in use by members' };
   }
 
-  const { error } = await supabase
+  const { error } = await (await supabase)
     .from('subscriptions')
     .delete()
     .eq('id', subscriptionId);

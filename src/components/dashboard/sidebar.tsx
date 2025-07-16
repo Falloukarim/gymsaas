@@ -1,51 +1,69 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { Home, Users, CreditCard, DoorOpen, Activity, Settings, User } from "lucide-react";
+import { useParams, usePathname } from "next/navigation";
+import { MotionAside } from "@/lib/motion";
+import {
+  Home,
+  Users,
+  CreditCard,
+  DoorOpen,
+  Activity,
+} from "lucide-react";
+
+import MotionSidebarButton from "@/components/ui/MotionSidebarButton";
 
 export default function Sidebar() {
   const pathname = usePathname();
+  const params = useParams();
+  const gymId = params.id;
 
   const navItems = [
-    { href: "/dashboard", icon: <Home className="h-4 w-4" />, label: "Dashboard" },
-    { href: "/members", icon: <Users className="h-4 w-4" />, label: "Membres" },
-    { href: "/subscriptions", icon: <CreditCard className="h-4 w-4" />, label: "Abonnements" },
-    { href: "/access-logs", icon: <DoorOpen className="h-4 w-4" />, label: "Accès" },
-    { href: "/payments", icon: <Activity className="h-4 w-4" />, label: "Paiements" },
-    { href: "/settings", icon: <Settings className="h-4 w-4" />, label: "Paramètres" },
+    { href: `/gyms/${gymId}/dashboard`, icon: Home, label: "Dashboard" },
+    { href: `/gyms/${gymId}/members`, icon: Users, label: "Membres" },
+    { href: `/gyms/${gymId}/subscriptions`, icon: CreditCard, label: "Abonnements" },
+    { href: `/gyms/${gymId}/access-logs`, icon: DoorOpen, label: "Accès" },
+    { href: `/gyms/${gymId}/payments`, icon: Activity, label: "Paiements" },
   ];
 
   return (
-    <div className="hidden md:flex md:w-56 md:flex-col">
-      <div className="flex min-h-0 flex-1 flex-col border-r border-gray-700 bg-gradient-to-b from-[#1a2e3a] to-[#0d1a23]">
-        <div className="flex flex-1 flex-col overflow-y-auto pt-4 pb-3">
-          <div className="flex flex-shrink-0 items-center px-3 py-3">
-            <h1 className="text-lg font-bold text-white">🏋️ GymPro</h1>
-          </div>
-          <nav className="mt-2 flex-1 space-y-1 px-2">
-            {navItems.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={`group flex items-center rounded px-2 py-2 text-sm font-medium ${
-                  pathname === item.href
-                    ? "bg-[#00c9a7] text-white"
-                    : "text-gray-300 hover:bg-[#00c9a7]/30 hover:text-white"
-                }`}
-              >
-                {item.icon}
-                <span className="ml-2">{item.label}</span>
+    <MotionAside
+      initial={{ x: -100 }}
+      animate={{ x: 0 }}
+      transition={{ duration: 0.4, ease: "easeOut" }}
+      className="hidden md:flex md:w-52 flex-col border-r border-black-700 bg-[#00624f] shadow-lg"
+    >
+      <div className="flex flex-col flex-1 py-4 px-3">
+        <nav className="flex flex-col gap-2">
+          {navItems.map(({ href, icon: Icon, label }) => {
+            const isActive = pathname === href;
+            const isDashboard = label === "Dashboard";
+
+            return (
+              <Link key={href} href={href}>
+                <MotionSidebarButton
+                  isActive={isActive}
+                  className={`
+                    flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium
+                    transition-colors duration-200
+                    ${isDashboard
+                      ? "text-white hover:bg-gray-800"
+                      : "bg-[#1f2937] text-[#00c9a7] hover:bg-[#374151]"}
+                    ${isActive ? "border border-[#00c9a7]" : ""}
+                  `}
+                >
+                  <Icon
+                    className={`h-4 w-4 ${
+                      isActive && !isDashboard ? "text-[#00c9a7]" : ""
+                    }`}
+                  />
+                  <span>{label}</span>
+                </MotionSidebarButton>
               </Link>
-              
-            ))}
-          </nav>
-        </div>
-        <div className="flex flex-shrink-0 border-t border-gray-700 p-3 bg-[#0d1a23]">
-          <div className="flex items-center">         
-          </div>
-        </div>
+            );
+          })}
+        </nav>
       </div>
-    </div>
+    </MotionAside>
   );
 }

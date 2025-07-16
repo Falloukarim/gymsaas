@@ -10,7 +10,7 @@ export async function assignGymManager(
   role: 'admin' | 'staff'
 ): Promise<{ error?: string }> {
   const supabase = createClient();
-  const { data: { user: currentUser } } = await supabase.auth.getUser();
+  const { data: { user: currentUser } } = await (await supabase).auth.getUser();
 
   // Seul le propriétaire peut assigner des rôles
   if (currentUser?.role !== USER_ROLES.OWNER) {
@@ -18,7 +18,7 @@ export async function assignGymManager(
   }
 
   // Vérifier que la salle appartient bien au propriétaire
-  const { data: gym } = await supabase
+  const { data: gym } = await (await supabase)
     .from('gyms')
     .select('owner_id')
     .eq('id', gymId)
@@ -29,7 +29,7 @@ export async function assignGymManager(
   }
 
   // Mettre à jour le rôle de l'utilisateur
-  const { error } = await supabase
+  const { error } = await (await supabase)
     .from('users')
     .update({ role })
     .eq('id', userId);
@@ -39,7 +39,7 @@ export async function assignGymManager(
   }
 
   // Ajouter la relation dans une table gym_users (à créer)
-  const { error: relationError } = await supabase
+  const { error: relationError } = await (await supabase)
     .from('gym_users')
     .upsert({
       gym_id: gymId,

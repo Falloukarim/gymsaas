@@ -17,7 +17,7 @@ export async function updateMember(
     subscription_id: formData.get('subscription_id') as string || null,
   };
 
-  const { error } = await supabase
+  const { error } = await (await supabase)
     .from('members')
     .update(rawData)
     .eq('id', memberId);

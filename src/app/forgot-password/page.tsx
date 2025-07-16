@@ -27,13 +27,18 @@ export default function ForgotPasswordPage() {
 
   const onSubmit = async (data: ForgotSchema) => {
     setMessage("");
-    const { error } = await supabase.auth.resetPasswordForEmail(data.email, {
-      redirectTo: "http://localhost:3000/reset-password",
-    });
-    if (error) {
-      setMessage(error.message);
-    } else {
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(data.email, {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
+      
+      if (error) {
+        throw error;
+      }
+      
       setMessage("Un email de réinitialisation a été envoyé.");
+    } catch (error: any) {
+      setMessage(error.message || "Une erreur est survenue");
     }
   };
 
@@ -45,13 +50,22 @@ export default function ForgotPasswordPage() {
       >
         <h2 className="text-2xl font-bold mb-6 text-center">Mot de passe oublié</h2>
 
-        {message && <p className="mb-4 text-green-600 text-center">{message}</p>}
+        {message && (
+          <p className={`mb-4 text-center ${message.includes("envoyé") ? "text-green-600" : "text-red-500"}`}>
+            {message}
+          </p>
+        )}
 
         <div className="mb-4">
+          <label htmlFor="email" className="block text-sm font-medium mb-1">
+            Email
+          </label>
           <Input
+            id="email"
             type="email"
-            placeholder="Email"
+            placeholder="votre@email.com"
             {...register("email")}
+            className="w-full"
           />
           {errors.email && (
             <p className="text-red-500 text-sm mt-1">
@@ -60,15 +74,22 @@ export default function ForgotPasswordPage() {
           )}
         </div>
 
-        <Button type="submit" className="w-full" disabled={isSubmitting}>
-          {isSubmitting ? "Envoi..." : "Réinitialiser"}
+        <Button 
+          type="submit" 
+          className="w-full bg-[#00c9a7] hover:bg-[#00a58e] text-white"
+          disabled={isSubmitting}
+        >
+          {isSubmitting ? "Envoi en cours..." : "Réinitialiser le mot de passe"}
         </Button>
 
-        <p className="mt-4 text-center text-sm">
-          <Link href="/login" className="text-blue-600 underline">
+        <div className="mt-4 text-center text-sm">
+          <Link 
+            href="/login" 
+            className="text-[#00c9a7] hover:underline"
+          >
             Retour à la connexion
           </Link>
-        </p>
+        </div>
       </form>
     </div>
   );

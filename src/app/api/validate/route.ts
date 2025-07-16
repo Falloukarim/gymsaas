@@ -6,7 +6,7 @@ export async function POST(request: Request) {
   const { qrCode } = await request.json();
 
   // 1. Vérifier le membre
-  const { data: member, error } = await supabase
+  const { data: member, error } = await (await supabase)
     .from('members')
     .select(`
       id,

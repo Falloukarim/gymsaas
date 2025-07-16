@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useState } from 'react'
-import { createClient } from '@/lib/supabaseClient'
+import { supabase } from '@/lib/supabaseClient' // Utilisez l'instance exportée
 
 export default function LoginPage() {
   const [email, setEmail] = useState('')
@@ -18,26 +18,51 @@ export default function LoginPage() {
   const message = searchParams.get('message')
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setLoading(true)
-    setError('')
+    e.preventDefault();
+    setLoading(true);
+    setError('');
 
-    const supabase = createClient()
-    const { error: authError } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    })
+    try {
+      // Utilisez directement 'supabase' importé plutôt que d'en créer un nouveau
+      const { error: authError, data: { user } } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
 
-    if (authError) {
-      setError(authError.message)
-      setLoading(false)
-      return
+      if (authError) throw authError;
+
+      // Vérification des associations gbus avec retry
+      let retries = 3;
+      let gbusData = null;
+
+      while (retries > 0) {
+        const { data } = await supabase
+          .from('gbus')
+          .select('gym_id')
+          .eq('user_id', user?.id)
+          .order('created_at', { ascending: false });
+
+        if (data && data.length > 0) {
+          gbusData = data[0];
+          break;
+        }
+
+        retries--;
+        await new Promise(resolve => setTimeout(resolve, 300));
+      }
+
+      if (gbusData) {
+        window.location.href = `/gyms/${gbusData.gym_id}/dashboard`;
+      } else {
+        window.location.href = '/gyms/new';
+      }
+      
+    } catch (err: any) {
+      setError(err.message || "Erreur de connexion");
+    } finally {
+      setLoading(false);
     }
-
-    // Rafraîchir le routeur pour que le middleware détecte la nouvelle session
-    router.refresh()
-    router.push('/dashboard')
-  }
+  };
 
   return (
     <div className="w-full lg:grid lg:min-h-[600px] lg:grid-cols-2">
@@ -51,7 +76,9 @@ export default function LoginPage() {
           </div>
 
           {(message || error) && (
-            <div className="bg-red-500/20 text-red-300 p-3 rounded-md text-sm">
+            <div className={`p-3 rounded-md text-sm ${
+              message ? 'bg-blue-500/20 text-blue-300' : 'bg-red-500/20 text-red-300'
+            }`}>
               {message || error}
             </div>
           )}
@@ -66,6 +93,7 @@ export default function LoginPage() {
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
+                className="bg-white/5 border-gray-700 text-white"
               />
             </div>
             <div className="grid gap-2">
@@ -73,7 +101,7 @@ export default function LoginPage() {
                 <Label htmlFor="password">Mot de passe</Label>
                 <Link
                   href="/forgot-password"
-                  className="ml-auto inline-block text-sm underline"
+                  className="ml-auto inline-block text-sm underline text-[#00c9a7]"
                 >
                   Mot de passe oublié?
                 </Link>
@@ -84,23 +112,33 @@ export default function LoginPage() {
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                className="bg-white/5 border-gray-700 text-white"
               />
             </div>
-            <Button type="submit" className="w-full" disabled={loading}>
+            <Button 
+              type="submit" 
+              className="w-full bg-[#00c9a7] hover:bg-[#00a58e] text-white"
+              disabled={loading}
+            >
               {loading ? "Connexion..." : "Se connecter"}
             </Button>
           </form>
 
-          <div className="mt-4 text-center text-sm">
+          <div className="mt-4 text-center text-sm text-gray-400">
             Vous n'avez pas de compte?{" "}
-            <Link href="/register" className="underline">
+            <Link href="/register" className="text-[#00c9a7] underline">
               S'inscrire
             </Link>
           </div>
         </div>
       </div>
-      <div className="hidden bg-muted lg:block">
-        {/* Image ou illustration */}
+      <div className="hidden bg-gradient-to-br from-[#0d1a23] to-[#1a2e3a] lg:flex items-center justify-center">
+        <div className="p-8 text-white">
+          <h2 className="text-2xl font-bold mb-4">Bienvenue sur GymPro</h2>
+          <p className="text-gray-300">
+            La solution complète pour gérer votre salle de sport
+          </p>
+        </div>
       </div>
     </div>
   )

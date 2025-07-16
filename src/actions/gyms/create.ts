@@ -7,7 +7,7 @@ import { USER_ROLES } from '@/lib/constants/role';
 
 export async function createGym(formData: FormData) {
   const supabase = createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const { data: { user } } = await (await supabase).auth.getUser();
 
   if (!user || user.role !== USER_ROLES.OWNER) {
     return { error: 'Unauthorized: Seuls les propriétaires peuvent créer des salles' };
@@ -20,7 +20,7 @@ export async function createGym(formData: FormData) {
     owner_id: user.id,
   };
 
-  const { data: gym, error } = await supabase
+  const { data: gym, error } = await (await supabase)
     .from('gyms')
     .insert(rawData)
     .select()

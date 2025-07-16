@@ -7,10 +7,10 @@ import { nanoid } from 'nanoid';
 import { toDataURL } from 'qrcode';
 import { uploadQRCode } from '@/utils/cloudinary';
 
-export async function createMember(prevState: any, formData: FormData) {
+export async function createMember(formData: FormData) {
   const supabase = createClient();
   
-  const { data: { user } } = await supabase.auth.getUser();
+  const { data: { user } } = await (await supabase).auth.getUser();
   if (!user) return { error: 'Authentication required' };
 
   const memberData = {
@@ -45,7 +45,7 @@ export async function createMember(prevState: any, formData: FormData) {
     }
 
     // Insertion du membre (sans has_subscription)
-    const { data: member, error } = await supabase
+    const { data: member, error } = await (await supabase)
       .from('members')
       .insert({
         ...memberData,
@@ -64,7 +64,7 @@ export async function createMember(prevState: any, formData: FormData) {
       const endDate = new Date();
       endDate.setMonth(startDate.getMonth() + 1);
 
-      const { error: subError } = await supabase
+      const { error: subError } = await (await supabase)
         .from('member_subscriptions')
         .insert({
           member_id: member.id,
@@ -80,11 +80,12 @@ export async function createMember(prevState: any, formData: FormData) {
     revalidatePath('/members');
     revalidatePath(`/gyms/${memberData.gym_id}/members`);
     
-    return { 
-      success: true, 
-      member,
-      redirectUrl: `/members/${member.id}` 
-    };
+   return { 
+  success: true, 
+  member,
+  redirectUrl: `/gyms/${member.gym_id}/members/${member.id}`
+};
+
   } catch (error) {
     console.error('Erreur création membre:', error);
     return { 

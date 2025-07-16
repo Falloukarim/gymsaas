@@ -13,7 +13,7 @@ export default async function PaymentsPage({
 }) {
   const supabase = createClient();
   
-  let query = supabase
+  let query = (await supabase)
     .from('payments')
     .select(`
       id, 

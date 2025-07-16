@@ -6,7 +6,7 @@ export default async function GymsPage() {
   const supabase = createClient();
   
   // Fetch gyms data
-  const { data: gyms, error } = await supabase
+  const { data: gyms, error } = await (await supabase)
     .from('gyms')
     .select('id, name, address');
 

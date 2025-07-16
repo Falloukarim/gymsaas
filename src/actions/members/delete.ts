@@ -8,7 +8,7 @@ export async function deleteMember(memberId: string): Promise<{ error?: string }
   const supabase = createClient();
 
   // Vérifier les dépendances avant suppression
-  const { count: subscriptionsCount } = await supabase
+  const { count: subscriptionsCount } = await (await supabase)
     .from('member_subscriptions')
     .select('*', { count: 'exact', head: true })
     .eq('member_id', memberId);
@@ -17,7 +17,7 @@ export async function deleteMember(memberId: string): Promise<{ error?: string }
     return { error: 'Member has active subscriptions' };
   }
 
-  const { error } = await supabase
+  const { error } = await (await supabase)
     .from('members')
     .delete()
     .eq('id', memberId);

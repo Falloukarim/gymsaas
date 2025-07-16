@@ -4,29 +4,34 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import Link from 'next/link';
-import { ArrowLeft, Edit, QrCode } from 'lucide-react';
+import { ArrowLeft, Edit } from 'lucide-react';
 import { SubscriptionStatusBadge } from '@/components/subscription-status-badge';
 import { QRCodeGenerator } from '@/components/members/QRCodeGenerator';
 import { DownloadMemberBadgeButton } from '@/components/members/DownloadMemberBadgeButton';
 
-export default async function MemberDetailPage({ params: resolvedParams }: { params: Promise<{ id: string }> }) {
-  const params = await resolvedParams;
-  const { id } = params;
+export default async function MemberDetailPage({
+  params,
+}: {
+  params: { id: string; memberId: string };
+}) {
+  const gymId = params.id;
+  const memberId = params.memberId;
 
   const supabase = createClient();
 
   // 🔹 Fetch member + subscriptions
-  const { data: member, error } = await supabase
+  const { data: member, error } = await (await supabase)
     .from('members')
-    .select(`
-      *,
-      gyms(name),
-      member_subscriptions(
-        *,
-        subscriptions(name)
-      )
-    `)
-    .eq('id', id)
+   .select(`
+  *,
+  gyms(name),
+  member_subscriptions (
+    *,
+    subscriptions (type)
+  )
+`)
+
+    .eq('id', memberId)
     .single();
 
   if (error || !member) {
@@ -34,17 +39,17 @@ export default async function MemberDetailPage({ params: resolvedParams }: { par
   }
 
   // 🔹 Fetch payments
-  const { data: payments } = await supabase
+  const { data: payments } = await (await supabase)
     .from('payments')
     .select('*')
-    .eq('member_id', id)
+    .eq('member_id', memberId)
     .order('created_at', { ascending: false });
 
   // 🔹 Fetch access logs
-  const { data: accessLogs } = await supabase
+  const { data: accessLogs } = await (await supabase)
     .from('access_logs')
     .select('*')
-    .eq('member_id', id)
+    .eq('member_id', memberId)
     .order('timestamp', { ascending: false });
 
   const activeSubscription = member.member_subscriptions?.find(
@@ -54,12 +59,12 @@ export default async function MemberDetailPage({ params: resolvedParams }: { par
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <Link href="/members" className="flex items-center gap-2">
+        <Link href={`/gyms/${gymId}/members`} className="flex items-center gap-2">
           <ArrowLeft className="h-5 w-5" />
           <span>Retour aux membres</span>
         </Link>
         <Button asChild>
-          <Link href={`/members/${params.id}/edit`}>
+          <Link href={`/gyms/${gymId}/members/${memberId}/edit`}>
             <Edit className="mr-2 h-4 w-4" />
             Modifier
           </Link>
@@ -67,6 +72,7 @@ export default async function MemberDetailPage({ params: resolvedParams }: { par
       </div>
 
       <div className="grid gap-6 md:grid-cols-3">
+        {/* Infos membres */}
         <Card>
           <CardHeader>
             <CardTitle>Informations</CardTitle>
@@ -89,6 +95,7 @@ export default async function MemberDetailPage({ params: resolvedParams }: { par
           </CardContent>
         </Card>
 
+        {/* Abonnement */}
         <Card>
           <CardHeader>
             <CardTitle>Abonnement</CardTitle>
@@ -97,7 +104,7 @@ export default async function MemberDetailPage({ params: resolvedParams }: { par
             {activeSubscription ? (
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <span className="font-medium">{activeSubscription.subscriptions?.name}</span>
+                  <span className="font-medium">{activeSubscription.subscriptions?.type}</span>
                   <SubscriptionStatusBadge status="active" />
                 </div>
                 <div className="text-sm">
@@ -116,7 +123,7 @@ export default async function MemberDetailPage({ params: resolvedParams }: { par
           </CardContent>
         </Card>
 
-        {/* Afficher la carte du badge uniquement si abonnement actif */}
+        {/* Badge membre */}
         {activeSubscription && (
           <Card>
             <CardHeader>
@@ -128,16 +135,12 @@ export default async function MemberDetailPage({ params: resolvedParams }: { par
                   <h3 className="font-bold text-lg">{member.full_name}</h3>
                   <p className="text-sm">{member.gyms?.name}</p>
                   <Badge className="mt-2 bg-white text-blue-600">
-                    {activeSubscription.subscriptions?.name}
+                    {activeSubscription.subscriptions?.type}
                   </Badge>
                 </div>
-                
+
                 <div className="flex justify-center">
-                  <QRCodeGenerator 
-                    value={member.qr_code} 
-                    size={160}
-                    className="p-2"
-                  />
+                  <QRCodeGenerator value={member.qr_code} size={160} className="p-2" />
                 </div>
                 <p className="text-center text-xs mt-4 text-gray-500">
                   ID: {member.id.slice(0, 8).toUpperCase()}
@@ -149,6 +152,7 @@ export default async function MemberDetailPage({ params: resolvedParams }: { par
         )}
       </div>
 
+      {/* Historique */}
       <div className="grid gap-6 md:grid-cols-2">
         <Card>
           <CardHeader>
@@ -159,7 +163,7 @@ export default async function MemberDetailPage({ params: resolvedParams }: { par
               <ul className="space-y-2">
                 {member.member_subscriptions.map((sub: any) => (
                   <li key={sub.id} className="flex justify-between">
-                    <span>{sub.subscriptions?.name}</span>
+                    <span>{sub.subscriptions?.type}</span>
                     <span>
                       {new Date(sub.start_date).toLocaleDateString()} -{' '}
                       {new Date(sub.end_date).toLocaleDateString()}

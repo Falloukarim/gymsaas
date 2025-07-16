@@ -1,112 +1,179 @@
 'use client';
 
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { createSubscription } from '@/actions/subscriptions/create';
-import { updateSubscription } from '@/actions/subscriptions/update';
-import { Button } from '../ui/button';
-import { Label } from '../ui/label';
-import { Input } from '../ui/input';
-import { Textarea } from '../ui/textarea';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect } from 'react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { createClient } from '@/lib/supabaseClient';
 import { toast } from 'sonner';
-import * as z from 'zod';
 
-const subscriptionSchema = z.object({
-  name: z.string().min(1, 'Required'),
-  price: z.number().min(0.01),
-  duration_days: z.number().min(1),
-  description: z.string().optional(),
-});
+const TYPE_OPTIONS = [
+  { value: 'mensuel', label: 'Mensuel', defaultDays: 30 },
+  { value: 'trimestriel', label: 'Trimestriel', defaultDays: 90 },
+  { value: 'semestriel', label: 'Semestriel', defaultDays: 180 },
+  { value: 'annuel', label: 'Annuel', defaultDays: 365 }
+];
 
-type FormData = z.infer<typeof subscriptionSchema>;
+type FormData = {
+  type: string;
+  price: string;
+  duration: string;
+  description?: string;
+};
 
-export function SubscriptionForm({
-  gymId,
-  initialData,
-}: {
-  gymId: string;
-  initialData?: Partial<FormData> & { id?: string };
-}) {
-  const router = useRouter();
-  const {
-    register,
-    handleSubmit,
-    formState: { errors, isSubmitting },
-  } = useForm<FormData>({
-    resolver: zodResolver(subscriptionSchema),
-    defaultValues: initialData,
+export default function SubscriptionForm({ gymId, onSuccess }: { gymId: string; onSuccess: () => void }) {
+  const [form, setForm] = useState<FormData>({
+    type: '',
+    price: '',
+    duration: '30',
+    description: ''
   });
+  const [isOpen, setIsOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
 
-  const onSubmit = async (data: FormData) => {
+  useEffect(() => {
+    console.log('SubscriptionForm mounted with gymId:', gymId);
+  }, [gymId]);
+
+  const handleTypeChange = (value: string) => {
+    const selectedType = TYPE_OPTIONS.find(opt => opt.value === value);
+    setForm({
+      ...form,
+      type: value,
+      duration: selectedType?.defaultDays.toString() || '30'
+    });
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!form.type || !form.price) {
+      toast.error('Veuillez sélectionner un type et un prix');
+      return;
+    }
+
+    setLoading(true);
+
     try {
-      const formData = new FormData();
-      formData.append('gym_id', gymId);
-      Object.entries(data).forEach(([key, value]) => {
-        if (value !== undefined) formData.append(key, value.toString());
-      });
+      const supabase = createClient();
+      console.log('Submitting with gymId:', gymId);
+      const { error } = await supabase
+        .from('subscriptions')
+        .insert({
+          gym_id: gymId,
+          type: form.type,
+          price: parseFloat(form.price),
+          duration_days: parseInt(form.duration),
+          description: form.description || null
+        });
 
-      const result = initialData?.id
-        ? await updateSubscription(initialData.id, formData)
-        : await createSubscription(formData);
+      if (error) {
+        throw error;
+      }
 
-      if (result?.error) throw new Error(result.error);
-
-      toast.success(
-        initialData?.id ? 'Subscription updated' : 'Subscription created'
-      );
-      router.push('/subscriptions');
-    } catch (error) {
-      toast.error('Operation failed');
-      console.error(error);
+      toast.success('Abonnement créé avec succès');
+      setForm({ type: '', price: '', duration: '30', description: '' });
+      setIsOpen(false);
+      onSuccess();
+    } catch (err: any) {
+      console.error('Erreur création abonnement:', err);
+      toast.error(err.message || "Erreur lors de la création de l'abonnement");
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-      <div>
-        <Label htmlFor="name">Name</Label>
-        <Input
-          id="name"
-          {...register('name')}
-          error={errors.name?.message}
-        />
-      </div>
+    <>
+      <Button onClick={() => setIsOpen(true)}>+ Ajouter un abonnement</Button>
 
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <Label htmlFor="price">Price (€)</Label>
-          <Input
-            id="price"
-            type="number"
-            step="0.01"
-            {...register('price', { valueAsNumber: true })}
-            error={errors.price?.message}
-          />
+      {isOpen && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-background p-6 rounded-lg w-full max-w-md">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-semibold">Nouvel abonnement</h3>
+              <button 
+                onClick={() => setIsOpen(false)} 
+                className="text-muted-foreground hover:text-foreground"
+                disabled={loading}
+              >
+                ×
+              </button>
+            </div>
+
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="space-y-2">
+                <Label>Type d'abonnement *</Label>
+                <Select 
+                  value={form.type} 
+                  onValueChange={handleTypeChange}
+                  required
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Sélectionnez un type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {TYPE_OPTIONS.map((opt) => (
+                      <SelectItem key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Prix (€) *</Label>
+                <Input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={form.price}
+                  onChange={(e) => setForm({...form, price: e.target.value})}
+                  placeholder="Ex: 39.99"
+                  required
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label>Durée (jours)</Label>
+                <Input
+                  type="number"
+                  min="1"
+                  value={form.duration}
+                  onChange={(e) => setForm({...form, duration: e.target.value})}
+                  disabled
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label>Description (optionnelle)</Label>
+                <Input
+                  type="text"
+                  value={form.description}
+                  onChange={(e) => setForm({...form, description: e.target.value})}
+                  placeholder="Description courte"
+                />
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setIsOpen(false)}
+                  disabled={loading}
+                >
+                  Annuler
+                </Button>
+                <Button type="submit" disabled={loading}>
+                  {loading ? 'Création...' : 'Créer'}
+                </Button>
+              </div>
+            </form>
+          </div>
         </div>
-        <div>
-          <Label htmlFor="duration_days">Duration (days)</Label>
-          <Input
-            id="duration_days"
-            type="number"
-            {...register('duration_days', { valueAsNumber: true })}
-            error={errors.duration_days?.message}
-          />
-        </div>
-      </div>
-
-      <div>
-        <Label htmlFor="description">Description</Label>
-        <Textarea
-          id="description"
-          {...register('description')}
-          rows={3}
-        />
-      </div>
-
-      <Button type="submit" loading={isSubmitting}>
-        {initialData?.id ? 'Update' : 'Create'} Subscription
-      </Button>
-    </form>
+      )}
+    </>
   );
 }

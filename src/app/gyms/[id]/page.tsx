@@ -11,7 +11,7 @@ export default async function GymDetailPage({ params }: { params: Params }) {
   const resolvedParams = await params // ✅ attends params avant de l'utiliser
   const { id } = resolvedParams
 
-  const supabase = createClient()
+const supabase = await createClient();
 
   // Récupération de l'utilisateur connecté
   const { data: { user } } = await supabase.auth.getUser()
@@ -19,20 +19,20 @@ export default async function GymDetailPage({ params }: { params: Params }) {
   // Vérification du rôle owner
   let isOwner = false
   if (user) {
-    const { data: userRole, error } = await supabase
-      .from('gbus')
-      .select('role')
-      .eq('user_id', user.id)
-      .eq('gym_id', id)
-      .maybeSingle()
+ const { data: userRole, error: roleError } = await supabase
+  .from('gbus')
+  .select('role')
+  .eq('user_id', user.id)
+  .eq('gym_id', id)
+  .maybeSingle();
 
-    if (!error && userRole?.role === 'owner') {
-      isOwner = true
-      console.log('Utilisateur est owner de cette salle')
-    } else {
-      console.log('Utilisateur N\'EST PAS owner', { error, userRole })
-    }
-  }
+console.log('Debug requête role:', {
+  userId: user.id,
+  gymId: id,
+  userRole,
+  roleError,
+  query: `select role from gbus where user_id='${user.id}' and gym_id='${id}'`
+});
 
   // Récupération des autres données en parallèle
   const [
@@ -189,4 +189,4 @@ export default async function GymDetailPage({ params }: { params: Params }) {
       </div>
     </div>
   )
-}
+}}

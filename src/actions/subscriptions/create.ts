@@ -17,7 +17,7 @@ export async function createSubscription(
     description: formData.get('description') as string || null,
   };
 
-  const { error } = await supabase
+  const { error } = await (await supabase)
     .from('subscriptions')
     .insert(rawData);
 

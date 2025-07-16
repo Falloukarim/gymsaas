@@ -6,7 +6,7 @@ export async function GET(request: Request) {
   const cookieStore = cookies();
   const supabase = createClient(cookieStore);
 
-  const { data: { user } } = await supabase.auth.getUser();
+  const { data: { user } } = await (await supabase).auth.getUser();
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   // Récupérer le gymId depuis l'URL
@@ -18,7 +18,7 @@ export async function GET(request: Request) {
   }
 
   // Vérifier si l'utilisateur a accès à ce gym
-  const { data: gbus } = await supabase
+  const { data: gbus } = await (await supabase)
     .from('gbus')
     .select('role')
     .eq('gym_id', gymId)
@@ -30,7 +30,7 @@ export async function GET(request: Request) {
   }
 
   // Récupérer tous les utilisateurs du gym
-  const { data: users } = await supabase
+  const { data: users } = await (await supabase)
     .from('gbus')
     .select('*, users(*)')
     .eq('gym_id', gymId);

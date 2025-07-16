@@ -10,7 +10,7 @@ export async function processRefund(
   const supabase = createClient();
 
   // Vérifier que le paiement existe et n'est pas déjà remboursé
-  const { data: payment } = await supabase
+  const { data: payment } = await (await supabase)
     .from('payments')
     .select('*')
     .eq('id', paymentId)
@@ -18,7 +18,7 @@ export async function processRefund(
 
   if (!payment) return { error: 'Payment not found' };
 
-  const { error } = await supabase
+  const { error } = await (await supabase)
     .from('payments')
     .update({ refunded_at: new Date().toISOString() })
     .eq('id', paymentId);
