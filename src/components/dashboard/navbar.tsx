@@ -1,12 +1,14 @@
 "use client";
 
-import { Bell, ChevronDown, LogOut, Settings, User, Search } from "lucide-react";
+import { Bell, ChevronDown, LogOut, Settings, User, Search, QrCode } from "lucide-react";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { supabase } from "@/lib/supabaseClient";
+import { QRScanner } from "@/components/QRScanner";
+import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 
 type UserData = {
   email: string;
@@ -17,6 +19,7 @@ type UserData = {
 export default function Navbar() {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [userData, setUserData] = useState<UserData | null>(null);
+  const [scannerOpen, setScannerOpen] = useState(false);
   const pathname = usePathname();
 
   useEffect(() => {
@@ -73,6 +76,20 @@ export default function Navbar() {
 
       {/* Right (Actions) */}
       <div className="flex items-center gap-3">
+        <Dialog open={scannerOpen} onOpenChange={setScannerOpen}>
+          <DialogTrigger asChild>
+            <button
+              className="rounded-full p-2 text-gray-400 hover:text-white transition"
+              aria-label="Scanner QR Code"
+            >
+              <QrCode className="h-4 w-4" />
+            </button>
+          </DialogTrigger>
+          <DialogContent className="sm:max-w-[425px]">
+            <QRScanner />
+          </DialogContent>
+        </Dialog>
+
         <button
           className="rounded-full p-2 text-gray-400 hover:text-white transition"
           aria-label="Notifications"

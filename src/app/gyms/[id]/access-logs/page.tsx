@@ -3,17 +3,31 @@
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { SearchBar } from '@/components/search-bar';
-import { createClient } from '@/lib/supabaseClient';
-import { useEffect, useState } from 'react';
+import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
+import { SetStateAction, useEffect, useState } from 'react';
+import { toast } from 'sonner';
+import Spinner from '@/components/ui/spinner';
+
+interface AccessLog {
+  id: string;
+  timestamp: string;
+  access_granted: boolean;
+  access_method: string;
+  gyms: { name: string } | null;
+  members: { full_name: string } | null;
+}
 
 export default function AccessLogsPage() {
-  const [logs, setLogs] = useState<any[]>([]);
+  const [logs, setLogs] = useState<AccessLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const [searchTimeout, setSearchTimeout] = useState<NodeJS.Timeout | null>(null);
 
-  useEffect(() => {
-    const fetchLogs = async () => {
-      const supabase = createClient();
+  const supabase = createClientComponentClient();
+
+  const fetchLogs = async () => {
+    try {
+      setLoading(true);
       let query = supabase
         .from('access_logs')
         .select(`
@@ -22,23 +36,41 @@ export default function AccessLogsPage() {
           access_granted,
           access_method,
           gyms(name),
-          members(full_name)
+          members!inner(full_name)
         `)
         .order('timestamp', { ascending: false });
 
-      if (searchQuery) {
-        query = query.ilike('members.full_name', `%${searchQuery}%`);
+      if (searchQuery.trim()) {
+        query = query.ilike('members.full_name', `%${searchQuery.trim()}%`);
       }
 
       const { data, error } = await query;
 
-      if (!error && data) {
-        setLogs(data);
-      }
-      setLoading(false);
-    };
+      if (error) throw error;
 
-    fetchLogs();
+      setLogs(data as unknown as AccessLog[] || []);
+    } catch (error) {
+      console.error('Error fetching access logs:', error);
+      toast.error('Erreur lors du chargement des historiques');
+      setLogs([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    // Debounce search
+    if (searchTimeout) clearTimeout(searchTimeout);
+    
+    const timeout = setTimeout(() => {
+      fetchLogs();
+    }, 300);
+
+    setSearchTimeout(timeout);
+
+    return () => {
+      if (searchTimeout) clearTimeout(searchTimeout);
+    };
   }, [searchQuery]);
 
   return (
@@ -51,9 +83,10 @@ export default function AccessLogsPage() {
         <CardContent>
           <div className="mb-4">
             <SearchBar 
-              placeholder="Rechercher une entrée..." 
+              placeholder="Rechercher un membre..." 
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={(e: { target: { value: SetStateAction<string>; }; }) => setSearchQuery(e.target.value)}
+              disabled={loading}
             />
           </div>
           
@@ -61,19 +94,19 @@ export default function AccessLogsPage() {
             <table className="min-w-full divide-y divide-gray-700">
               <thead className="bg-[#1e3a4b]">
                 <tr>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
                     Membre
                   </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
                     Date & Heure
                   </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
                     Salle
                   </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
                     Méthode
                   </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
                     Statut
                   </th>
                 </tr>
@@ -81,29 +114,38 @@ export default function AccessLogsPage() {
               <tbody className="bg-[#0d1a23] divide-y divide-gray-700">
                 {loading ? (
                   <tr>
-                    <td colSpan={5} className="px-6 py-4 text-center text-white">
-                      Chargement...
+                    <td colSpan={5} className="px-6 py-8 text-center">
+                      <div className="flex justify-center items-center gap-2">
+                        <Spinner className="h-5 w-5" />
+                        <span>Chargement des historiques...</span>
+                      </div>
                     </td>
                   </tr>
                 ) : logs.length === 0 ? (
                   <tr>
                     <td colSpan={5} className="px-6 py-4 text-center text-white">
-                      Aucune entrée trouvée
+                      {searchQuery ? 'Aucun résultat trouvé' : 'Aucun historique disponible'}
                     </td>
                   </tr>
                 ) : (
                   logs.map((log) => (
                     <tr key={log.id} className="hover:bg-[#1a2e3a] transition-colors">
                       <td className="px-6 py-4 whitespace-nowrap text-white font-medium">
-                        {log.members?.full_name || 'Inconnu'}
+                        {log.members?.full_name || 'Visiteur'}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-white">
-                        {new Date(log.timestamp).toLocaleString()}
+                        {new Date(log.timestamp).toLocaleString('fr-FR', {
+                          day: '2-digit',
+                          month: '2-digit',
+                          year: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit'
+                        })}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-white">
                         {log.gyms?.name || '-'}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-white">
+                      <td className="px-6 py-4 whitespace-nowrap text-white capitalize">
                         {log.access_method}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
@@ -111,7 +153,7 @@ export default function AccessLogsPage() {
                           variant={log.access_granted ? "default" : "destructive"}
                           className="text-xs"
                         >
-                          {log.access_granted ? "Validé" : "Refusé"}
+                          {log.access_granted ? "Accès validé" : "Accès refusé"}
                         </Badge>
                       </td>
                     </tr>

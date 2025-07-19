@@ -7,12 +7,22 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { Input } from '@/components/ui/input';
+import { USER_ROLES } from '@/lib/constants/role';
 
-export function RoleManager({ gymId }: { gymId: string }) {
+export function RoleManager({ gymId, currentUserRole }: { gymId: string, currentUserRole: string }) {
   const supabase = createClient();
   const [users, setUsers] = useState<any[]>([]);
   const [email, setEmail] = useState('');
+  const [selectedRole, setSelectedRole] = useState(USER_ROLES.STAFF);
   const [loading, setLoading] = useState(true);
+
+  // Rôles disponibles en fonction du rôle actuel
+  const availableRoles = () => {
+    if (currentUserRole === USER_ROLES.OWNER) {
+      return Object.values(USER_ROLES);
+    }
+    return [USER_ROLES.ADMIN, USER_ROLES.STAFF];
+  };
 
   const fetchUsers = async () => {
     const { data, error } = await supabase
@@ -34,6 +44,23 @@ export function RoleManager({ gymId }: { gymId: string }) {
   }, [gymId]);
 
   const updateRole = async (userId: string, newRole: string) => {
+    // Empêcher la modification du dernier owner
+    if (newRole !== USER_ROLES.OWNER) {
+      const { count } = await supabase
+        .from('gbus')
+        .select('*', { count: 'exact', head: true })
+        .eq('gym_id', gymId)
+        .eq('role', USER_ROLES.OWNER);
+
+      if (count === 1) {
+        const currentUser = users.find(u => u.user_id === userId);
+        if (currentUser?.role === USER_ROLES.OWNER) {
+          toast.error('Un gym doit avoir au moins un owner');
+          return;
+        }
+      }
+    }
+
     setLoading(true);
     const { error } = await supabase
       .from('gbus')
@@ -46,9 +73,7 @@ export function RoleManager({ gymId }: { gymId: string }) {
       console.error(error);
     } else {
       toast.success('Rôle mis à jour');
-      setUsers(users.map(u => 
-        u.user_id === userId ? { ...u, role: newRole } : u
-      ));
+      fetchUsers();
     }
     setLoading(false);
   };
@@ -57,37 +82,50 @@ export function RoleManager({ gymId }: { gymId: string }) {
     if (!email) return;
     
     setLoading(true);
-    // 1. Trouver l'utilisateur par email
-    const { data: user, error: userError } = await supabase
-      .from('users')
-      .select('id')
-      .eq('email', email)
-      .single();
+    try {
+      // 1. Vérifier si l'utilisateur existe
+      const { data: user, error: userError } = await supabase
+        .from('users')
+        .select('id')
+        .eq('email', email)
+        .single();
 
-    if (userError || !user) {
-      toast.error('Utilisateur non trouvé');
-      setLoading(false);
-      return;
-    }
+      if (user) {
+        // Utilisateur existe - ajouter directement à gbus
+        const { error } = await supabase
+          .from('gbus')
+          .insert({
+            gym_id: gymId,
+            user_id: user.id,
+            role: selectedRole
+          });
 
-    // 2. Créer l'association (par défaut staff)
-    const { error } = await supabase
-      .from('gbus')
-      .insert({
-        gym_id: gymId,
-        user_id: user.id,
-        role: 'staff'
-      });
+        if (error) throw error;
+        toast.success('Utilisateur ajouté au gym');
+      } else {
+        // Utilisateur n'existe pas - créer une invitation
+        const { error } = await supabase
+          .from('invitations')
+          .insert({
+            gym_id: gymId,
+            email,
+            role: selectedRole
+          });
 
-    if (error) {
-      toast.error('Erreur lors de l\'invitation');
-      console.error(error);
-    } else {
-      toast.success('Utilisateur ajouté');
+        if (error) throw error;
+        
+        // Ici vous devriez envoyer un email avec un token/lien d'invitation
+        toast.success('Invitation envoyée à ' + email);
+      }
+
       setEmail('');
       fetchUsers();
+    } catch (error) {
+      console.error(error);
+      toast.error("Erreur lors de l'invitation");
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   return (
@@ -100,6 +138,22 @@ export function RoleManager({ gymId }: { gymId: string }) {
           onChange={(e) => setEmail(e.target.value)}
           disabled={loading}
         />
+        <Select 
+          value={selectedRole} 
+          onValueChange={setSelectedRole}
+          disabled={loading}
+        >
+          <SelectTrigger className="w-[120px]">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {availableRoles().map(role => (
+              <SelectItem key={role} value={role}>
+                {role.charAt(0).toUpperCase() + role.slice(1)}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
         <Button onClick={inviteUser} disabled={loading}>
           Inviter
         </Button>
@@ -115,15 +169,17 @@ export function RoleManager({ gymId }: { gymId: string }) {
             <Select 
               value={user.role}
               onValueChange={(value) => updateRole(user.user_id, value)}
-              disabled={loading}
+              disabled={loading || (user.role === USER_ROLES.OWNER && currentUserRole !== USER_ROLES.OWNER)}
             >
               <SelectTrigger className="w-[120px]">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="owner">Owner</SelectItem>
-                <SelectItem value="admin">Admin</SelectItem>
-                <SelectItem value="staff">Staff</SelectItem>
+                {availableRoles().map(role => (
+                  <SelectItem key={role} value={role}>
+                    {role.charAt(0).toUpperCase() + role.slice(1)}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>

@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useState } from 'react'
-import { supabase } from '@/lib/supabaseClient' // Utilisez l'instance exportée
+import { supabase } from '@/lib/supabaseClient'
 
 export default function LoginPage() {
   const [email, setEmail] = useState('')
@@ -17,52 +17,43 @@ export default function LoginPage() {
   const router = useRouter()
   const message = searchParams.get('message')
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setError('');
+  
+const handleSubmit = async (e: React.FormEvent) => {
+  e.preventDefault();
+  setLoading(true);
+  setError('');
 
-    try {
-      // Utilisez directement 'supabase' importé plutôt que d'en créer un nouveau
-      const { error: authError, data: { user } } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
+  try {
+    const { error: authError } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
 
-      if (authError) throw authError;
+    if (authError) throw authError;
 
-      // Vérification des associations gbus avec retry
-      let retries = 3;
-      let gbusData = null;
+    // Attendre 1s max pour la synchronisation
+    await new Promise(resolve => setTimeout(resolve, 500));
 
-      while (retries > 0) {
-        const { data } = await supabase
-          .from('gbus')
-          .select('gym_id')
-          .eq('user_id', user?.id)
-          .order('created_at', { ascending: false });
+    // Vérifier les invitations
+    const { data: { user } } = await supabase.auth.getUser();
+    const { data: invitations } = await supabase
+      .from('invitations')
+      .select('id')
+      .eq('email', user?.email)
+      .eq('accepted', false);
 
-        if (data && data.length > 0) {
-          gbusData = data[0];
-          break;
-        }
-
-        retries--;
-        await new Promise(resolve => setTimeout(resolve, 300));
-      }
-
-      if (gbusData) {
-        window.location.href = `/gyms/${gbusData.gym_id}/dashboard`;
-      } else {
-        window.location.href = '/gyms/new';
-      }
-      
-    } catch (err: any) {
-      setError(err.message || "Erreur de connexion");
-    } finally {
-      setLoading(false);
+    if (invitations?.length) {
+      window.location.href = '/gyms/join';
+    } else {
+      window.location.href = '/gyms/select';
     }
-  };
+    
+  } catch (err: any) {
+    setError(err.message || "Erreur de connexion");
+  } finally {
+    setLoading(false);
+  }
+};
 
   return (
     <div className="w-full lg:grid lg:min-h-[600px] lg:grid-cols-2">
@@ -134,7 +125,7 @@ export default function LoginPage() {
       </div>
       <div className="hidden bg-gradient-to-br from-[#0d1a23] to-[#1a2e3a] lg:flex items-center justify-center">
         <div className="p-8 text-white">
-          <h2 className="text-2xl font-bold mb-4">Bienvenue sur GymPro</h2>
+          <h2 className="text-2xl font-bold mb-4">Bienvenue sur SENGYM</h2>
           <p className="text-gray-300">
             La solution complète pour gérer votre salle de sport
           </p>

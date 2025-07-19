@@ -8,31 +8,64 @@ import { Plus } from 'lucide-react';
 
 export default async function PaymentsPage({
   searchParams,
+  params
 }: {
-  searchParams: { q?: string }
+  searchParams: Promise<{ q?: string }>
+  params: Promise<{ id: string }>
 }) {
+  const resolvedParams = await params;
+  const gymId = resolvedParams.id;
+  const resolvedSearchParams = await searchParams;
+  const searchQuery = resolvedSearchParams.q;
+
   const supabase = createClient();
-  
+
+  // 1. Requête debug simple
+  const { data: testPayments } = await (await supabase)
+    .from('payments')
+    .select('*')
+    .eq('gym_id', gymId)
+    .limit(5);
+
+  console.log('Test payments:', testPayments);
+
+  // 2. Requête principale corrigée
   let query = (await supabase)
     .from('payments')
     .select(`
-      id, 
-      amount, 
-      payment_method, 
-      status, 
-      payment_date, 
-      members(full_name),
-      member_subscriptions(
-        subscriptions(name)
+      id,
+      amount,
+      payment_method,
+      status,
+      created_at,
+      members!inner(
+        full_name
+      ),
+      subscriptions:subscription_id(
+        type  
       )
     `)
-    .order('payment_date', { ascending: false });
+    .eq('gym_id', gymId)
+    .order('created_at', { ascending: false });
 
-  if (searchParams.q) {
-    query = query.ilike('members.full_name', `%${searchParams.q}%`);
+  if (searchQuery) {
+    query = query.ilike('members.full_name', `%${searchQuery}%`);
   }
 
-  const { data: payments } = await query;
+  const { data: payments, error } = await query;
+
+  if (error) {
+    console.error('Supabase error details:', {
+      message: error.message,
+      code: error.code,
+      details: error.details
+    });
+    return (
+      <div className="p-6 text-red-500">
+        Erreur technique: {error.message}
+      </div>
+    );
+  }
 
   return (
     <div className="p-6">
@@ -41,44 +74,33 @@ export default async function PaymentsPage({
           <div className="flex justify-between items-center">
             <CardTitle className="text-2xl font-bold">Gestion des Paiements</CardTitle>
             <Button asChild className="bg-[#00c9a7] hover:bg-[#00a58e] text-white">
-              <Link href="/payments/new" className="flex items-center gap-2">
-                <Plus className="h-4 w-4" />
+              <Link href={`/gyms/${gymId}/payments/new`}>
+                <Plus className="h-4 w-4 mr-2" />
                 Nouveau paiement
               </Link>
             </Button>
           </div>
         </CardHeader>
-        
+
         <CardContent>
           <div className="mb-4">
-            <SearchBar placeholder="Rechercher un paiement..." />
+            <SearchBar 
+              placeholder="Rechercher un paiement..." 
+              defaultValue={searchQuery}
+            />
           </div>
-          
+
           <div className="rounded-lg overflow-hidden border border-gray-700">
             <table className="min-w-full divide-y divide-gray-700">
               <thead className="bg-[#1e3a4b]">
                 <tr>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
-                    Membre
-                  </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
-                    Abonnement
-                  </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
-                    Montant
-                  </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
-                    Méthode
-                  </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
-                    Statut
-                  </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
-                    Date
-                  </th>
-                  <th scope="col" className="px-6 py-3 text-right text-xs font-medium uppercase tracking-wider">
-                    Actions
-                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium uppercase">Membre</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium uppercase">Type</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium uppercase">Montant</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium uppercase">Méthode</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium uppercase">Statut</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium uppercase">Date</th>
+                  <th className="px-6 py-3 text-right text-xs font-medium uppercase">Actions</th>
                 </tr>
               </thead>
               <tbody className="bg-[#0d1a23] divide-y divide-gray-700">
@@ -88,7 +110,7 @@ export default async function PaymentsPage({
                       {payment.members?.full_name || 'Membre inconnu'}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-white">
-                      {payment.member_subscriptions?.[0]?.subscriptions?.name || '-'}
+                      {payment.subscriptions?.type || payment.type || '-'}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-white">
                       {payment.amount} €
@@ -99,25 +121,33 @@ export default async function PaymentsPage({
                       </Badge>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <Badge 
-                        variant={payment.status === "paid" ? "default" : payment.status === "pending" ? "secondary" : "destructive"}
+                      <Badge
+                        variant={
+                          payment.status === 'paid'
+                            ? 'default'
+                            : payment.status === 'pending'
+                            ? 'secondary'
+                            : 'destructive'
+                        }
                         className="text-xs"
                       >
-                        {payment.status === "paid" ? "Payé" : payment.status === "pending" ? "En attente" : "Échoué"}
+                        {payment.status === 'paid'
+                          ? 'Payé'
+                          : payment.status === 'pending'
+                          ? 'En attente'
+                          : 'Échoué'}
                       </Badge>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-white">
-                      {new Date(payment.payment_date).toLocaleDateString()}
+                      {new Date(payment.created_at).toLocaleDateString()}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                      <Button 
-                        variant="link" 
+                      <Button
+                        variant="link"
                         className="text-[#00c9a7] hover:text-[#00a58e] p-0 h-auto"
                         asChild
                       >
-                        <Link href={`/payments/${payment.id}`}>
-                          Détails
-                        </Link>
+                        <Link href={`/gyms/${gymId}/payments/${payment.id}`}>Détails</Link>
                       </Button>
                     </td>
                   </tr>

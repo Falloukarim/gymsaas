@@ -2,54 +2,82 @@
 
 import { createClient } from '@/utils/supabase/server';
 import { revalidatePath } from 'next/cache';
+import { redirect } from 'next/navigation';
 
 export async function updateProfile(formData: FormData) {
-  const supabase = createClient();
+  const supabase = await createClient();
   
-  const { data: { user }, error: authError } = await (await supabase).auth.getUser();
+  const { data: { user }, error: authError } = await supabase.auth.getUser();
   
   if (authError || !user) {
-    return { error: "Session expirée, veuillez vous reconnecter" };
+    return redirect('/login?message=Session expirée');
   }
 
-  // Upload de l'image si elle existe
-  const avatarFile = formData.get('avatar') as File | null;
-  let avatarUrl = null;
+  // Gestion de l'avatar
+  let avatarUrl: string | null = null;
+  const avatarFile = formData.get('avatar_url') as File;
 
-  if (avatarFile && avatarFile.size > 0) {
-    const ext = avatarFile.name.split('.').pop();
-    const fileName = `${user.id}-${Date.now()}.${ext}`;
-    const { data, error } = await (await supabase).storage
-      .from('avatars')
-      .upload(fileName, avatarFile);
+  if (avatarFile?.size > 0) {
+    try {
+      const ext = avatarFile.name.split('.').pop();
+      const fileName = `${user.id}/${Date.now()}.${ext}`;
+      
+      // Supprimer l'ancien avatar si il existe
+      const { data: oldAvatar } = await supabase
+        .from('users')
+        .select('avatar_url')
+        .eq('id', user.id)
+        .single();
 
-    if (error) {
+      if (oldAvatar?.avatar_url) {
+        const oldFilePath = oldAvatar.avatar_url.split('/public/avatars/')[1];
+        await supabase.storage
+          .from('avatars')
+          .remove([oldFilePath]);
+      }
+
+      // Upload du nouveau fichier
+      const { error: uploadError } = await supabase.storage
+        .from('avatars')
+        .upload(fileName, avatarFile, {
+          cacheControl: '3600',
+          upsert: false
+        });
+
+      if (uploadError) throw uploadError;
+
+      // Récupération de l'URL publique
+      const { data: { publicUrl } } = supabase.storage
+        .from('avatars')
+        .getPublicUrl(fileName);
+
+      avatarUrl = publicUrl;
+    } catch (error) {
+      console.error('Upload error:', error);
       return { error: "Erreur lors de l'upload de l'image" };
     }
-
-    // Récupérer l'URL publique
-    const { data: { publicUrl } } = (await supabase).storage
-      .from('avatars')
-      .getPublicUrl(fileName);
-
-    avatarUrl = publicUrl;
   }
 
   // Mise à jour du profil
-  const { error } = await (await supabase)
-    .from('users')
-    .update({ 
-      full_name: formData.get('full_name') as string,
-      phone: formData.get('phone') as string,
-      ...(avatarUrl && { avatar_url: avatarUrl }),
-      updated_at: new Date().toISOString()
-    })
-    .eq('id', user.id);
+  try {
+    const updateData = {
+      full_name: formData.get('full_name'),
+      phone: formData.get('phone'),
+      updated_at: new Date().toISOString(),
+      ...(avatarUrl && { avatar_url: avatarUrl })
+    };
 
-  if (error) {
-    return { error: "Erreur lors de la mise à jour" };
+    const { error } = await supabase
+      .from('users')
+      .update(updateData)
+      .eq('id', user.id);
+
+    if (error) throw error;
+
+    revalidatePath('/profile');
+    return { success: "Profil mis à jour avec succès" };
+  } catch (error) {
+    console.error('DB error:', error);
+    return { error: "Erreur lors de la mise à jour du profil" };
   }
-
-  revalidatePath('/profile');
-  return { success: "Profil mis à jour" };
 }

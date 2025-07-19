@@ -16,7 +16,8 @@ const memberSchema = z.object({
   full_name: z.string().min(2, 'Minimum 2 caractères'),
   email: z.string().email('Email invalide').optional().or(z.literal('')),
   phone: z.string().min(6, 'Minimum 6 caractères'),
-  subscription_id: z.string().optional()
+  subscription_id: z.string().optional(),
+  session_amount: z.string().optional(),
 });
 
 export function MemberForm({
@@ -24,7 +25,7 @@ export function MemberForm({
   subscriptions,
 }: {
   gymId: string;
-subscriptions: { id: string; type: string; price?: number }[];
+  subscriptions: { id: string; type: string; price?: number }[];
 }) {
   const router = useRouter();
 
@@ -42,46 +43,43 @@ subscriptions: { id: string; type: string; price?: number }[];
       email: '',
       phone: '',
       subscription_id: undefined,
+      session_amount: '',
     },
   });
 
   const subscriptionId = watch('subscription_id');
 
   const onSubmit = async (data: z.infer<typeof memberSchema>) => {
-  try {
-    const formData = new FormData();
-    formData.append('gym_id', data.gym_id);
-    formData.append('full_name', data.full_name);
-    formData.append('phone', data.phone);
-    if (data.email) formData.append('email', data.email);
-    if (data.subscription_id) formData.append('subscription_id', data.subscription_id);
+    try {
+      const formData = new FormData();
+      formData.append('gym_id', data.gym_id);
+      formData.append('full_name', data.full_name);
+      formData.append('phone', data.phone);
+      if (data.email) formData.append('email', data.email);
+      if (data.subscription_id) formData.append('subscription_id', data.subscription_id);
+      if (subscriptionId === 'session' && data.session_amount) {
+        formData.append('session_amount', data.session_amount);
+      }
 
-    const result = await createMember(formData);
+      const result = await createMember(formData);
 
-    if (result?.error) {
-      toast.error(result.error);
-      return;
+      if (result?.error) {
+        toast.error(result.error);
+        return;
+      }
+
+      toast.success('Membre créé avec succès');
+      
+      if (result.redirectUrl) {
+        router.push(result.redirectUrl);
+      } else {
+        router.push(`/gyms/${gymId}/dashboard`);
+      }
+    } catch (error) {
+      toast.error('Erreur lors de la création du membre');
+      console.error(error);
     }
-
-    toast.success('Membre créé avec succès');
-    
-    // Redirection vers la page détail du membre
-    if (result.redirectUrl) {
-      router.push(result.redirectUrl);
-    } else {
-      router.push(`/gyms/${gymId}/dashboard`);
-    }
-  } catch (error) {
-    toast.error('Erreur lors de la création du membre');
-    console.error(error);
-  }
-};
-
-   console.log('Données passées à MemberForm:', {
-  gymId,
-  subscriptions,
-  subscriptionsCount: subscriptions?.length
-});
+  };
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
@@ -122,26 +120,40 @@ subscriptions: { id: string; type: string; price?: number }[];
 
         {subscriptions.length > 0 && (
           <div className="space-y-2">
-            <Label>Abonnement</Label>
+            <Label>Abonnement ou Session</Label>
             <Select
               value={subscriptionId}
               onValueChange={(value) => setValue('subscription_id', value)}
               disabled={isSubmitting}
             >
               <SelectTrigger>
-                <SelectValue placeholder="Sélectionnez un abonnement" />
+                <SelectValue placeholder="Sélectionnez un abonnement ou session" />
               </SelectTrigger>
               <SelectContent>
+                <SelectItem value="session">Session (paiement ponctuel)</SelectItem>
                 {subscriptions.map((sub) => (
-  <SelectItem key={sub.id} value={sub.id}>
-    {sub.type} {sub.price ? `(€${sub.price})` : ''}
-  </SelectItem>
-))}
+                  <SelectItem key={sub.id} value={sub.id}>
+                    {sub.type} {sub.price ? `(€${sub.price})` : ''}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
             {errors.subscription_id && (
               <p className="text-sm text-red-500">{errors.subscription_id.message}</p>
             )}
+          </div>
+        )}
+
+        {subscriptionId === 'session' && (
+          <div className="space-y-2">
+            <Label htmlFor="session_amount">Montant de la session (€)*</Label>
+            <Input
+              id="session_amount"
+              type="number"
+              {...register('session_amount')}
+              error={errors.session_amount?.message}
+              disabled={isSubmitting}
+            />
           </div>
         )}
       </div>
