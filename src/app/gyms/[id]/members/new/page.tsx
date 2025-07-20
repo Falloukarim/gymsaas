@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { MemberForm } from '@/components/members/MemberForm';
 import { createClient } from '@/utils/supabase/server';
 import { redirect } from 'next/navigation';
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 export default async function NewMemberPage({ 
   params: resolvedParams 
@@ -18,7 +19,7 @@ export default async function NewMemberPage({
     redirect('/login');
   }
 
-  // Vérifier que l'utilisateur a accès à ce gym
+  // Vérifier l'accès au gym
   const { data: gbus, error } = await (await supabase)
     .from('gbus')
     .select()
@@ -31,7 +32,7 @@ export default async function NewMemberPage({
     redirect('/gyms/new');
   }
 
-  // Récupérer les infos du gym (pour le titre)
+  // Récupérer les infos du gym
   const { data: gym } = await (await supabase)
     .from('gyms')
     .select('name')
@@ -39,31 +40,35 @@ export default async function NewMemberPage({
     .single();
 
   // Récupérer les abonnements disponibles
- const { data: subscriptions } = await (await supabase)
-  .from('subscriptions')
-  .select('id, type, price')
-  .eq('gym_id', gymId);
-
-
+  const { data: subscriptions } = await (await supabase)
+    .from('subscriptions')
+    .select('id, type, price')
+    .eq('gym_id', gymId);
 
   return (
-    <div className="space-y-6 p-6 max-w-3xl mx-auto">
+    <div className="max-w-4xl mx-auto p-6 space-y-6">
       <Link
         href={`/gyms/${gymId}/dashboard`}
-        className="flex items-center gap-2 text-sm text-[#00c9a7] hover:text-[#00a58e]"
+        className="inline-flex items-center gap-2 text-sm font-medium text-[#00c9a7] hover:text-[#00a58e] transition"
       >
         <ArrowLeft className="h-4 w-4" />
         Retour au dashboard
       </Link>
 
-      <h1 className="text-2xl font-bold">
-        Nouveau membre pour {gym?.name || 'votre salle'}
-      </h1>
+      <Card className="bg-[#0d1a23] border border-gray-700 text-white shadow-lg">
+        <CardHeader>
+          <CardTitle className="text-2xl font-bold">
+            Nouveau membre pour {gym?.name || 'votre salle'}
+          </CardTitle>
+        </CardHeader>
 
-      <MemberForm 
-        gymId={gymId}
-        subscriptions={subscriptions || []}
-      />
+        <CardContent>
+          <MemberForm 
+            gymId={gymId}
+            subscriptions={subscriptions || []}
+          />
+        </CardContent>
+      </Card>
     </div>
   );
 }

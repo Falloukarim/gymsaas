@@ -1,5 +1,4 @@
 import { createClient } from '@/utils/supabase/server';
-import { Activity, CreditCard, Users, Euro, Clock } from "lucide-react";
 import Link from "next/link";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -62,7 +61,7 @@ export default async function GymDashboardPage({
 
   try {
     const [
-      { count: activeMembers },
+      { count: inactiveSubscriptions },
       { count: activeSubscriptions },
       { data: todayRevenue },
       { data: monthlyRevenue },
@@ -76,11 +75,11 @@ export default async function GymDashboardPage({
         .select('*', { count: 'exact' })
         .eq('gym_id', params.id)
         .eq('has_subscription', true),
-      (await supabase)
-        .from('member_subscriptions')
-        .select('*', { count: 'exact' })
-        .eq('gym_id', params.id)
-        .gt('end_date', new Date().toISOString()),
+         (await supabase)
+    .from('member_subscriptions')
+    .select('*', { count: 'exact' })
+    .eq('gym_id', params.id)
+    .lt('end_date', new Date().toISOString()),
       (await supabase)
         .from('payments')
         .select('amount')
@@ -119,42 +118,42 @@ export default async function GymDashboardPage({
     const monthlyRevenueTotal = monthlyRevenue?.reduce((sum, payment) => sum + (payment.amount || 0), 0) || 0;
 
     const stats = [
-      { 
-        name: "Membres actifs", 
-        value: activeMembers?.toLocaleString() || "0", 
-        iconName: "Users",
-        change: "+0%", 
-        changeType: "positive" 
-      },
-      { 
-        name: "Abonnements actifs", 
-        value: activeSubscriptions?.toLocaleString() || "0", 
-        iconName: "CreditCard",
-        change: "+0%", 
-        changeType: "positive" 
-      },
-      { 
-        name: "Revenu du jour", 
-        value: `€${todayRevenueTotal.toFixed(2)}`, 
-        iconName: "Euro",
-        change: "+0%", 
-        changeType: "positive" 
-      },
-      { 
-        name: "Revenus mensuels", 
-        value: `€${monthlyRevenueTotal.toFixed(2)}`, 
-        iconName: "Activity",
-        change: "+0%", 
-        changeType: "positive" 
-      },
-      { 
-        name: "Entrées aujourd'hui", 
-        value: todayEntries?.toString() || "0", 
-        iconName: "Clock",
-        change: "+0%", 
-        changeType: "positive" 
-      },
-    ];
+  { 
+    name: "Abonnements inactifs", 
+    value: inactiveSubscriptions?.toLocaleString() || "0", 
+    iconName: "Users",
+    change: "+0%", 
+    changeType: "positive" 
+  },
+  { 
+    name: "Abonnements actifs", 
+    value: activeSubscriptions?.toLocaleString() || "0", 
+    iconName: "CreditCard",
+    change: "+0%", 
+    changeType: "positive" 
+  },
+  { 
+    name: "Revenu du jour", 
+    value: `FCFA ${(todayRevenueTotal * 655).toFixed(2)}`, // Conversion approximative euro -> FCFA
+    iconName: "Euro",
+    change: "+0%", 
+    changeType: "positive" 
+  },
+  { 
+    name: "Revenus mensuels", 
+    value: `FCFA ${(monthlyRevenueTotal * 655).toFixed(2)}`, // Conversion approximative euro -> FCFA
+    iconName: "Activity",
+    change: "+0%", 
+    changeType: "positive" 
+  },
+  { 
+    name: "Entrées aujourd'hui", 
+    value: todayEntries?.toString() || "0", 
+    iconName: "Clock",
+    change: "+0%", 
+    changeType: "positive" 
+  },
+];
 
     return (
       <div className="flex min-h-screen bg-[#0d1a23]">
@@ -218,6 +217,7 @@ export default async function GymDashboardPage({
     );
   } catch (error) {
     console.error('Error loading dashboard data:', error);
+    
     return (
       <div className="flex min-h-screen bg-[#0d1a23]">
         <div className="flex-1 flex flex-col">

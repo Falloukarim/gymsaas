@@ -13,7 +13,7 @@ import { useState } from 'react';
 
 const gymSchema = z.object({
   name: z.string().min(2, 'Minimum 2 caractères'),
-  address: z.string().min(5),
+  address: z.string().min(5, 'Adresse invalide'),
   phone: z.string().min(7, 'Numéro de téléphone invalide'),
   city: z.string().optional(),
   postal_code: z.string().optional(),
@@ -22,63 +22,79 @@ const gymSchema = z.object({
 export default function NewGymPage() {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const { register, handleSubmit, formState: { errors } } = useForm({
-    resolver: zodResolver(gymSchema)
+
+  const {
+    register,
+    handleSubmit,
+    formState: { errors }
+  } = useForm({
+    resolver: zodResolver(gymSchema),
   });
 
- const onSubmit = async (data: z.infer<typeof gymSchema>) => {
-  if (isSubmitting) return;
-  setIsSubmitting(true);
-  
-  try {
-    const supabase = createClient()
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    if (authError || !user) throw new Error("Non authentifié")
+  const onSubmit = async (data: z.infer<typeof gymSchema>) => {
+    if (isSubmitting) return;
+    setIsSubmitting(true);
 
-    // 1. Création gym avec transaction
-    const { data: gym, error: gymError } = await supabase
-      .from('gyms')
-      .insert({
-        ...data,
-        owner_id: user.id
-      })
-      .select()
-      .single()
+    try {
+      const supabase = createClient();
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
 
-    if (gymError) throw gymError
+      if (authError || !user) throw new Error("Utilisateur non authentifié");
 
-    // 2. Création association avec vérification forcée
-    const { error: gbusError } = await supabase
-      .from('gbus')
-      .insert({
-        gym_id: gym.id,
-        user_id: user.id,
-        role: 'owner'
-      })
-      .select()
-      .single()
+      console.log("Utilisateur :", user);
 
-    if (gbusError) {
-      await supabase.from('gyms').delete().eq('id', gym.id)
-      throw gbusError
+      // 1. Créer le gym
+      const { data: gym, error: gymError } = await supabase
+        .from('gyms')
+        .insert({
+          ...data,
+          owner_id: user.id,
+        })
+        .select()
+        .single();
+
+      console.log("Résultat création gym :", { gym, gymError });
+      if (gymError) throw new Error(gymError.message || "Erreur lors de la création du gym");
+
+      // 2. Associer le user comme OWNER
+      const { data: gbus, error: gbusError } = await supabase
+        .from('gbus')
+        .insert({
+          gym_id: gym.id,
+          user_id: user.id,
+          role: 'owner',
+        })
+        .select()
+        .single();
+
+      console.log("Résultat association gbus :", { gbus, gbusError });
+      if (gbusError) {
+        // Nettoyage en cas d’échec
+        await supabase.from('gyms').delete().eq('id', gym.id);
+        throw new Error(gbusError.message || "Erreur lors de l'association utilisateur");
+      }
+
+      // 3. Revalider le cache ou session côté serveur (optionnel selon ta app)
+      await fetch('/api/auth/refresh', {
+        method: 'POST',
+        credentials: 'same-origin',
+      });
+
+      // 4. Rediriger vers le dashboard
+      window.location.assign(`/gyms/${gym.id}/dashboard?t=${Date.now()}`);
+
+    } catch (err: any) {
+      const errorMessage =
+        typeof err === 'string'
+          ? err
+          : err?.message || JSON.stringify(err) || "Erreur inconnue";
+
+      toast.error(errorMessage);
+      console.error("Erreur création gym :", err);
+    } finally {
+      setIsSubmitting(false);
     }
-
-    // 3. Rafraîchissement forcé du cache côté serveur
-    await fetch('/api/auth/refresh', {
-      method: 'POST',
-      credentials: 'same-origin'
-    })
-
-    // 4. Redirection avec rechargement complet
-    window.location.assign(`/gyms/${gym.id}/dashboard?t=${Date.now()}`)
-
-  } catch (error) {
-    toast.error(error.message || "Erreur création")
-    console.error("Erreur création gym", error)
-  } finally {
-    setIsSubmitting(false)
-  }
-}
+  };
 
   return (
     <div className="max-w-md mx-auto p-6">

@@ -1,4 +1,3 @@
-// components/auth/GymSelection.tsx
 'use client';
 
 import { createClient } from '@/lib/supabaseClient';
@@ -34,16 +33,20 @@ export function GymSelection() {
     fetchGyms();
   }, []);
 
+  // ✅ Redirection dans un useEffect
+  useEffect(() => {
+    if (!loading && gyms.length === 1) {
+      router.push(`/gyms/${gyms[0].gym_id}/dashboard`);
+    }
+  }, [gyms, loading, router]);
+
   if (loading) return <div>Chargement...</div>;
 
-  if (gyms.length > 0) {
-    // Rediriger vers le premier gym si l'utilisateur n'a qu'un seul gym
-    if (gyms.length === 1) {
-      router.push(`/gyms/${gyms[0].gym_id}/dashboard`);
-      return null;
-    }
+  if (gyms.length === 1) {
+    return <div>Redirection en cours...</div>; // Évite de rien retourner
+  }
 
-    // Afficher la liste des gyms si plusieurs
+  if (gyms.length > 1) {
     return (
       <div className="space-y-4">
         <h2>Choisissez un gym</h2>
@@ -58,20 +61,16 @@ export function GymSelection() {
     );
   }
 
-  // Aucun gym - proposer de créer ou rejoindre
+  // Aucun gym
   return (
     <div className="space-y-4">
       <h2>Que souhaitez-vous faire ?</h2>
       <div className="flex gap-4">
         <Button asChild>
-          <Link href="/gyms/new">
-            Créer un nouveau gym
-          </Link>
+          <Link href="/gyms/new">Créer un nouveau gym</Link>
         </Button>
         <Button variant="outline" asChild>
-          <Link href="/gyms/join">
-            Rejoindre un gym existant
-          </Link>
+          <Link href="/gyms/join">Rejoindre un gym existant</Link>
         </Button>
       </div>
     </div>

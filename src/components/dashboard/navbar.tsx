@@ -8,7 +8,9 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { supabase } from "@/lib/supabaseClient";
 import { QRScanner } from "@/components/QRScanner";
-import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Menu } from "lucide-react";
+import { useSidebar } from "@/context/SidebarContext";
 
 type UserData = {
   email: string;
@@ -21,6 +23,7 @@ export default function Navbar() {
   const [userData, setUserData] = useState<UserData | null>(null);
   const [scannerOpen, setScannerOpen] = useState(false);
   const pathname = usePathname();
+  const { toggle } = useSidebar();
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -57,8 +60,12 @@ export default function Navbar() {
     "U";
 
   return (
-    <header className="sticky top-0 z-50 h-14 bg-[#0d1a23]/90 backdrop-blur-sm flex items-center justify-between px-4 border-b border-gray-800">
-      {/* Left (Logo + Search) */}
+     <header className="sticky top-0 z-50 h-14 bg-[#0d1a23]/90 backdrop-blur-sm flex items-center justify-between px-4 border-b border-gray-800">
+      
+      {/* Bouton Hamburger visible sur mobile */}
+      <button onClick={toggle} className="md:hidden p-2 text-gray-400 hover:text-white">
+        <Menu className="h-6 w-6" />
+      </button>
       <div className="flex items-center gap-4 w-full max-w-sm">
         <Link href="/" className="text-white font-bold text-lg hidden md:block">
           SG
@@ -76,19 +83,20 @@ export default function Navbar() {
 
       {/* Right (Actions) */}
       <div className="flex items-center gap-3">
-        <Dialog open={scannerOpen} onOpenChange={setScannerOpen}>
-          <DialogTrigger asChild>
-            <button
-              className="rounded-full p-2 text-gray-400 hover:text-white transition"
-              aria-label="Scanner QR Code"
-            >
-              <QrCode className="h-4 w-4" />
-            </button>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-[425px]">
-            <QRScanner />
-          </DialogContent>
-        </Dialog>
+      <Dialog open={scannerOpen} onOpenChange={setScannerOpen}>
+  <DialogTrigger asChild>
+    <button
+      className="rounded-full p-2 text-gray-400 hover:text-white transition"
+      aria-label="Scanner QR Code"
+    >
+      <QrCode className="h-4 w-4" />
+    </button>
+  </DialogTrigger>
+  <DialogContent className="sm:max-w-[425px]">
+    <DialogTitle className="sr-only">Scanner QR Code</DialogTitle>
+    <QRScanner />
+  </DialogContent>
+</Dialog>
 
         <button
           className="rounded-full p-2 text-gray-400 hover:text-white transition"

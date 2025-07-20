@@ -50,10 +50,26 @@ function DialogContent({
   className,
   children,
   showCloseButton = true,
+  hasTitle = true, // Nouvelle prop
   ...props
 }: React.ComponentProps<typeof DialogPrimitive.Content> & {
-  showCloseButton?: boolean
+  showCloseButton?: boolean;
+  hasTitle?: boolean; // Nouvelle prop
 }) {
+  // Vérifie si un DialogTitle est présent parmi les enfants
+  const hasTitleInChildren = React.Children.toArray(children).some(
+    (child) => React.isValidElement(child) && 
+             (child.type === DialogTitle || 
+              (child as any).props?.children?.type === DialogTitle)
+  );
+
+  if (hasTitle && !hasTitleInChildren) {
+    console.warn(
+      'DialogContent requires a DialogTitle for accessibility. ' +
+      'If you want to hide the title, use hasTitle={false} or wrap with VisuallyHidden.'
+    );
+  }
+
   return (
     <DialogPortal data-slot="dialog-portal">
       <DialogOverlay />
@@ -77,7 +93,7 @@ function DialogContent({
         )}
       </DialogPrimitive.Content>
     </DialogPortal>
-  )
+  );
 }
 
 function DialogHeader({ className, ...props }: React.ComponentProps<"div">) {

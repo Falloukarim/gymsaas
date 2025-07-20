@@ -40,7 +40,6 @@ interface BadgeConfig {
   };
 }
 
-// Nouvelle configuration design tendance
 const BADGE_CONFIG: BadgeConfig = {
   dimensions: {
     width: 900,
@@ -51,8 +50,8 @@ const BADGE_CONFIG: BadgeConfig = {
     radius: 16
   },
   colors: {
-    backgroundGradient: ['#e0f7fa', '#b2ebf2', '#80deea'], // dégradé pastel
-    sidePanel: ['#006064', '#00acc1'], // couleurs tendance
+    backgroundGradient: ['#e0f7fa', '#b2ebf2', '#80deea'],
+    sidePanel: ['#006064', '#00acc1'],
     textDark: '#263238',
     textMedium: '#546e7a',
     textLight: '#90a4ae',
@@ -78,8 +77,8 @@ async function generateQRCode(text: string, size: number): Promise<HTMLCanvasEle
     width: size,
     margin: 2,
     color: {
-      dark: '#343a40',
-      light: '#00000000'
+      dark: '#000000', // Noir pour un meilleur contraste
+      light: '#ffffff' // Fond blanc pour le QR code
     }
   });
   return canvas;
@@ -104,12 +103,8 @@ export async function downloadMemberBadge(member: Member, gymLogoUrl?: string): 
       radius: BADGE_CONFIG.card.radius
     };
 
-    // 1. Fond avec dégradé pastel
-    const bgGradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
-    bgGradient.addColorStop(0, BADGE_CONFIG.colors.backgroundGradient[0]);
-    bgGradient.addColorStop(0.5, BADGE_CONFIG.colors.backgroundGradient[1]);
-    bgGradient.addColorStop(1, BADGE_CONFIG.colors.backgroundGradient[2]);
-    ctx.fillStyle = bgGradient;
+    // 1. Fond blanc
+    ctx.fillStyle = BADGE_CONFIG.colors.white;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
     // 2. Carte principale avec ombre douce
@@ -122,65 +117,61 @@ export async function downloadMemberBadge(member: Member, gymLogoUrl?: string): 
     ctx.fill();
     ctx.shadowColor = 'transparent';
 
-    // 3. Bande latérale dégradée
-    const sidePanelWidth = 36;
-    const sidePanelGradient = ctx.createLinearGradient(0, card.y, 0, card.y + card.height);
-    sidePanelGradient.addColorStop(0, BADGE_CONFIG.colors.sidePanel[0]);
-    sidePanelGradient.addColorStop(1, BADGE_CONFIG.colors.sidePanel[1]);
+    // 3. Bande bleue en haut
+    const topPanelHeight = 80;
+    const topPanelGradient = ctx.createLinearGradient(0, card.y, 0, card.y + topPanelHeight);
+    topPanelGradient.addColorStop(0, BADGE_CONFIG.colors.sidePanel[0]);
+    topPanelGradient.addColorStop(1, BADGE_CONFIG.colors.sidePanel[1]);
 
-    ctx.fillStyle = sidePanelGradient;
+    ctx.fillStyle = topPanelGradient;
     ctx.roundRect(
       card.x,
       card.y,
-      sidePanelWidth,
-      card.height,
-      [card.radius, 0, 0, card.radius]
+      card.width,
+      topPanelHeight,
+      [card.radius, card.radius, 0, 0]
     );
     ctx.fill();
 
-    // 4. Logo du gym
-    if (gymLogoUrl) {
-      try {
-        const logoSize = 90;
-        const logoX = card.x + card.width - logoSize - 40;
-        const logoY = card.y + 40;
-
-        ctx.beginPath();
-        ctx.arc(logoX + logoSize / 2, logoY + logoSize / 2, logoSize / 2, 0, Math.PI * 2);
-        ctx.fillStyle = BADGE_CONFIG.colors.white;
-        ctx.fill();
-        ctx.strokeStyle = BADGE_CONFIG.colors.photoBorder;
-        ctx.lineWidth = 3;
-        ctx.stroke();
-
-        ctx.save();
-        ctx.beginPath();
-        ctx.arc(logoX + logoSize / 2, logoY + logoSize / 2, logoSize / 2 - 3, 0, Math.PI * 2);
-        ctx.clip();
-
-        const logoImg = await loadImage(gymLogoUrl);
-        ctx.drawImage(logoImg, logoX, logoY, logoSize, logoSize);
-        ctx.restore();
-      } catch (error) {
-        console.error('Erreur chargement logo:', error);
-      }
+    // 4. Nom du gym (remplace VISA)
+    if (member.gyms?.name) {
+      ctx.fillStyle = BADGE_CONFIG.colors.white;
+      ctx.font = 'bold 24px "Poppins", sans-serif';
+      ctx.textAlign = 'right';
+      // On tronque le nom si trop long pour éviter le débordement
+      const gymName = member.gyms.name.length > 20 
+        ? member.gyms.name.substring(0, 17) + '...' 
+        : member.gyms.name;
+      ctx.fillText(gymName.toUpperCase(), card.x + card.width - 40, card.y + topPanelHeight / 2 + 10);
     }
 
-    // 5. Photo du membre
-    const photoSize = 140;
-    const photoX = card.x + 60;
-    const photoY = card.y + (card.height - photoSize) / 2;
-    const photoBorderWidth = 2;
+    // 5. Numéro de carte (ID du membre)
+    ctx.fillStyle = BADGE_CONFIG.colors.white;
+    ctx.font = 'bold 24px "Courier New", monospace';
+    ctx.textAlign = 'left';
+    ctx.fillText(member.id.replace(/-/g, '').substring(0, 16).toUpperCase(), card.x + 40, card.y + topPanelHeight / 2 + 10);
 
+    // 6. Photo du membre
+    const photoSize = 140;
+    const photoX = card.x + 40;
+    const photoY = card.y + topPanelHeight + 40;
+
+    // Cadre photo avec ombre
+    ctx.shadowColor = 'rgba(0, 0, 0, 0.1)';
+    ctx.shadowBlur = 10;
+    ctx.shadowOffsetY = 5;
+    
     ctx.beginPath();
     ctx.roundRect(photoX, photoY, photoSize, photoSize, 12);
     ctx.fillStyle = BADGE_CONFIG.colors.white;
     ctx.fill();
     ctx.strokeStyle = BADGE_CONFIG.colors.photoBorder;
-    ctx.lineWidth = photoBorderWidth;
+    ctx.lineWidth = 2;
     ctx.stroke();
+    ctx.shadowColor = 'transparent';
 
     if (!member.avatar_url) {
+      // Initiales si pas de photo
       ctx.fillStyle = BADGE_CONFIG.colors.accent;
       ctx.font = 'bold 48px "Poppins", sans-serif';
       ctx.textAlign = 'center';
@@ -196,7 +187,7 @@ export async function downloadMemberBadge(member: Member, gymLogoUrl?: string): 
         const avatar = await loadImage(member.avatar_url);
         ctx.save();
         ctx.beginPath();
-        ctx.arc(photoX + photoSize / 2, photoY + photoSize / 2, (photoSize - 4) / 2, 0, Math.PI * 2);
+        ctx.roundRect(photoX, photoY, photoSize, photoSize, 12);
         ctx.clip();
         ctx.drawImage(avatar, photoX, photoY, photoSize, photoSize);
         ctx.restore();
@@ -205,85 +196,70 @@ export async function downloadMemberBadge(member: Member, gymLogoUrl?: string): 
       }
     }
 
-    // 6. Zone texte (nom, gym)
-    const textX = photoX + photoSize + 50;
-    const textY = photoY + 50;
-    const lineHeight = 40;
+    // 7. Nom du membre (en majuscules)
+    const textX = photoX + photoSize + 30;
+    const textY = photoY + 40;
 
-    // Nom
     ctx.fillStyle = BADGE_CONFIG.colors.textDark;
     ctx.font = '700 36px "Poppins", sans-serif';
-    ctx.shadowColor = 'rgba(0,0,0,0.1)';
-    ctx.shadowBlur = 2;
-    ctx.fillText(member.full_name, textX, textY);
-    ctx.shadowColor = 'transparent';
+    ctx.textAlign = 'left';
+    ctx.fillText(member.full_name.toUpperCase(), textX, textY);
 
-    // Gym
-    ctx.fillStyle = BADGE_CONFIG.colors.textMedium;
-    ctx.font = '500 22px "Poppins", sans-serif';
-    ctx.fillText(member.gyms?.name || '', textX, textY + lineHeight);
-
-    // 7. Badge d'abonnement
+    // 8. Date d'expiration
     const activeSub = member.member_subscriptions?.find(
       sub => new Date(sub.end_date) > new Date()
     );
     if (activeSub) {
-      const badgeWidth = 200;
-      const badgeHeight = 42;
-      const badgeY = textY + lineHeight * 1.8;
-
-      ctx.fillStyle = BADGE_CONFIG.colors.white;
-      ctx.roundRect(textX, badgeY, badgeWidth, badgeHeight, 21);
-      ctx.fill();
-
-      ctx.strokeStyle = BADGE_CONFIG.colors.accent;
-      ctx.lineWidth = 2;
-      ctx.stroke();
-
-      ctx.fillStyle = BADGE_CONFIG.colors.accent;
-      ctx.font = 'bold 16px "Poppins", sans-serif';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillText(
-        activeSub.subscriptions?.type?.toUpperCase() || 'MEMBRE',
-        textX + badgeWidth / 2,
-        badgeY + badgeHeight / 2
-      );
-
-      // Date expiration
-      ctx.fillStyle = BADGE_CONFIG.colors.textLight;
-      ctx.font = '500 16px "Poppins", sans-serif';
-      ctx.textAlign = 'left';
-      ctx.fillText(
-        `Valide jusqu'au ${new Date(activeSub.end_date).toLocaleDateString('fr-FR')}`,
-        textX,
-        badgeY + badgeHeight + 25
-      );
+      ctx.fillStyle = BADGE_CONFIG.colors.textMedium;
+      ctx.font = '500 22px "Poppins", sans-serif';
+      const expiryDate = new Date(activeSub.end_date);
+      const formattedDate = `${String(expiryDate.getMonth() + 1).padStart(2, '0')}/${String(expiryDate.getFullYear()).slice(-2)}`;
+      ctx.fillText(`EXPIRY ${formattedDate}`, textX, textY + 50);
     }
 
-    // 8. QR Code
-    const qrSize = 130;
-    const qrX = card.x + card.width - qrSize - 50;
+    // 9. QR Code plus visible avec cadre blanc
+    const qrSize = 150; // Taille augmentée
+    const qrX = card.x + card.width - qrSize - 40;
     const qrY = card.y + card.height - qrSize - 40;
+
+    // Fond blanc pour le QR code
+    ctx.fillStyle = BADGE_CONFIG.colors.white;
+    ctx.roundRect(qrX - 10, qrY - 10, qrSize + 20, qrSize + 20, 8);
+    ctx.fill();
+    ctx.strokeStyle = BADGE_CONFIG.colors.photoBorder;
+    ctx.lineWidth = 1;
+    ctx.stroke();
 
     const qrCanvas = await generateQRCode(member.qr_code, qrSize);
     ctx.drawImage(qrCanvas, qrX, qrY);
 
-    // ID membre
-    ctx.fillStyle = BADGE_CONFIG.colors.textLight;
-    ctx.font = '500 13px "Poppins", sans-serif';
-    ctx.textAlign = 'center';
-    ctx.fillText(`ID: ${member.id.slice(0, 8).toUpperCase()}`, qrX + qrSize / 2, qrY + qrSize + 18);
+    // 10. Logo du gym en bas à gauche
+    if (gymLogoUrl) {
+      try {
+        const logoSize = 60;
+        const logoX = card.x + 40;
+        const logoY = card.y + card.height - logoSize - 30;
 
-    // 9. Texte vertical (drapeau)
-    ctx.save();
-    ctx.translate(card.x + 20, card.y + card.height / 2);
-    ctx.rotate(-Math.PI / 2);
-    ctx.fillStyle = BADGE_CONFIG.colors.white;
-    ctx.font = '700 20px "Poppins", sans-serif';
-    ctx.textAlign = 'center';
-    ctx.fillText('MEMBRE PRIVILÈGE', 0, 0);
-    ctx.restore();
+        const logoImg = await loadImage(gymLogoUrl);
+        // Cadre rond pour le logo
+        ctx.beginPath();
+        ctx.arc(logoX + logoSize/2, logoY + logoSize/2, logoSize/2, 0, Math.PI * 2);
+        ctx.fillStyle = BADGE_CONFIG.colors.white;
+        ctx.fill();
+        ctx.strokeStyle = BADGE_CONFIG.colors.photoBorder;
+        ctx.lineWidth = 1;
+        ctx.stroke();
+
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(logoX + logoSize/2, logoY + logoSize/2, logoSize/2 - 1, 0, Math.PI * 2);
+        ctx.clip();
+        ctx.drawImage(logoImg, logoX, logoY, logoSize, logoSize);
+        ctx.restore();
+      } catch (error) {
+        console.error('Erreur chargement logo:', error);
+      }
+    }
 
     // Téléchargement
     const link = document.createElement('a');
