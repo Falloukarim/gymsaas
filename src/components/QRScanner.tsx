@@ -1,4 +1,5 @@
 'use client'
+
 import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
@@ -9,7 +10,7 @@ export function QRScanner() {
   const scannerRef = useRef<any>(null)
   const [scanResult, setScanResult] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const [availableCameras, setAvailableCameras] = useState<Array<{id: string, label: string}>>([])
+  const [availableCameras, setAvailableCameras] = useState<Array<{ id: string, label: string }>>([])
   const [activeCameraIndex, setActiveCameraIndex] = useState(0)
   const [isScanning, setIsScanning] = useState(false)
   const [isTransitioning, setIsTransitioning] = useState(false)
@@ -31,10 +32,10 @@ export function QRScanner() {
   const startScan = async (cameraId: string) => {
     if (isTransitioning) return
     setIsTransitioning(true)
-    
+
     try {
       const { Html5Qrcode } = await import('html5-qrcode')
-      
+
       if (!scannerRef.current) {
         scannerRef.current = new Html5Qrcode('qr-scanner-container')
       }
@@ -59,7 +60,7 @@ export function QRScanner() {
   const handleScanSuccess = async (decodedText: string) => {
     console.log("🚀 QR Code scanné:", decodedText)
     setScanResult(decodedText)
-    
+
     try {
       await stopScanner()
       const response = await fetch('/api/validate', {
@@ -69,7 +70,7 @@ export function QRScanner() {
       })
 
       if (!response.ok) throw new Error('Erreur API')
-      
+
       const data = await response.json()
       console.log("✅ Réponse API:", data)
 
@@ -87,7 +88,7 @@ export function QRScanner() {
 
   const stopScanner = async () => {
     if (!scannerRef.current || !isScanning) return
-    
+
     try {
       await scannerRef.current.stop()
       setIsScanning(false)
@@ -114,19 +115,26 @@ export function QRScanner() {
   }
 
   const testWithMockQR = async () => {
-    const mockQR = "eBTQiPk-pc48m45awNNgA" // QR code de test
+    const mockQR = "eBTQiPk-pc48m45awNNgA"
     console.log("🔍 Test avec QR code mock:", mockQR)
     await handleScanSuccess(mockQR)
   }
 
   useEffect(() => {
     let isMounted = true
-    
+
     const setupScanner = async () => {
       try {
         const { Html5Qrcode, cameras } = await initScanner()
+
         if (isMounted && cameras.length > 0) {
-          await startScan(cameras[0].id)
+          // 🔍 Cherche caméra arrière
+          const backCamIndex = cameras.findIndex(cam =>
+            cam.label.toLowerCase().includes('back') || cam.label.toLowerCase().includes('rear')
+          )
+          const indexToUse = backCamIndex !== -1 ? backCamIndex : 0
+          setActiveCameraIndex(indexToUse)
+          await startScan(cameras[indexToUse].id)
         }
       } catch (err) {
         console.error('Setup error:', err)
@@ -143,27 +151,27 @@ export function QRScanner() {
 
   return (
     <div className="space-y-4">
-      <div 
-        id="qr-scanner-container" 
+      <div
+        id="qr-scanner-container"
         className="w-full aspect-video rounded-lg overflow-hidden border bg-black"
       />
-      
+
       <div className="flex flex-col gap-2">
         <div className="flex gap-2">
-          <Button 
-            variant="outline" 
-            onClick={resetScanner} 
+          <Button
+            variant="outline"
+            onClick={resetScanner}
             className="flex-1 gap-2"
             disabled={!isScanning || isTransitioning}
           >
             <RotateCw className="h-4 w-4" />
             Redémarrer
           </Button>
-          
+
           {availableCameras.length > 1 && (
-            <Button 
-              variant="outline" 
-              onClick={switchCamera} 
+            <Button
+              variant="outline"
+              onClick={switchCamera}
               className="flex-1 gap-2"
               disabled={!isScanning || isTransitioning}
             >

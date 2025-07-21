@@ -28,7 +28,13 @@ export async function createMember(formData: FormData) {
 
   // Validation
   if (!memberData.gym_id || !memberData.full_name || !memberData.phone) {
-    return { error: 'Tous les champs obligatoires doivent être remplis' };
+    return { 
+      error: 'Tous les champs obligatoires doivent être remplis',
+      fieldErrors: {
+        full_name: !memberData.full_name ? 'Nom requis' : undefined,
+        phone: !memberData.phone ? 'Téléphone requis' : undefined
+      }
+    };
   }
 
   try {
@@ -49,13 +55,10 @@ export async function createMember(formData: FormData) {
 
       if (uploadError) throw uploadError;
 
-      // Récupérer l'URL publique
-      const { data: { publicUrl } } = (await supabase)
+      avatarUrl = (await supabase)
         .storage
         .from('avatars')
-        .getPublicUrl(uploadData.path);
-
-      avatarUrl = publicUrl;
+        .getPublicUrl(uploadData.path).data.publicUrl;
     }
 
     // 2. Génération QR code si abonnement
@@ -78,84 +81,89 @@ export async function createMember(formData: FormData) {
         ...memberData,
         qr_code: qrToken,
         qr_image_url: qrImageUrl,
-        avatar_url: avatarUrl
+        avatar_url: avatarUrl,
+        has_subscription: !!subscription_id && subscription_id !== 'session'
       })
-      .select()
+      .select('*')
       .single();
 
     if (insertError) throw insertError;
 
     // 4. Gestion abonnement ou session
-    if (subscription_id && subscription_id !== 'session') {
-      const startDate = new Date();
-      const endDate = new Date();
-      endDate.setMonth(startDate.getMonth() + 1); // Durée par défaut : 1 mois
+    if (subscription_id) {
+      if (subscription_id !== 'session') {
+        // Création abonnement
+        const startDate = new Date();
+        const endDate = new Date();
+        endDate.setMonth(startDate.getMonth() + 1);
 
-      const { error: subError } = await (await supabase)
-        .from('member_subscriptions')
-        .insert({
-          member_id: member.id,
-          subscription_id,
-          start_date: startDate.toISOString(),
-          end_date: endDate.toISOString(),
-          gym_id: memberData.gym_id
-        });
+        const { data: subscriptionData } = await (await supabase)
+          .from('subscriptions')
+          .select('price, duration_days')
+          .eq('id', subscription_id)
+          .single();
 
-      if (subError) throw subError;
+        if (subscriptionData?.duration_days) {
+          endDate.setDate(startDate.getDate() + subscriptionData.duration_days);
+        }
 
-      // Paiement pour l'abonnement
-      const { data: subscriptionData } = await (await supabase)
-        .from('subscriptions')
-        .select('price')
-        .eq('id', subscription_id)
-        .single();
+        const { error: subError } = await (await supabase)
+          .from('member_subscriptions')
+          .insert({
+            member_id: member.id,
+            subscription_id,
+            start_date: startDate.toISOString(),
+            end_date: endDate.toISOString(),
+            gym_id: memberData.gym_id,
+            status: 'active'
+          });
 
-      const { error: paymentError } = await (await supabase)
-        .from('payments')
-        .insert({
-          member_id: member.id,
-          gym_id: memberData.gym_id,
-          amount: subscriptionData?.price || 0,
-          type: 'subscription',
-          subscription_id,
-          payment_method: 'cash'
-        });
+        if (subError) throw subError;
 
-      if (paymentError) throw paymentError;
+        // Paiement pour l'abonnement
+        await (await supabase)
+          .from('payments')
+          .insert({
+            member_id: member.id,
+            gym_id: memberData.gym_id,
+            amount: subscriptionData?.price || 0,
+            type: 'subscription',
+            subscription_id,
+            payment_method: 'cash',
+            status: 'paid'
+          });
 
-    } else if (subscription_id === 'session') {
-      if (!session_amount) {
-        return { error: 'Veuillez saisir le montant de la session.' };
+      } else if (session_amount) {
+        // Paiement pour session
+        await (await supabase)
+          .from('payments')
+          .insert({
+            member_id: member.id,
+            gym_id: memberData.gym_id,
+            amount: parseFloat(session_amount),
+            type: 'session',
+            payment_method: 'cash',
+            status: 'paid'
+          });
       }
-
-      const { error: paymentError } = await (await supabase)
-        .from('payments')
-        .insert({
-          member_id: member.id,
-          gym_id: memberData.gym_id,
-          amount: parseFloat(session_amount),
-          type: 'session',
-          payment_method: 'cash'
-        });
-      
-      if (paymentError) throw paymentError;
     }
 
     // Revalidation
-    revalidatePath('/members');
     revalidatePath(`/gyms/${memberData.gym_id}/members`);
+    revalidatePath(`/gyms/${memberData.gym_id}/dashboard`);
 
     return { 
-      success: true, 
-      member,
+      success: true,
+      message: `${memberData.full_name} a été ajouté avec succès`,
+      memberId: member.id,
       redirectUrl: `/gyms/${member.gym_id}/members/${member.id}`
     };
 
   } catch (error) {
     console.error('Erreur création membre:', error);
     return { 
-      error: error instanceof Error ? error.message : 'Erreur inconnue',
-      details: memberData
+      error: error instanceof Error ? error.message : 'Une erreur est survenue',
+      details: String(error)
     };
   }
 }

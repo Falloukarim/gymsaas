@@ -93,44 +93,53 @@ export function MemberForm({
     fileInputRef.current?.click();
   };
 
-  const onSubmit = async (data: z.infer<typeof memberSchema>) => {
-    setIsUploading(true);
-    try {
-      const formData = new FormData();
-      formData.append('gym_id', data.gym_id);
-      formData.append('full_name', data.full_name);
-      formData.append('phone', data.phone);
-      
-      if (data.email) formData.append('email', data.email);
-      if (data.subscription_id) formData.append('subscription_id', data.subscription_id);
-      if (subscriptionId === 'session' && data.session_amount) {
-        formData.append('session_amount', data.session_amount);
-      }
-      if (data.avatar) {
-        formData.append('avatar', data.avatar);
-      }
-
-      const result = await createMember(formData);
-
-      if (result?.error) {
-        toast.error(result.error);
-        return;
-      }
-
-      toast.success('Membre créé avec succès');
-      
-      if (result.redirectUrl) {
-        router.push(result.redirectUrl);
-      } else {
-        router.push(`/gyms/${gymId}/dashboard`);
-      }
-    } catch (error) {
-      toast.error('Erreur lors de la création du membre');
-      console.error(error);
-    } finally {
-      setIsUploading(false);
+const onSubmit = async (data: z.infer<typeof memberSchema>) => {
+  setIsUploading(true);
+  try {
+    const formData = new FormData();
+    formData.append('gym_id', data.gym_id);
+    formData.append('full_name', data.full_name);
+    formData.append('phone', data.phone);
+    
+    if (data.email) formData.append('email', data.email);
+    if (data.subscription_id) formData.append('subscription_id', data.subscription_id);
+    if (subscriptionId === 'session' && data.session_amount) {
+      formData.append('session_amount', data.session_amount);
     }
-  };
+    if (data.avatar) {
+      formData.append('avatar', data.avatar);
+    }
+
+    const result = await createMember(formData);
+
+    if (result?.error) {
+      toast.error(result.error);
+      return;
+    }
+
+    // Afficher le toast de succès
+    toast.success('Membre ajouté avec succès', {
+      description: `${data.full_name} a été enregistré`,
+      action: {
+        label: 'Voir',
+        onClick: () => router.push(`/gyms/${gymId}/members/${result.memberId}`)
+      },
+    });
+
+    // Redirection après 2 secondes
+    setTimeout(() => {
+      router.push(result.redirectUrl || `/gyms/${gymId}/dashboard`);
+    }, 2000);
+
+  } catch (error) {
+    toast.error('Erreur lors de la création du membre', {
+      description: 'Veuillez réessayer ou contacter le support'
+    });
+    console.error(error);
+  } finally {
+    setIsUploading(false);
+  }
+};
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">

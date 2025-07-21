@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import Sidebar from "@/components/dashboard/sidebar";
 import Navbar from "@/components/dashboard/navbar";
+import { SidebarProvider } from "@/context/SidebarContext";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -24,6 +25,7 @@ export default function AuthLayout({
   children: React.ReactNode;
 }>) {
   return (
+     <SidebarProvider>
     <div className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
       <div className="flex h-screen">
         <Sidebar />
@@ -35,5 +37,6 @@ export default function AuthLayout({
         </div>
       </div>
     </div>
+    </SidebarProvider>
   );
 }

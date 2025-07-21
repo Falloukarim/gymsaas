@@ -113,7 +113,7 @@ export default async function PaymentsPage({
                       {payment.subscriptions?.type || payment.type || '-'}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-white">
-                      {payment.amount} €
+                      {payment.amount} fcfa
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <Badge variant="outline" className="bg-white/10 border-gray-600">

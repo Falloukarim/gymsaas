@@ -7,6 +7,7 @@ import { AnimatedCards } from "@/components/animated-cards";
 import { AnimatedSubscriptions, AnimatedEntries } from "@/components/animated-lists";
 import { AnimatedRevenueChart } from "@/components/animated-chart";
 import { AddMemberButton } from '@/components/buttons/AddMemberButton';
+import { RevenueChart } from '@/components/revenue-chart';
 
 type Member = { full_name: string };
 type Subscription = { name: string };
@@ -59,42 +60,52 @@ export default async function GymDashboardPage({
     redirect('/gyms/new');
   }
 
-  try {
+try {
+    const currentDate = new Date().toISOString();
+    
     const [
-      { count: inactiveSubscriptions },
       { count: activeSubscriptions },
-      { data: todayRevenue },
-      { data: monthlyRevenue },
+      { count: inactiveSubscriptions },
+      { data: todayPayments },
+      { data: monthlyPayments },
       { count: todayEntries },
       { data: recentSubscriptions },
       { data: recentEntries },
-      { data: gym }
+      { data: gym },
+      { data: weeklyPayments }
     ] = await Promise.all([
+      // Abonnements ACTIFS (end_date >= aujourd'hui)
       (await supabase)
-        .from('members')
+        .from('member_subscriptions')
         .select('*', { count: 'exact' })
         .eq('gym_id', params.id)
-        .eq('has_subscription', true),
-         (await supabase)
-    .from('member_subscriptions')
-    .select('*', { count: 'exact' })
-    .eq('gym_id', params.id)
-    .lt('end_date', new Date().toISOString()),
+        .gte('end_date', currentDate),
+      // Abonnements INACTIFS (end_date < aujourd'hui)
+      (await supabase)
+        .from('member_subscriptions')
+        .select('*', { count: 'exact' })
+        .eq('gym_id', params.id)
+        .lt('end_date', currentDate),
       (await supabase)
         .from('payments')
-        .select('amount')
+        .select('amount, created_at')
         .eq('gym_id', params.id)
-        .gte('created_at', new Date().setHours(0, 0, 0, 0).toString()),
+        .eq('status', 'paid')
+        .gte('created_at', new Date(new Date().setHours(0, 0, 0, 0)).toISOString())
+        .lte('created_at', new Date(new Date().setHours(23, 59, 59, 999)).toISOString()),
       (await supabase)
         .from('payments')
-        .select('amount')
+        .select('amount, created_at')
         .eq('gym_id', params.id)
-        .gte('created_at', new Date(new Date().setDate(1)).toISOString()),
+        .eq('status', 'paid')
+        .gte('created_at', new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString())
+        .lte('created_at', new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0, 23, 59, 59, 999).toISOString()),
       (await supabase)
         .from('access_logs')
         .select('*', { count: 'exact' })
         .eq('gym_id', params.id)
-        .gte('timestamp', new Date().setHours(0, 0, 0, 0).toString()),
+        .gte('timestamp', new Date(new Date().setHours(0, 0, 0, 0)).toISOString())
+        .lte('timestamp', new Date(new Date().setHours(23, 59, 59, 999)).toISOString()),
       (await supabase)
         .from('member_subscriptions')
         .select(`*, members(full_name), subscriptions(name)`)
@@ -111,49 +122,72 @@ export default async function GymDashboardPage({
         .from('gyms')
         .select('name, address')
         .eq('id', params.id)
-        .single()
+        .single(),
+     (await supabase)
+  .from('payments')
+  .select('amount, created_at')
+  .eq('gym_id', params.id)
+  .eq('status', 'paid')
+  .gte('created_at', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString())
+  .order('created_at', { ascending: true })
+        
     ]);
 
-    const todayRevenueTotal = todayRevenue?.reduce((sum, payment) => sum + (payment.amount || 0), 0) || 0;
-    const monthlyRevenueTotal = monthlyRevenue?.reduce((sum, payment) => sum + (payment.amount || 0), 0) || 0;
+    // Calcul des totaux
+    const todayRevenueTotal = todayPayments?.reduce((sum, payment) => sum + (payment.amount || 0), 0) || 0;
+    const monthlyRevenueTotal = monthlyPayments?.reduce((sum, payment) => sum + (payment.amount || 0), 0) || 0;
+     const chartData = weeklyPayments?.map(payment => ({
+  date: payment.created_at,
+  amount: payment.amount
+})) || [];
+    // Formatage des montants
+    const formatCurrency = (amount: number) => {
+      return new Intl.NumberFormat('fr-FR', {
+        style: 'currency',
+        currency: 'XOF',
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0
+      }).format(amount);
+    };
 
     const stats = [
-  { 
-    name: "Abonnements inactifs", 
-    value: inactiveSubscriptions?.toLocaleString() || "0", 
-    iconName: "Users",
-    change: "+0%", 
-    changeType: "positive" 
-  },
-  { 
-    name: "Abonnements actifs", 
-    value: activeSubscriptions?.toLocaleString() || "0", 
-    iconName: "CreditCard",
-    change: "+0%", 
-    changeType: "positive" 
-  },
-  { 
-    name: "Revenu du jour", 
-    value: `FCFA ${(todayRevenueTotal * 655).toFixed(2)}`, // Conversion approximative euro -> FCFA
-    iconName: "Euro",
-    change: "+0%", 
-    changeType: "positive" 
-  },
-  { 
-    name: "Revenus mensuels", 
-    value: `FCFA ${(monthlyRevenueTotal * 655).toFixed(2)}`, // Conversion approximative euro -> FCFA
-    iconName: "Activity",
-    change: "+0%", 
-    changeType: "positive" 
-  },
-  { 
-    name: "Entrées aujourd'hui", 
-    value: todayEntries?.toString() || "0", 
-    iconName: "Clock",
-    change: "+0%", 
-    changeType: "positive" 
-  },
-];
+      { 
+        name: "Abonnements actifs", 
+        value: activeSubscriptions?.toString() || "0", 
+        iconName: "CreditCard",
+        change: "+0%", 
+        changeType: "positive" 
+      },
+      { 
+        name: "Abonnements inactifs", 
+        value: inactiveSubscriptions?.toString() || "0", 
+        iconName: "Users",
+        change: "+0%", 
+        changeType: "positive" 
+      },
+      { 
+        name: "Revenu du jour", 
+        value: formatCurrency(todayRevenueTotal), 
+        iconName: "Euro",
+        change: "+0%", 
+        changeType: "positive" 
+      },
+      { 
+        name: "Revenus mensuels", 
+        value: formatCurrency(monthlyRevenueTotal), 
+        iconName: "Activity",
+        change: "+0%", 
+        changeType: "positive" 
+      },
+      { 
+        name: "Entrées aujourd'hui", 
+        value: todayEntries?.toString() || "0", 
+        iconName: "Clock",
+        change: "+0%", 
+        changeType: "positive" 
+      },
+    ];
+
 
     return (
       <div className="flex min-h-screen bg-[#0d1a23]">
@@ -172,7 +206,7 @@ export default async function GymDashboardPage({
 
               <CardContent className="space-y-6">
                 <AnimatedCards stats={stats} />
-                <AnimatedRevenueChart gymId={params.id} />
+               <RevenueChart data={chartData} />
 
                 <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
                   <Card className="border-gray-700 bg-[#0d1a23]">
