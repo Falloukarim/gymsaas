@@ -18,6 +18,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 
+
 export default async function MemberDetailPage({
   params,
 }: {
@@ -227,8 +228,16 @@ export default async function MemberDetailPage({
               </div>
               
               <div className="bg-gradient-to-r from-black-500 to-blue-400 text-white">
-                <DownloadMemberBadgeButton member={member} className="bg-gradient-to-r from-black-500 to-blue-400 text-white" />
-              </div>
+<DownloadMemberBadgeButton 
+  member={{
+    id: member.id,
+    full_name: member.full_name,
+    avatar_url: member.avatar_url,
+    qr_code: member.qr_code,
+    gyms: member.gyms,
+    member_subscriptions: member.member_subscriptions
+  }}
+/>              </div>
             </div>
           </CardContent>
         </Card>

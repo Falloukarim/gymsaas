@@ -24,6 +24,7 @@ export async function createMember(formData: FormData) {
 
   const subscription_id = formData.get('subscription_id')?.toString();
   const session_amount = formData.get('session_amount')?.toString();
+  const avatarFile = formData.get('avatar') as File | null;
 
   // Validation
   if (!memberData.gym_id || !memberData.full_name || !memberData.phone) {
@@ -33,8 +34,31 @@ export async function createMember(formData: FormData) {
   try {
     let qrToken = null;
     let qrImageUrl = null;
+    let avatarUrl = null;
 
-    // Si abonnement sélectionné et ce n'est pas une session => Génération QR code
+    // 1. Upload de l'avatar si fourni
+    if (avatarFile && avatarFile.size > 0) {
+      const fileExt = avatarFile.name.split('.').pop();
+      const fileName = `${nanoid()}.${fileExt}`;
+      const filePath = `members/${memberData.gym_id}/${fileName}`;
+
+      const { data: uploadData, error: uploadError } = await (await supabase)
+        .storage
+        .from('avatars')
+        .upload(filePath, avatarFile);
+
+      if (uploadError) throw uploadError;
+
+      // Récupérer l'URL publique
+      const { data: { publicUrl } } = (await supabase)
+        .storage
+        .from('avatars')
+        .getPublicUrl(uploadData.path);
+
+      avatarUrl = publicUrl;
+    }
+
+    // 2. Génération QR code si abonnement
     if (subscription_id && subscription_id !== 'session') {
       qrToken = nanoid();
       const qrDataUrl = await toDataURL(qrToken, {
@@ -47,22 +71,22 @@ export async function createMember(formData: FormData) {
       qrImageUrl = uploadResult.secure_url;
     }
 
-    // Insertion du membre
+    // 3. Insertion du membre
     const { data: member, error: insertError } = await (await supabase)
       .from('members')
       .insert({
         ...memberData,
         qr_code: qrToken,
         qr_image_url: qrImageUrl,
+        avatar_url: avatarUrl
       })
       .select()
       .single();
 
     if (insertError) throw insertError;
 
-    // Gestion abonnement ou session
+    // 4. Gestion abonnement ou session
     if (subscription_id && subscription_id !== 'session') {
-      // Abonnement normal
       const startDate = new Date();
       const endDate = new Date();
       endDate.setMonth(startDate.getMonth() + 1); // Durée par défaut : 1 mois
@@ -79,41 +103,41 @@ export async function createMember(formData: FormData) {
 
       if (subError) throw subError;
 
-      // Création d’un paiement pour l’abonnement (optionnel mais recommandé)
+      // Paiement pour l'abonnement
       const { data: subscriptionData } = await (await supabase)
         .from('subscriptions')
         .select('price')
         .eq('id', subscription_id)
         .single();
 
-     const { error: paymentError } = await (await supabase)
-  .from('payments')
-  .insert({
-    member_id: member.id,
-    gym_id: memberData.gym_id, // Ajouté
-    amount: subscriptionData?.price || 0,
-    type: 'subscription',
-    subscription_id,
-    payment_method: 'cash' // Valeur par défaut
-  });
+      const { error: paymentError } = await (await supabase)
+        .from('payments')
+        .insert({
+          member_id: member.id,
+          gym_id: memberData.gym_id,
+          amount: subscriptionData?.price || 0,
+          type: 'subscription',
+          subscription_id,
+          payment_method: 'cash'
+        });
 
       if (paymentError) throw paymentError;
 
     } else if (subscription_id === 'session') {
-      // Session : création paiement unique
       if (!session_amount) {
         return { error: 'Veuillez saisir le montant de la session.' };
       }
 
-     const { error: paymentError } = await (await supabase)
-  .from('payments')
-  .insert({
-    member_id: member.id,
-    gym_id: memberData.gym_id, // Ajouté
-    amount: parseFloat(session_amount),
-    type: 'session',
-    payment_method: 'cash' // Valeur par défaut
-  });
+      const { error: paymentError } = await (await supabase)
+        .from('payments')
+        .insert({
+          member_id: member.id,
+          gym_id: memberData.gym_id,
+          amount: parseFloat(session_amount),
+          type: 'session',
+          payment_method: 'cash'
+        });
+      
       if (paymentError) throw paymentError;
     }
 
