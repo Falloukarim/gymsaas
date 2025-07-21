@@ -27,7 +27,7 @@ export default function Sidebar() {
     hidden: {},
     visible: {
       transition: {
-        staggerChildren: 0.2, // délai entre chaque item (0.1s ici)
+        staggerChildren: 0.2,
       },
     },
   };
@@ -81,9 +81,7 @@ export default function Sidebar() {
               animate="visible"
               className="flex flex-col flex-1 py-4 px-3"
             >
-              <motion.nav
-                className="flex flex-col gap-2"
-              >
+              <motion.nav className="flex flex-col gap-2">
                 {navItems.map(({ href, icon: Icon, label }) => {
                   const isActive = pathname === href;
                   return (

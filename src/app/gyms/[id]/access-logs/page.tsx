@@ -7,6 +7,7 @@ import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
 import { SetStateAction, useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import Spinner from '@/components/ui/spinner';
+import { useParams } from 'next/navigation';
 
 interface AccessLog {
   id: string;
@@ -18,11 +19,11 @@ interface AccessLog {
 }
 
 export default function AccessLogsPage() {
+  const { id: gymId } = useParams();
   const [logs, setLogs] = useState<AccessLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
-  const [searchTimeout, setSearchTimeout] = useState<NodeJS.Timeout | null>(null);
-
+  
   const supabase = createClientComponentClient();
 
   const fetchLogs = async () => {
@@ -38,6 +39,7 @@ export default function AccessLogsPage() {
           gyms(name),
           members!inner(full_name)
         `)
+        .eq('gym_id', gymId) // Filtre par salle de sport
         .order('timestamp', { ascending: false });
 
       if (searchQuery.trim()) {
@@ -59,19 +61,8 @@ export default function AccessLogsPage() {
   };
 
   useEffect(() => {
-    // Debounce search
-    if (searchTimeout) clearTimeout(searchTimeout);
-    
-    const timeout = setTimeout(() => {
-      fetchLogs();
-    }, 300);
-
-    setSearchTimeout(timeout);
-
-    return () => {
-      if (searchTimeout) clearTimeout(searchTimeout);
-    };
-  }, [searchQuery]);
+    fetchLogs();
+  }, [searchQuery, gymId]);
 
   return (
     <div className="p-6">

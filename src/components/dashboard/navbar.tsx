@@ -60,8 +60,7 @@ export default function Navbar() {
     "U";
 
   return (
-     <header className="sticky top-0 z-50 h-14 bg-[#0d1a23]/90 backdrop-blur-sm flex items-center justify-between px-4 border-b border-gray-800">
-      
+    <header className="sticky top-0 z-50 h-14 bg-[#0d1a23]/90 backdrop-blur-sm flex items-center justify-between px-4 border-b border-gray-800 w-full">
       {/* Bouton Hamburger visible sur mobile */}
       <button onClick={toggle} className="md:hidden p-2 text-gray-400 hover:text-white">
         <Menu className="h-6 w-6" />
@@ -83,20 +82,20 @@ export default function Navbar() {
 
       {/* Right (Actions) */}
       <div className="flex items-center gap-3">
-      <Dialog open={scannerOpen} onOpenChange={setScannerOpen}>
-  <DialogTrigger asChild>
-    <button
-      className="rounded-full p-2 text-gray-400 hover:text-white transition"
-      aria-label="Scanner QR Code"
-    >
-      <QrCode className="h-4 w-4" />
-    </button>
-  </DialogTrigger>
-  <DialogContent className="sm:max-w-[425px]">
-    <DialogTitle className="sr-only">Scanner QR Code</DialogTitle>
-    <QRScanner />
-  </DialogContent>
-</Dialog>
+        <Dialog open={scannerOpen} onOpenChange={setScannerOpen}>
+          <DialogTrigger asChild>
+            <button
+              className="rounded-full p-2 text-gray-400 hover:text-white transition"
+              aria-label="Scanner QR Code"
+            >
+              <QrCode className="h-4 w-4" />
+            </button>
+          </DialogTrigger>
+          <DialogContent className="sm:max-w-[425px]">
+            <DialogTitle className="sr-only">Scanner QR Code</DialogTitle>
+            <QRScanner />
+          </DialogContent>
+        </Dialog>
 
         <button
           className="rounded-full p-2 text-gray-400 hover:text-white transition"
