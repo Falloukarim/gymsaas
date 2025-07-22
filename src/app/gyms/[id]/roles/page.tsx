@@ -13,7 +13,7 @@ export default async function RolesPage({
   const supabase = createClient();
   const { data: { user } } = await (await supabase).auth.getUser();
 
-  const { data, error } = await (await supabase)
+  const { data } = await (await supabase)
     .from("gbus")
     .select("role")
     .eq("gym_id", params.id)

@@ -14,20 +14,17 @@ interface RevenueChartProps {
   changePercentage: number;
 }
 
-const formatCfa = (value: number) => {
+const formatAmount = (value: number) => {
   return new Intl.NumberFormat('fr-FR', {
-    style: 'currency',
-    currency: 'XOF',
     minimumFractionDigits: 0,
     maximumFractionDigits: 0
-  }).format(value).replace(' XOF', '') + '';
+  }).format(value);
 };
 
 export function RevenueChart({ data, period, totalAmount, changePercentage }: RevenueChartProps) {
-  // Filtre les 3 derniers jours
   const lastThreeDaysData = data.slice(-3);
+  const isPositive = changePercentage >= 0;
   
-  // Formatage des dates en français
   const chartData = lastThreeDaysData.map(item => ({
     date: new Date(item.date).toLocaleDateString('fr-FR', {
       day: 'numeric',
@@ -36,96 +33,108 @@ export function RevenueChart({ data, period, totalAmount, changePercentage }: Re
     'Revenus': item.amount
   }));
 
-  const isPositive = changePercentage >= 0;
   const periodLabels = {
     '3j': '3 derniers jours',
-    '7j': '7 jours', 
-    '30j': '30 jours'
+    '7j': '7 derniers jours', 
+    '30j': '30 derniers jours'
   };
 
   return (
     <Card className="bg-[#0f172a] border-gray-800 rounded-xl p-6 shadow-lg">
-      <div className="flex flex-col space-y-4">
+      <div className="flex flex-col space-y-6">
         {/* Header */}
         <div className="flex justify-between items-start">
           <div>
-            <Flex alignItems="center" className="gap-2">
-              <Wallet className="h-5 w-5 text-cyan-400" />
-              <Title className="text-lg font-semibold text-white">
-                Revenus récents
-              </Title>
+            <Flex alignItems="center" className="gap-3">
+              <div className="p-2 bg-cyan-500/10 rounded-lg">
+                <Wallet className="h-5 w-5 text-cyan-400" />
+              </div>
+              <div>
+                <Title className="text-lg font-semibold text-white">
+                  Performance financière
+                </Title>
+                <Text className="text-sm text-gray-400 mt-1">
+                  {periodLabels[period]}
+                </Text>
+              </div>
             </Flex>
-            <Text className="text-sm text-gray-400 mt-1">
-              Derniers paiements ({periodLabels[period]})
-            </Text>
           </div>
           
           {!isNaN(changePercentage) && (
             <Badge 
               color={isPositive ? "emerald" : "rose"}
               icon={isPositive ? ArrowUpRight : ArrowDownRight}
-              className="rounded-lg px-3 py-1"
+              className="rounded-lg px-3 py-1 text-sm"
             >
               {isPositive ? '+' : ''}{Math.round(changePercentage)}%
             </Badge>
           )}
         </div>
 
-        {/* Total amount */}
-        <div className="flex items-end gap-2">
-          <Text className="text-2xl font-bold text-white">
-            {formatCfa(totalAmount)}
-          </Text>
-          {!isNaN(changePercentage) && (
-            <Text className={cn(
-              "text-sm flex items-center",
-              isPositive ? "text-emerald-500" : "text-rose-500"
-            )}>
-              {isPositive ? (
-                <ArrowUpRight className="h-4 w-4 mr-1" />
-              ) : (
-                <ArrowDownRight className="h-4 w-4 mr-1" />
-              )}
-              {Math.round(changePercentage)}% vs précédent
+        {/* Metrics */}
+        <div className="space-y-2">
+          <Text className="text-gray-400 text-sm">Revenu total</Text>
+          <div className="flex items-baseline gap-3">
+            <Text className="text-3xl font-bold text-white">
+              {formatAmount(totalAmount)}
             </Text>
-          )}
+            {!isNaN(changePercentage) && (
+              <Text className={cn(
+                "text-sm flex items-center",
+                isPositive ? "text-emerald-500" : "text-rose-500"
+              )}>
+                {isPositive ? (
+                  <ArrowUpRight className="h-4 w-4 mr-1" />
+                ) : (
+                  <ArrowDownRight className="h-4 w-4 mr-1" />
+                )}
+                {Math.abs(Math.round(changePercentage))}% vs période précédente
+              </Text>
+            )}
+          </div>
         </div>
 
         {/* Chart */}
-        <div className="mt-4 h-[200px]">
+        <div className="mt-2 h-[180px]">
           <AreaChart
             data={chartData}
             index="date"
             categories={['Revenus']}
             colors={['cyan']}
-            valueFormatter={(value) => formatCfa(value).replace('', '')}
+            valueFormatter={formatAmount}
             showAnimation={true}
-            animationDuration={1000}
+            animationDuration={1500}
             curveType="monotone"
             showGridLines={false}
+            showLegend={false}
             yAxisWidth={60}
             className="h-full"
           />
         </div>
 
-        {/* Détails des 3 derniers jours */}
-        <div className="mt-4 grid grid-cols-3 gap-2">
+        {/* Daily breakdown */}
+        <div className="mt-4 grid grid-cols-3 gap-3">
           {lastThreeDaysData.map((day, index) => (
-            <div key={index} className="bg-gray-800 rounded-lg p-3 text-center">
-              <Text className="text-xs text-gray-400">
+            <div key={index} className="bg-gray-800/50 rounded-lg p-3">
+              <Text className="text-xs text-gray-400 uppercase tracking-wider">
                 {new Date(day.date).toLocaleDateString('fr-FR', { weekday: 'short' })}
               </Text>
-              <Text className="font-semibold text-white mt-1">
-                {formatCfa(day.amount).replace('', '')}
+              <Text className="font-medium text-white mt-1 text-lg">
+                {formatAmount(day.amount)}
               </Text>
             </div>
           ))}
         </div>
 
         {/* Footer */}
-        <div className="flex justify-end items-center gap-2 text-sm text-gray-400">
-          <CalendarDays className="h-4 w-4" />
-          <span>Mis à jour: {new Date().toLocaleDateString('fr-FR')}</span>
+        <div className="flex justify-between items-center pt-4 border-t border-gray-800">
+          <Text className="text-xs text-gray-500">
+            Données mises à jour quotidiennement
+          </Text>
+          <Flex alignItems="center" className="gap-2 text-xs text-gray-400">
+            <CalendarDays className="h-3 w-3" />
+            <span>{new Date().toLocaleDateString('fr-FR')}</span>
+          </Flex>
         </div>
       </div>
     </Card>

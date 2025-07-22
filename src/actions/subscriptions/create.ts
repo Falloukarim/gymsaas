@@ -4,6 +4,12 @@ import { createClient } from '@/utils/supabase/server';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 
+type CreateSessionState = {
+  error?: string;
+  success?: boolean;
+  data?: unknown; // Remplace `unknown` si tu as un type précis pour un abonnement
+};
+
 export async function createSubscription(
   formData: FormData
 ): Promise<{ error?: string }> {
@@ -32,9 +38,9 @@ export async function createSubscription(
 }
 
 export async function createSessionSubscription(
-  prevState: any,
+  prevState: CreateSessionState,
   formData: FormData
-) {
+): Promise<CreateSessionState> {
   const supabase = createClient();
   const gymId = formData.get('gym_id') as string;
   const price = parseFloat(formData.get('price') as string);
@@ -44,7 +50,7 @@ export async function createSessionSubscription(
     .from('subscriptions')
     .insert({
       gym_id: gymId,
-      type: 'session', // Assurez-vous que cette valeur est valide selon votre contrainte
+      type: 'session',
       price,
       duration_days: 1,
       description: description || null,

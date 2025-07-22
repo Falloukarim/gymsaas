@@ -26,21 +26,25 @@ export default function ForgotPasswordPage() {
   });
 
   const onSubmit = async (data: ForgotSchema) => {
-    setMessage("");
-    try {
-      const { error } = await supabase.auth.resetPasswordForEmail(data.email, {
-        redirectTo: `${window.location.origin}/reset-password`,
-      });
-      
-      if (error) {
-        throw error;
-      }
-      
-      setMessage("Un email de réinitialisation a été envoyé.");
-    } catch (error: any) {
-      setMessage(error.message || "Une erreur est survenue");
+  setMessage("");
+  try {
+    const { error } = await supabase.auth.resetPasswordForEmail(data.email, {
+      redirectTo: `${window.location.origin}/reset-password`,
+    });
+
+    if (error) {
+      throw error;
     }
-  };
+
+    setMessage("Un email de réinitialisation a été envoyé.");
+  } catch (error: unknown) {
+    if (error instanceof Error) {
+      setMessage(error.message);
+    } else {
+      setMessage("Une erreur est survenue");
+    }
+  }
+};
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#01012b] to-[#02125e]">

@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button";
 import { redirect } from 'next/navigation';
 import { AnimatedCards } from "@/components/animated-cards";
 import { AnimatedSubscriptions, AnimatedEntries } from "@/components/animated-lists";
-import { AnimatedRevenueChart } from "@/components/animated-chart";
 import { AddMemberButton } from '@/components/buttons/AddMemberButton';
 import { RevenueChart } from '@/components/revenue-chart';
 
@@ -194,14 +193,14 @@ try {
         <div className="flex-1 flex flex-col">
           <main className="flex-1 p-6">
             <Card className="border-0 bg-gradient-to-r from-[#1a2e3a] to-[#0d1a23] text-white">
-              <CardHeader>
-                <div className="flex justify-between items-center">
-                  <div>
-                    <CardTitle className="text-2xl font-bold">{gym?.name}</CardTitle>
-                    <p className="text-sm text-gray-300">{gym?.address}</p>
+            <CardHeader>
+                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+              <div>
+                 <CardTitle className="text-xl sm:text-2xl font-bold">{gym?.name}</CardTitle>
+                  <p className="text-xs sm:text-sm text-gray-300">{gym?.address}</p>
+                  </div>
+                  <AddMemberButton gymId={params.id} />
                     </div>
-                   <AddMemberButton gymId={params.id} />
-                      </div>
               </CardHeader>
 
               <CardContent className="space-y-6">
