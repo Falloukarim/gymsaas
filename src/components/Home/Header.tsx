@@ -5,9 +5,11 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import { PulsatingButton } from "@/components/buttons/PulsatingButton";
 import { InteractiveHoverButton } from "@/components/magicui/interactive-hover-button";
+import { usePathname } from "next/navigation";
 
 export default function Header() {
   const [scrolled, setScrolled] = useState(false);
+  const pathname = usePathname();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -16,6 +18,12 @@ export default function Header() {
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
+
+  // Fonction pour déterminer si le lien est actif
+  const isActive = (path: string) => {
+    if (path === "/") return pathname === path;
+    return pathname?.startsWith(path);
+  };
 
   return (
     <motion.header
@@ -43,17 +51,35 @@ export default function Header() {
             >
               <span className="text-xl font-bold text-white">SG</span>
             </PulsatingButton>
-
-            <span className="hidden md:block text-xl font-bold bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent">
-            </span>
           </motion.div>
         </Link>
 
         {/* Navigation */}
         <nav className="hidden md:flex gap-8 text-sm font-medium">
-          <Link href="#features" className="hover:text-cyan-300 transition">Fonctionnalités</Link>
-          <Link href="#pricing" className="hover:text-cyan-300 transition">Tarifs</Link>
-          <Link href="#contact" className="hover:text-cyan-300 transition">Contact</Link>
+          <Link 
+            href="/features" 
+            className={`hover:text-cyan-300 transition ${
+              isActive("/features") ? "text-cyan-400 font-semibold" : "text-white"
+            }`}
+          >
+            Fonctionnalités
+          </Link>
+          <Link 
+            href="/pricing" 
+            className={`hover:text-cyan-300 transition ${
+              isActive("/pricing") ? "text-cyan-400 font-semibold" : "text-white"
+            }`}
+          >
+            Tarifs
+          </Link>
+          <Link 
+            href="/contact" 
+            className={`hover:text-cyan-300 transition ${
+              isActive("/contact") ? "text-cyan-400 font-semibold" : "text-white"
+            }`}
+          >
+            Contact
+          </Link>
         </nav>
 
         {/* CTA */}
