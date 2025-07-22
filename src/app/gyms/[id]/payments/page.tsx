@@ -100,7 +100,6 @@ export default async function PaymentsPage({
                   <th className="px-6 py-3 text-left text-xs font-medium uppercase">Méthode</th>
                   <th className="px-6 py-3 text-left text-xs font-medium uppercase">Statut</th>
                   <th className="px-6 py-3 text-left text-xs font-medium uppercase">Date</th>
-                  <th className="px-6 py-3 text-right text-xs font-medium uppercase">Actions</th>
                 </tr>
               </thead>
               <tbody className="bg-[#0d1a23] divide-y divide-gray-700">
@@ -147,7 +146,6 @@ export default async function PaymentsPage({
                         className="text-[#00c9a7] hover:text-[#00a58e] p-0 h-auto"
                         asChild
                       >
-                        <Link href={`/gyms/${gymId}/payments/${payment.id}`}>Détails</Link>
                       </Button>
                     </td>
                   </tr>

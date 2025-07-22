@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Check, X, RotateCw, Camera } from 'lucide-react'
+import { toast } from 'sonner'
 
 export function QRScanner() {
   const router = useRouter()
@@ -58,33 +59,38 @@ export function QRScanner() {
   }
 
   const handleScanSuccess = async (decodedText: string) => {
-    console.log("🚀 QR Code scanné:", decodedText)
-    setScanResult(decodedText)
+  try {
+    // 1. Récupération du gymId
+    const gymId = window.location.pathname.split('/')[2];
+    if (!gymId) throw new Error("Impossible de déterminer la salle de sport");
 
-    try {
-      await stopScanner()
-      const response = await fetch('/api/validate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ qrCode: decodedText })
+    // 2. Appel API
+    const response = await fetch('/api/validate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        qrCode: decodedText,
+        gymId: gymId
       })
+    });
 
-      if (!response.ok) throw new Error('Erreur API')
-
-      const data = await response.json()
-      console.log("✅ Réponse API:", data)
-
-      if (data.valid) {
-        router.push(`/scan/result?name=${encodeURIComponent(data.member.name)}&status=${data.subscriptionStatus}`)
-      } else {
-        throw new Error(data.error || 'QR Code invalide')
-      }
-    } catch (err) {
-      console.error("❌ Erreur handleScanSuccess:", err)
-      setError(err instanceof Error ? err.message : 'Erreur de validation')
-      await resetScanner()
+    const data = await response.json();
+    
+    // 3. Gestion des résultats
+    if (data.accessGranted) {
+      toast.success(`Accès autorisé pour ${data.member.name}`);
+    } else {
+      toast.error(`Accès refusé: ${data.subscription?.status === 'inactive' ? 'Abonnement inactif' : 'Abonnement expiré'}`);
     }
+
+    // 4. Redirection si nécessaire
+// Modifiez la redirection pour inclure le gymId
+router.push(`/scan/${gymId}/result?name=${encodeURIComponent(data.member.name)}&status=${data.subscriptionStatus}`);
+  } catch (error) {
+    console.error("Erreur complète:", error);
+    setError("Échec de la validation du badge");
   }
+};
 
   const stopScanner = async () => {
     if (!scannerRef.current || !isScanning) return
@@ -115,7 +121,7 @@ export function QRScanner() {
   }
 
   const testWithMockQR = async () => {
-    const mockQR = "eBTQiPk-pc48m45awNNgA"
+    const mockQR = "zEYxiVGZA_gGGKReu1907"
     console.log("🔍 Test avec QR code mock:", mockQR)
     await handleScanSuccess(mockQR)
   }

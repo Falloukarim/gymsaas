@@ -2,78 +2,131 @@
 
 import { Check, X, ArrowLeft, QrCode } from 'lucide-react'
 import { motion } from 'framer-motion'
-import Link from 'next/link'
 import { useState } from 'react'
 import { Dialog, DialogTrigger, DialogContent, DialogTitle } from '@/components/ui/dialog'
 import { QRScanner } from '@/components/QRScanner'
+import { Button } from '@/components/ui/button'
+import { useRouter } from 'next/navigation'
 
-export default function ScanResultClient({ name, status, gymId }: { 
+export default function ScanResultClient({ 
+  name, 
+  status,
+  gymId 
+}: { 
   name: string, 
   status: string,
   gymId?: string 
 }) {
+  const router = useRouter()
   const isActive = status === 'active'
   const [scannerOpen, setScannerOpen] = useState(false)
 
+  // Animation variants
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.1
+      }
+    }
+  }
+
+  const itemVariants = {
+    hidden: { y: 20, opacity: 0 },
+    visible: {
+      y: 0,
+      opacity: 1,
+      transition: { type: 'spring', stiffness: 300 }
+    }
+  }
+
+  const handleNewScan = () => {
+    setScannerOpen(true)
+  }
+
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-gray-50 p-4">
+    <div className="flex flex-col items-center justify-center min-h-[calc(100vh-64px)] bg-gradient-to-b from-gray-50 to-gray-100 p-4">
       <motion.div
-        initial={{ scale: 0.9, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        transition={{ duration: 0.5, ease: 'easeOut' }}
-        className="bg-white p-8 rounded-lg shadow-xl w-full max-w-md text-center space-y-6"
+        initial="hidden"
+        animate="visible"
+        variants={containerVariants}
+        className="bg-white p-6 sm:p-8 rounded-xl shadow-lg w-full max-w-md space-y-6 border border-gray-200"
       >
+        {/* Header */}
+        <motion.div variants={itemVariants}>
+          <h1 className="text-2xl font-bold text-center text-gray-800">Résultat du scan</h1>
+        </motion.div>
 
-        <h1 className="text-2xl font-bold">Résultat du scan</h1>
-
-        <div className="flex flex-col items-center space-y-4">
+        {/* Member Info */}
+        <motion.div variants={itemVariants} className="text-center space-y-2">
           <p className="text-lg font-medium text-gray-700">{decodeURIComponent(name)}</p>
+          <p className="text-sm text-gray-500">ID Salle: {gymId}</p>
+        </motion.div>
 
+        {/* Status Indicator */}
+        <motion.div
+          variants={itemVariants}
+          className="flex flex-col items-center"
+        >
           <motion.div
             initial={{ scale: 0 }}
-            animate={{ scale: 1.2 }}
+            animate={{ scale: 1 }}
             transition={{ type: 'spring', stiffness: 200, damping: 10 }}
             className={`rounded-full p-4 ${
               isActive ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'
             }`}
           >
             {isActive ? (
-              <Check className="w-12 h-12" />
+              <Check className="w-10 h-10" strokeWidth={2} />
             ) : (
-              <X className="w-12 h-12" />
+              <X className="w-10 h-10" strokeWidth={2} />
             )}
           </motion.div>
+          <motion.p 
+            variants={itemVariants}
+            className={`mt-3 text-lg font-semibold ${
+              isActive ? 'text-green-600' : 'text-red-600'
+            }`}
+          >
+            {isActive ? 'Accès autorisé' : 'Accès refusé'}
+          </motion.p>
+          <motion.p variants={itemVariants} className="text-sm text-gray-500">
+            {isActive ? 'Abonnement valide' : 'Abonnement expiré ou invalide'}
+          </motion.p>
+        </motion.div>
 
-          <div className={`text-xl font-semibold ${isActive ? 'text-green-600' : 'text-red-600'}`}>
-            {isActive ? 'Abonnement actif' : 'Abonnement expiré'}
-          </div>
-        </div>
-
-        <div className="flex flex-col gap-2">
-          {/* ✅ Bouton Scanner un autre QR Code dans un Dialog */}
+        {/* Actions */}
+        <motion.div variants={itemVariants} className="flex flex-col gap-3">
           <Dialog open={scannerOpen} onOpenChange={setScannerOpen}>
             <DialogTrigger asChild>
-              <button
-                className="inline-block w-full bg-blue-600 hover:bg-blue-700 text-white py-3 px-4 rounded-lg transition font-medium"
+              <Button 
+                size="lg"
+                className="w-full gap-2"
+                onClick={handleNewScan}
               >
-                Scanner un autre QR Code
-              </button>
+                <QrCode className="h-5 w-5" />
+                Nouveau scan
+              </Button>
             </DialogTrigger>
             <DialogContent className="sm:max-w-[425px]">
-              <DialogTitle>Scanner un QR Code</DialogTitle>
+              <DialogTitle className="text-center">Scanner un badge</DialogTitle>
               <QRScanner />
             </DialogContent>
           </Dialog>
 
           {gymId && (
-            <Link
-              href={`/gyms/${gymId}/dashboard`}
-              className="inline-block w-full bg-gray-200 hover:bg-gray-300 text-gray-800 py-3 px-4 rounded-lg transition font-medium"
+            <Button
+              variant="outline"
+              size="lg"
+              className="w-full gap-2"
+              onClick={() => router.push(`/gyms/${gymId}/dashboard`)}
             >
+              <ArrowLeft className="h-5 w-5" />
               Retour au tableau de bord
-            </Link>
+            </Button>
           )}
-        </div>
+        </motion.div>
       </motion.div>
     </div>
   )

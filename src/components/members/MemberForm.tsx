@@ -13,7 +13,7 @@ import { createMember } from '@/actions/members/create';
 import { useState, useRef } from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
-const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+const MAX_FILE_SIZE = 5 * 1024 * 1024;
 const ACCEPTED_IMAGE_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
 
 const memberSchema = z.object({
@@ -22,7 +22,6 @@ const memberSchema = z.object({
   email: z.string().email('Email invalide').optional().or(z.literal('')),
   phone: z.string().min(6, 'Minimum 6 caractères'),
   subscription_id: z.string().optional(),
-  session_amount: z.string().optional(),
   avatar: z
     .any()
     .refine(file => !file || file.size <= MAX_FILE_SIZE, 'La taille maximale est de 5MB')
@@ -38,7 +37,7 @@ export function MemberForm({
   subscriptions,
 }: {
   gymId: string;
-  subscriptions: { id: string; type: string; price?: number }[];
+  subscriptions: { id: string; type: string; price?: number; is_session?: boolean }[];
 }) {
   const router = useRouter();
   const [preview, setPreview] = useState<string | null>(null);
@@ -60,7 +59,6 @@ export function MemberForm({
       email: '',
       phone: '',
       subscription_id: undefined,
-      session_amount: '',
     },
   });
 
@@ -71,7 +69,6 @@ export function MemberForm({
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Validation avec Zod
     const result = memberSchema.shape.avatar.safeParse(file);
     if (!result.success) {
       toast.error(result.error.errors[0].message);
@@ -81,64 +78,51 @@ export function MemberForm({
     setValue('avatar', file);
     trigger('avatar');
 
-    // Aperçu de l'image
     const reader = new FileReader();
-    reader.onload = () => {
-      setPreview(reader.result as string);
-    };
+    reader.onload = () => setPreview(reader.result as string);
     reader.readAsDataURL(file);
   };
 
-  const triggerFileInput = () => {
-    fileInputRef.current?.click();
+  const onSubmit = async (data: z.infer<typeof memberSchema>) => {
+    setIsUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append('gym_id', data.gym_id);
+      formData.append('full_name', data.full_name);
+      formData.append('phone', data.phone);
+      
+      if (data.email) formData.append('email', data.email);
+      if (data.subscription_id) formData.append('subscription_id', data.subscription_id);
+      if (data.avatar) formData.append('avatar', data.avatar);
+
+      const result = await createMember(formData);
+
+      if (result?.error) {
+        toast.error(result.error);
+        return;
+      }
+
+      toast.success('Membre ajouté avec succès', {
+        description: `${data.full_name} a été enregistré`,
+        action: {
+          label: 'Voir',
+          onClick: () => router.push(`/gyms/${gymId}/members/${result.memberId}`)
+        },
+      });
+
+      setTimeout(() => {
+        router.push(result.redirectUrl || `/gyms/${gymId}/dashboard`);
+      }, 2000);
+
+    } catch (error) {
+      toast.error('Erreur lors de la création du membre');
+      console.error(error);
+    } finally {
+      setIsUploading(false);
+    }
   };
-
-const onSubmit = async (data: z.infer<typeof memberSchema>) => {
-  setIsUploading(true);
-  try {
-    const formData = new FormData();
-    formData.append('gym_id', data.gym_id);
-    formData.append('full_name', data.full_name);
-    formData.append('phone', data.phone);
-    
-    if (data.email) formData.append('email', data.email);
-    if (data.subscription_id) formData.append('subscription_id', data.subscription_id);
-    if (subscriptionId === 'session' && data.session_amount) {
-      formData.append('session_amount', data.session_amount);
-    }
-    if (data.avatar) {
-      formData.append('avatar', data.avatar);
-    }
-
-    const result = await createMember(formData);
-
-    if (result?.error) {
-      toast.error(result.error);
-      return;
-    }
-
-    // Afficher le toast de succès
-    toast.success('Membre ajouté avec succès', {
-      description: `${data.full_name} a été enregistré`,
-      action: {
-        label: 'Voir',
-        onClick: () => router.push(`/gyms/${gymId}/members/${result.memberId}`)
-      },
-    });
-
-    // Redirection après 2 secondes
-    setTimeout(() => {
-      router.push(result.redirectUrl || `/gyms/${gymId}/dashboard`);
-    }, 2000);
-
-  } catch (error) {
-    toast.error('Erreur lors de la création du membre', {
-      description: 'Veuillez réessayer ou contacter le support'
-    });
-    console.error(error);
-  } finally {
-    setIsUploading(false);
-  }
+     const triggerFileInput = () => {
+  fileInputRef.current?.click();
 };
 
   return (
@@ -206,43 +190,30 @@ const onSubmit = async (data: z.infer<typeof memberSchema>) => {
           />
         </div>
 
-        {subscriptions.length > 0 && (
-          <div className="space-y-2">
-            <Label>Abonnement ou Session</Label>
-            <Select
-              value={subscriptionId}
-              onValueChange={(value) => setValue('subscription_id', value)}
-              disabled={isSubmitting || isUploading}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Sélectionnez un abonnement ou session" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="session">Session (paiement ponctuel)</SelectItem>
-                {subscriptions.map((sub) => (
-                  <SelectItem key={sub.id} value={sub.id}>
-                    {sub.type} {sub.price ? `(€${sub.price})` : ''}
-                  </SelectItem>
+         {subscriptions.length > 0 && (
+        <div className="space-y-2">
+          <Label>Type d'accès</Label>
+          <Select
+            value={subscriptionId}
+            onValueChange={(value) => setValue('subscription_id', value)}
+            disabled={isSubmitting || isUploading}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Sélectionnez un type d'accès" />
+            </SelectTrigger>
+            <SelectContent>
+              {subscriptions.map((sub) => (
+                <SelectItem key={sub.id} value={sub.id}>
+  {sub.is_session 
+    ? `Session: ${sub.description || 'Accès journée'} (${sub.price} FCFA)`
+    : `Abonnement ${sub.type} (${sub.price} FCFA)`}
+</SelectItem>
                 ))}
               </SelectContent>
             </Select>
             {errors.subscription_id && (
               <p className="text-sm text-red-500">{errors.subscription_id.message}</p>
             )}
-          </div>
-        )}
-
-        {subscriptionId === 'session' && (
-          <div className="space-y-2">
-            <Label htmlFor="session_amount">Montant de la session (€)*</Label>
-            <Input
-              id="session_amount"
-              type="number"
-              step="0.01"
-              {...register('session_amount')}
-              error={errors.session_amount?.message}
-              disabled={isSubmitting || isUploading}
-            />
           </div>
         )}
       </div>

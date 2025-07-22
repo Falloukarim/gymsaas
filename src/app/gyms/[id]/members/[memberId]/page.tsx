@@ -62,9 +62,16 @@ export default async function MemberDetailPage({
     .eq('member_id', memberId)
     .order('timestamp', { ascending: false });
 
-  const activeSubscription = member.member_subscriptions?.find(
-    (sub: { end_date: string | number | Date }) => new Date(sub.end_date) > new Date()
-  );
+  const subscriptions = member.member_subscriptions || [];
+const activeSubscription = subscriptions.find(
+  (sub: { end_date: string | number | Date }) => new Date(sub.end_date) > new Date()
+);
+    const hasActiveSubscription = !!activeSubscription;
+
+const lastSubscription = subscriptions.sort(
+  (a: { end_date: string }, b: { end_date: string }) => 
+    new Date(b.end_date).getTime() - new Date(a.end_date).getTime()
+)[0];
 
   // Get initials for avatar
   const initials = member.full_name
@@ -174,16 +181,16 @@ export default async function MemberDetailPage({
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  {activeSubscription ? (
-                    <div className="space-y-4">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="font-medium">{activeSubscription.subscriptions?.type}</p>
-                          <p className="text-sm text-gray-400">
-                            {activeSubscription.subscriptions?.description}
-                          </p>
-                        </div>
-                        <SubscriptionStatusBadge status="active" />
+                 {hasActiveSubscription ? (
+  <div className="space-y-4">
+    <div className="flex items-center justify-between">
+      <div>
+        <p className="font-medium">{activeSubscription!.subscriptions?.type}</p>
+        <p className="text-sm text-gray-400">
+          {activeSubscription!.subscriptions?.description}
+        </p>
+      </div>
+      <SubscriptionStatusBadge status="active" />
                       </div>
                       
                       <div className="space-y-2">
@@ -200,16 +207,63 @@ export default async function MemberDetailPage({
                       <Button variant="outline" className="w-full bg-gray-700 hover:bg-gray-600 border-gray-600">
                         Gérer l'abonnement
                       </Button>
-                    </div>
-                  ) : (
-                    <div className="flex flex-col items-center justify-center space-y-3 text-center py-4">
-                      <Activity className="h-8 w-8 text-gray-400" />
-                      <p className="text-gray-400">Aucun abonnement actif</p>
-                      <Button size="sm" className="mt-2">
-                        Ajouter un abonnement
-                      </Button>
-                    </div>
-                  )}
+                       <Button 
+      variant="outline" 
+      className="w-full bg-gray-700 hover:bg-gray-600 border-gray-600"
+      asChild
+    >
+      <Link href={`/gyms/${gymId}/members/${memberId}/renew`}>
+        Renouveler l'abonnement
+      </Link>
+    </Button>
+  </div>
+) : lastSubscription ? (
+  <div className="space-y-4">
+    <div className="flex items-center justify-between">
+      <div>
+        <p className="font-medium">{lastSubscription.subscriptions?.type}</p>
+        <p className="text-sm text-gray-400">
+          {lastSubscription.subscriptions?.description}
+        </p>
+      </div>
+      <SubscriptionStatusBadge status="expired" />
+    </div>
+    
+    <div className="space-y-2">
+      <div className="flex items-center justify-between text-sm">
+        <span className="text-gray-400">Dernier abonnement (expiré)</span>
+        <span>{new Date(lastSubscription.end_date).toLocaleDateString()}</span>
+      </div>
+    </div>
+    
+    <Button 
+      variant="outline" 
+      className="w-full bg-gray-700 hover:bg-gray-600 border-gray-600"
+      asChild
+    >
+      <Link href={`/gyms/${gymId}/members/${memberId}/renew`}>
+        Renouveler l'abonnement
+      </Link>
+    </Button>
+  </div>
+) : (
+  <div className="flex flex-col items-center justify-center space-y-3 text-center py-4">
+    <Activity className="h-8 w-8 text-gray-400" />
+    <p className="text-gray-400">Aucun abonnement actif</p>
+    <div className="flex gap-2">
+      <Button size="sm" asChild>
+        <Link href={`/gyms/${gymId}/members/${memberId}/renew`}>
+          Ajouter un abonnement
+        </Link>
+      </Button>
+      <Button size="sm" variant="secondary" asChild>
+        <Link href={`/gyms/${gymId}/members/${memberId}/new-session`}>
+          Nouvelle session
+        </Link>
+      </Button>
+    </div>
+  </div>
+)}
                 </CardContent>
               </Card>
             </div>
@@ -322,18 +376,22 @@ export default async function MemberDetailPage({
                         </TableHeader>
                         <TableBody>
                           {member.member_subscriptions.map((sub: any) => (
-                            <TableRow key={sub.id} className="border-gray-700 hover:bg-gray-700">
-                              <TableCell>{sub.subscriptions?.type}</TableCell>
-                              <TableCell>
-                                {new Date(sub.start_date).toLocaleDateString()} -{' '}
-                                {new Date(sub.end_date).toLocaleDateString()}
-                              </TableCell>
-                              <TableCell className="text-right">
-                                <SubscriptionStatusBadge 
-                                  status={new Date(sub.end_date) > new Date() ? 'active' : 'expired'} 
-                                />
-                              </TableCell>
-                            </TableRow>
+                             <TableRow key={sub.id} className="border-gray-700 hover:bg-gray-700">
+    <TableCell>{sub.subscriptions?.type}</TableCell>
+    <TableCell>
+      {new Date(sub.start_date).toLocaleDateString()} -{' '}
+      {new Date(sub.end_date).toLocaleDateString()}
+    </TableCell>
+    <TableCell className="text-right">
+      <SubscriptionStatusBadge 
+        status={
+          sub.status === 'active' && new Date(sub.end_date) > new Date() 
+            ? 'active' 
+            : 'expired'
+        } 
+      />
+    </TableCell>
+  </TableRow>
                           ))}
                         </TableBody>
                       </Table>

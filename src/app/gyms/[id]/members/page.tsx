@@ -9,15 +9,17 @@ import { Plus } from 'lucide-react';
 
 export default async function MembersPage({
   params,
+  searchParams
 }: {
   params: Promise<{ id: string }>;
+  searchParams?: { q?: string };
 }) {
   const resolvedParams = await params;
   const gymId = resolvedParams.id;
+  const search = searchParams?.q || '';
 
   const supabase = createClient();
 
-  // Récupérer la liste des membres avec leurs abonnements
   const { data: members, error } = await (await supabase)
     .from('members')
     .select(`
@@ -28,6 +30,7 @@ export default async function MembersPage({
       )
     `)
     .eq('gym_id', gymId)
+    .ilike('full_name', `%${search}%`) // recherche insensible à la casse
     .order('full_name', { ascending: true });
 
   if (error) {
@@ -52,7 +55,35 @@ export default async function MembersPage({
         </Button>
       </div>
 
-     <Card className="bg-gray-900 text-white border-none">
+      {/* Champ de recherche */}
+       <form method="GET" className="max-w-md flex gap-2 items-center">
+  <input
+    type="text"
+    name="q"
+    placeholder="Rechercher un membre..."
+    defaultValue={search}
+    className="w-full p-2 rounded-md border bg-white text-black"
+  />
+  <Button type="submit" variant="secondary" size="icon" className="shrink-0">
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      className="h-5 w-5"
+      fill="none"
+      viewBox="0 0 24 24"
+      stroke="currentColor"
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth="2"
+        d="M21 21l-4.35-4.35M17 11a6 6 0 11-12 0 6 6 0 0112 0z"
+      />
+    </svg>
+    <span className="sr-only">Rechercher</span>
+  </Button>
+</form>
+
+      <Card className="bg-gray-900 text-white border-none">
         <CardHeader>
           <CardTitle>Liste des membres</CardTitle>
         </CardHeader>
@@ -74,7 +105,7 @@ export default async function MembersPage({
                       <CardContent className="p-4 flex items-center gap-4">
                         <Avatar className="h-12 w-12">
                           <AvatarImage src={member.avatar_url} />
-                          <AvatarFallback className="">
+                          <AvatarFallback>
                             {member.full_name
                               .split(' ')
                               .map((n) => n[0])
@@ -103,11 +134,11 @@ export default async function MembersPage({
           ) : (
             <div className="text-center py-12 space-y-2">
               <p className="text-muted-foreground">
-                Aucun membre n'est enregistré dans cette salle
+                Aucun membre trouvé {search && `pour "${search}"`}
               </p>
               <Button asChild variant="link" className="text-primary">
                 <Link href={`/gyms/${gymId}/members/new`}>
-                  Ajouter votre premier membre
+                  Ajouter un membre
                 </Link>
               </Button>
             </div>
