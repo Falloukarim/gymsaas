@@ -1,9 +1,9 @@
 const nextConfig = {
   typescript: {
-    ignoreBuildErrors: true,
+    ignoreBuildErrors: true, // ✅ Ignore les erreurs TypeScript
   },
   eslint: {
-    ignoreDuringBuilds: true, // ✅ ignore les erreurs ESLint au build
+    ignoreDuringBuilds: true, // ✅ Ignore les erreurs ESLint au build
   },
   async headers() {
     return [
