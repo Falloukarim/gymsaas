@@ -121,9 +121,10 @@ export function MemberForm({
       setIsUploading(false);
     }
   };
-     const triggerFileInput = () => {
-  fileInputRef.current?.click();
-};
+
+  const triggerFileInput = () => {
+    fileInputRef.current?.click();
+  };
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
@@ -151,7 +152,7 @@ export function MemberForm({
           accept="image/*"
           className="hidden"
         />
-        <p className="mt-2 text-sm text-gray-500">Cliquez sur l'avatar pour changer la photo</p>
+        <p className="mt-2 text-sm text-gray-500">Cliquez sur l&apos;avatar pour changer la photo</p>
         {errors.avatar && (
           <p className="mt-1 text-sm text-red-500">{errors.avatar.message as string}</p>
         )}
@@ -190,24 +191,24 @@ export function MemberForm({
           />
         </div>
 
-         {subscriptions.length > 0 && (
-        <div className="space-y-2">
-          <Label>Type d'accès</Label>
-          <Select
-            value={subscriptionId}
-            onValueChange={(value) => setValue('subscription_id', value)}
-            disabled={isSubmitting || isUploading}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Sélectionnez un type d'accès" />
-            </SelectTrigger>
-            <SelectContent>
-              {subscriptions.map((sub) => (
-                <SelectItem key={sub.id} value={sub.id}>
-  {sub.is_session 
-    ? `Session: ${sub.description || 'Accès journée'} (${sub.price} FCFA)`
-    : `Abonnement ${sub.type} (${sub.price} FCFA)`}
-</SelectItem>
+        {subscriptions.length > 0 && (
+          <div className="space-y-2">
+            <Label>Type d&apos;accès</Label>
+            <Select
+              value={subscriptionId}
+              onValueChange={(value) => setValue('subscription_id', value)}
+              disabled={isSubmitting || isUploading}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Sélectionnez un type d&apos;accès" />
+              </SelectTrigger>
+              <SelectContent>
+                {subscriptions.map((sub) => (
+                  <SelectItem key={sub.id} value={sub.id}>
+                    {sub.is_session 
+                      ? `Session: ${sub.description || 'Accès journée'} (${sub.price} FCFA)`
+                      : `Abonnement ${sub.type} (${sub.price} FCFA)`}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>

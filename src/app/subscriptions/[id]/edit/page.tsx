@@ -35,7 +35,7 @@ export default function SubscriptionEditPage() {
                 <ArrowLeft className="h-4 w-4" />
               </Link>
             </Button>
-            <CardTitle className="text-xl">Modifier l'Abonnement</CardTitle>
+            <CardTitle className="text-xl">Modifier l&apos;Abonnement</CardTitle>
           </div>
         </CardHeader>
         
@@ -70,7 +70,7 @@ export default function SubscriptionEditPage() {
 
               <div className="space-y-2">
                 <Label htmlFor="price" className="text-white">
-                  Prix (€)
+                  Prix (CFA)
                 </Label>
                 <Input
                   id="price"

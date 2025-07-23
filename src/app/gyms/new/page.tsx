@@ -1,7 +1,6 @@
 'use client';
 
 import { createClient } from '@/lib/supabaseClient';
-import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -20,14 +19,13 @@ const gymSchema = z.object({
 });
 
 export default function NewGymPage() {
-  const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const {
     register,
     handleSubmit,
     formState: { errors }
-  } = useForm({
+  } = useForm<z.infer<typeof gymSchema>>({
     resolver: zodResolver(gymSchema),
   });
 
@@ -69,7 +67,7 @@ export default function NewGymPage() {
 
       console.log("Résultat association gbus :", { gbus, gbusError });
       if (gbusError) {
-        // Nettoyage en cas d’échec
+        // Nettoyage en cas d'échec
         await supabase.from('gyms').delete().eq('id', gym.id);
         throw new Error(gbusError.message || "Erreur lors de l'association utilisateur");
       }
@@ -83,11 +81,12 @@ export default function NewGymPage() {
       // 4. Rediriger vers le dashboard
       window.location.assign(`/gyms/${gym.id}/dashboard?t=${Date.now()}`);
 
-    } catch (err: any) {
-      const errorMessage =
-        typeof err === 'string'
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error 
+        ? err.message 
+        : typeof err === 'string'
           ? err
-          : err?.message || JSON.stringify(err) || "Erreur inconnue";
+          : "Erreur inconnue";
 
       toast.error(errorMessage);
       console.error("Erreur création gym :", err);

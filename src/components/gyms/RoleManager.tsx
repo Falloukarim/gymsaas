@@ -2,32 +2,45 @@
 'use client';
 
 import { createClient } from '@/lib/supabaseClient';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { Input } from '@/components/ui/input';
 import { USER_ROLES } from '@/lib/constants/role';
 
-export function RoleManager({ gymId, currentUserRole }: { gymId: string, currentUserRole: string }) {
+interface GymUser {
+  user_id: string;
+  role: string;
+  users: {
+    email: string;
+  };
+}
+
+interface RoleManagerProps {
+  gymId: string;
+  currentUserRole: string;
+}
+
+export function RoleManager({ gymId, currentUserRole }: RoleManagerProps) {
   const supabase = createClient();
-  const [users, setUsers] = useState<any[]>([]);
+  const [users, setUsers] = useState<GymUser[]>([]);
   const [email, setEmail] = useState('');
   const [selectedRole, setSelectedRole] = useState(USER_ROLES.STAFF);
   const [loading, setLoading] = useState(true);
 
   // Rôles disponibles en fonction du rôle actuel
-  const availableRoles = () => {
+  const availableRoles = useCallback(() => {
     if (currentUserRole === USER_ROLES.OWNER) {
       return Object.values(USER_ROLES);
     }
     return [USER_ROLES.ADMIN, USER_ROLES.STAFF];
-  };
+  }, [currentUserRole]);
 
-  const fetchUsers = async () => {
+  const fetchUsers = useCallback(async () => {
     const { data, error } = await supabase
       .from('gbus')
-      .select('*, users(*)')
+      .select('*, users(email)')
       .eq('gym_id', gymId);
 
     if (error) {
@@ -37,11 +50,11 @@ export function RoleManager({ gymId, currentUserRole }: { gymId: string, current
       setUsers(data || []);
     }
     setLoading(false);
-  };
+  }, [gymId, supabase]);
 
   useEffect(() => {
     fetchUsers();
-  }, [gymId]);
+  }, [fetchUsers]);
 
   const updateRole = async (userId: string, newRole: string) => {
     // Empêcher la modification du dernier owner
@@ -84,7 +97,7 @@ export function RoleManager({ gymId, currentUserRole }: { gymId: string, current
     setLoading(true);
     try {
       // 1. Vérifier si l'utilisateur existe
-      const { data: user, error: userError } = await supabase
+      const { data: user } = await supabase
         .from('users')
         .select('id')
         .eq('email', email)
@@ -114,15 +127,16 @@ export function RoleManager({ gymId, currentUserRole }: { gymId: string, current
 
         if (error) throw error;
         
-        // Ici vous devriez envoyer un email avec un token/lien d'invitation
-        toast.success('Invitation envoyée à ' + email);
+        toast.success(`Invitation envoyée à ${email}`);
       }
 
       setEmail('');
       fetchUsers();
-    } catch (error) {
+    } catch (error: unknown) {
       console.error(error);
-      toast.error("Erreur lors de l'invitation");
+      toast.error(error instanceof Error 
+        ? error.message 
+        : "Erreur lors de l&apos;invitation");
     } finally {
       setLoading(false);
     }
@@ -133,7 +147,7 @@ export function RoleManager({ gymId, currentUserRole }: { gymId: string, current
       <div className="flex gap-2">
         <Input
           type="email"
-          placeholder="Email de l'utilisateur"
+          placeholder="Email de l&apos;utilisateur"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           disabled={loading}

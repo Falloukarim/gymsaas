@@ -2,22 +2,29 @@
 
 import { Card } from "../ui/card";
 import { Activity, ArrowUpRight, Clock, CreditCard, Users } from "lucide-react";
+import { ComponentType } from "react";
 
-export function StatsCards({ stats }: { stats: {
+interface StatCard {
   name: string;
   value: string;
   iconName: string;
   change: string;
-  changeType: string;
-}[] }) {
-  const iconMap: Record<string, React.ComponentType<any>> = {
-    Users: Users,
-    CreditCard: CreditCard,
-    Euro: Activity, // On garde Activity pour Euro/FCFA
-    Activity: Activity,
-    Clock: Clock
-  };
+  changeType: "positive" | "negative";
+}
 
+interface StatsCardsProps {
+  stats: StatCard[];
+}
+
+const iconMap: Record<string, ComponentType<{ className?: string }>> = {
+  Users: Users,
+  CreditCard: CreditCard,
+  Euro: Activity,
+  Activity: Activity,
+  Clock: Clock
+};
+
+export function StatsCards({ stats }: StatsCardsProps) {
   return (
     <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
       {stats.map((stat) => {

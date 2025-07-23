@@ -4,7 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import Link from 'next/link';
 import { SearchBar } from '@/components/search-bar';
 import { Button } from '@/components/ui/button';
-import { Plus } from 'lucide-react';
+import { ArrowLeft, Plus } from 'lucide-react';
 
 export default async function PaymentsPage({
   searchParams,
@@ -70,6 +70,13 @@ export default async function PaymentsPage({
   return (
     <div className="p-6">
       <Card className="border-0 bg-gradient-to-r from-[#1a2e3a] to-[#0d1a23] text-white">
+               <Link
+  href={`/gyms/${gymId}/dashboard`}
+  className="flex items-center gap-2 text-sm hover:text-blue-400 transition-colors mb-4 sm:mb-0"
+>
+  <ArrowLeft className="h-4 w-4" />
+  <span className="whitespace-nowrap">Retour au dashboard</span>
+</Link>
         <CardHeader>
           <div className="flex justify-between items-center">
             <CardTitle className="text-2xl font-bold">Gestion des Paiements</CardTitle>

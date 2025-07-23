@@ -9,14 +9,27 @@ import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';
 
+interface Member {
+  id: string;
+  full_name: string;
+  qr_code: string;
+  avatar_url?: string;
+}
+
+interface Session {
+  id: string;
+  price: number;
+  description?: string;
+}
+
 export default function SessionCreationForm({
   member,
   gymId,
   sessions,
 }: {
-  member: any;
+  member: Member;
   gymId: string;
-  sessions: any[];
+  sessions: Session[];
 }) {
   const supabase = createClientComponentClient();
   const router = useRouter();
@@ -28,16 +41,13 @@ export default function SessionCreationForm({
 
     setIsProcessing(true);
     try {
-      // Get the selected session details
       const session = sessions.find(s => s.id === selectedSession);
       if (!session) throw new Error('Session non trouvée');
 
-      // Calculate dates (session is valid for 1 day)
       const startDate = new Date();
       const endDate = new Date(startDate);
       endDate.setDate(endDate.getDate() + 1);
 
-      // Create member subscription record for the session
       const { error: subscriptionError } = await supabase
         .from('member_subscriptions')
         .insert({
@@ -51,7 +61,6 @@ export default function SessionCreationForm({
 
       if (subscriptionError) throw subscriptionError;
 
-      // Create payment record
       const { error: paymentError } = await supabase
         .from('payments')
         .insert({
@@ -61,7 +70,7 @@ export default function SessionCreationForm({
           type: 'session',
           subscription_id: selectedSession,
           status: 'paid',
-          payment_method: 'cash', // Modifiable selon vos besoins
+          payment_method: 'cash',
         });
 
       if (paymentError) throw paymentError;
@@ -98,9 +107,7 @@ export default function SessionCreationForm({
                 <div className="flex justify-between items-start">
                   <div>
                     <p className="font-bold text-lg">Session</p>
-                    <p className="text-sm text-gray-400">
-                      Accès: 1 jour
-                    </p>
+                    <p className="text-sm text-gray-400">Accès: 1 jour</p>
                   </div>
                   <p className="text-2xl font-bold">{session.price} F CFA</p>
                 </div>

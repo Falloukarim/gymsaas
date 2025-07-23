@@ -5,7 +5,22 @@ import { createClient } from '@/lib/supabaseClient';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 
-export function InvitationForm({ invitation, userId }: { invitation: any, userId: string }) {
+interface Invitation {
+  id: string;
+  gym_id: string;
+  role: string;
+  accepted: boolean;
+  gyms: {
+    name: string;
+  };
+}
+
+interface InvitationFormProps {
+  invitation: Invitation;
+  userId: string;
+}
+
+export function InvitationForm({ invitation, userId }: InvitationFormProps) {
   const supabase = createClient();
 
   const acceptInvitation = async () => {
@@ -29,9 +44,11 @@ export function InvitationForm({ invitation, userId }: { invitation: any, userId
 
       toast.success(`Vous avez rejoint le gym ${invitation.gyms.name} en tant que ${invitation.role}`);
       window.location.href = `/gyms/${invitation.gym_id}/dashboard`;
-    } catch (error) {
+    } catch (error: unknown) {
       console.error(error);
-      toast.error("Erreur lors de l'acceptation de l'invitation");
+      toast.error(error instanceof Error 
+        ? error.message 
+        : "Erreur lors de l&apos;acceptation de l&apos;invitation");
     }
   };
 
@@ -42,7 +59,7 @@ export function InvitationForm({ invitation, userId }: { invitation: any, userId
         <p className="text-sm text-gray-600">Rôle: {invitation.role}</p>
       </div>
       <Button onClick={acceptInvitation}>
-        Accepter l'invitation
+        Accepter l&apos;invitation
       </Button>
     </div>
   );

@@ -22,7 +22,12 @@ type FormData = {
   description?: string;
 };
 
-export default function SubscriptionForm({ gymId, onSuccess }: { gymId: string; onSuccess: () => void }) {
+type SubscriptionFormProps = {
+  gymId: string;
+  onSuccess: () => void;
+};
+
+export default function SubscriptionForm({ gymId, onSuccess }: SubscriptionFormProps) {
   const [form, setForm] = useState<FormData>({
     type: '',
     price: '',
@@ -76,9 +81,12 @@ export default function SubscriptionForm({ gymId, onSuccess }: { gymId: string; 
       setForm({ type: '', price: '', duration: '30', description: '' });
       setIsOpen(false);
       onSuccess();
-    } catch (err: any) {
-      console.error('Erreur création abonnement:', err);
-      toast.error(err.message || "Erreur lors de la création de l'abonnement");
+    } catch (error: unknown) {
+      console.error('Erreur création abonnement:', error);
+      const errorMessage = error instanceof Error 
+        ? error.message 
+        : "Erreur lors de la création de l&apos;abonnement";
+      toast.error(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -104,7 +112,7 @@ export default function SubscriptionForm({ gymId, onSuccess }: { gymId: string; 
 
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
-                <Label>Type d'abonnement *</Label>
+                <Label>Type d&apos;abonnement *</Label>
                 <Select 
                   value={form.type} 
                   onValueChange={handleTypeChange}

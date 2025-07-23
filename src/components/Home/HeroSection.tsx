@@ -1,8 +1,6 @@
 "use client";
 
 import { motion, useScroll, useTransform } from "framer-motion";
-import Link from "next/link";
-import { ShimmerButton } from "@/components/magicui/shimmer-button";
 import InfiniteScrollingTags from "./InfiniteScrollingTags";
 
 const textVariants = {

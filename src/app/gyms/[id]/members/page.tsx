@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { Plus } from 'lucide-react';
+import { ArrowLeft, Plus } from 'lucide-react';
 
 export default async function MembersPage({
   params,
@@ -41,6 +41,14 @@ export default async function MembersPage({
   return (
     <div className="p-6 max-w-6xl mx-auto space-y-6">
       <div className="flex justify-between items-center">
+        <Link
+  href={`/gyms/${gymId}/dashboard`}
+  className="flex items-center gap-2 text-sm hover:text-blue-400 transition-colors mb-4 sm:mb-0"
+>
+  <ArrowLeft className="h-4 w-4" />
+  <span className="whitespace-nowrap">Retour au dashboard</span>
+</Link>
+
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Membres</h1>
           <p className="text-muted-foreground">

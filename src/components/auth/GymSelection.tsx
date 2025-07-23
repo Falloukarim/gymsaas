@@ -6,16 +6,27 @@ import { Button } from '@/components/ui/button';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 
+interface GymMembership {
+  gym_id: string;
+  gyms: {
+    name: string;
+  };
+  role: string;
+}
+
 export function GymSelection() {
   const supabase = createClient();
   const router = useRouter();
-  const [gyms, setGyms] = useState<any[]>([]);
+  const [gyms, setGyms] = useState<GymMembership[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchGyms = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      if (!user || authError) {
+        setLoading(false);
+        return;
+      }
 
       const { data, error } = await supabase
         .from('gbus')
@@ -31,9 +42,8 @@ export function GymSelection() {
     };
 
     fetchGyms();
-  }, []);
+  }, [supabase]); // Added supabase to dependency array
 
-  // ✅ Redirection dans un useEffect
   useEffect(() => {
     if (!loading && gyms.length === 1) {
       router.push(`/gyms/${gyms[0].gym_id}/dashboard`);
@@ -43,7 +53,7 @@ export function GymSelection() {
   if (loading) return <div>Chargement...</div>;
 
   if (gyms.length === 1) {
-    return <div>Redirection en cours...</div>; // Évite de rien retourner
+    return <div>Redirection en cours...</div>;
   }
 
   if (gyms.length > 1) {
@@ -61,7 +71,6 @@ export function GymSelection() {
     );
   }
 
-  // Aucun gym
   return (
     <div className="space-y-4">
       <h2>Que souhaitez-vous faire ?</h2>

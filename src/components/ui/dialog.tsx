@@ -46,21 +46,37 @@ function DialogOverlay({
   )
 }
 
+interface DialogContentProps extends React.ComponentProps<typeof DialogPrimitive.Content> {
+  showCloseButton?: boolean;
+  hasTitle?: boolean;
+}
+
 function DialogContent({
   className,
   children,
   showCloseButton = true,
-  hasTitle = true, // Nouvelle prop
+  hasTitle = true,
   ...props
-}: React.ComponentProps<typeof DialogPrimitive.Content> & {
-  showCloseButton?: boolean;
-  hasTitle?: boolean; // Nouvelle prop
-}) {
-  // Vérifie si un DialogTitle est présent parmi les enfants
+}: DialogContentProps) {
+  // Type-safe check for DialogTitle in children
   const hasTitleInChildren = React.Children.toArray(children).some(
-    (child) => React.isValidElement(child) && 
-             (child.type === DialogTitle || 
-              (child as any).props?.children?.type === DialogTitle)
+    (child) => {
+      if (React.isValidElement(child)) {
+        // Check for direct DialogTitle
+        if (child.type === DialogTitle) return true;
+        
+        // Check for DialogTitle in children's props
+        if (child.props.children) {
+          const childrenArray = React.Children.toArray(child.props.children);
+          return childrenArray.some(
+            (nestedChild) => 
+              React.isValidElement(nestedChild) && 
+              nestedChild.type === DialogTitle
+          );
+        }
+      }
+      return false;
+    }
   );
 
   if (hasTitle && !hasTitleInChildren) {

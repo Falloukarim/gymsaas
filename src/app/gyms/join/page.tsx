@@ -5,12 +5,24 @@ import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabaseClient'
 import { InvitationForm } from '@/components/gyms/InvitationForm'
 import { useRouter } from 'next/navigation'
+import { User } from '@supabase/supabase-js'
+
+interface Invitation {
+  id: string
+  email: string
+  gym_id: string
+  accepted: boolean
+  created_at: string
+  gyms: {
+    name: string
+  }
+}
 
 export default function JoinGym() {
   const supabase = createClient()
   const router = useRouter()
-  const [user, setUser] = useState<any>(null)
-  const [invitations, setInvitations] = useState<any[]>([])
+  const [user, setUser] = useState<User | null>(null)
+  const [invitations, setInvitations] = useState<Invitation[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -54,12 +66,12 @@ export default function JoinGym() {
         <div className="space-y-4">
           <h2 className="text-xl font-semibold">Invitations en attente</h2>
           {invitations.map(invite => (
-            <InvitationForm key={invite.id} invitation={invite} userId={user.id} />
+            <InvitationForm key={invite.id} invitation={invite} userId={user?.id || ''} />
           ))}
         </div>
       ) : (
         <div className="space-y-4">
-          <p>Vous n'avez pas d'invitation en attente.</p>
+          <p>Vous n&apos;avez pas d&apos;invitation en attente.</p>
           <p>Demandez à un administrateur de votre gym de vous envoyer une invitation.</p>
         </div>
       )}

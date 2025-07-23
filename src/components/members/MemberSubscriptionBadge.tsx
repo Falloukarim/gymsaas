@@ -24,7 +24,7 @@ export function MemberSubscriptionBadge({
     <div className="space-y-1">
       <Badge>{activeSub.subscription.name}</Badge>
       <p className="text-sm text-muted-foreground">
-        Valide jusqu'au {format(new Date(activeSub.end_date), 'PP', { locale: fr })}
+        Valide jusqu&apos;au {format(new Date(activeSub.end_date), 'PP', { locale: fr })}
       </p>
     </div>
   ) : (

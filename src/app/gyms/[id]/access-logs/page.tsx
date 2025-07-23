@@ -8,6 +8,7 @@ import { SetStateAction, useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import Spinner from '@/components/ui/spinner';
 import { useParams } from 'next/navigation';
+import { ArrowLeft, Link } from 'lucide-react';
 
 interface AccessLog {
   id: string;
@@ -67,6 +68,13 @@ export default function AccessLogsPage() {
   return (
     <div className="p-6">
       <Card className="border-0 bg-gradient-to-r from-[#1a2e3a] to-[#0d1a23] text-white">
+               <Link
+          href={`/gyms/${gymId}/dashboard`}
+          className="flex items-center gap-2 text-sm hover:text-blue-400 transition-colors mb-4 sm:mb-0"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          <span className="whitespace-nowrap">Retour au dashboard</span>
+        </Link>
         <CardHeader>
           <CardTitle className="text-2xl font-bold">Historique des Accès</CardTitle>
         </CardHeader>

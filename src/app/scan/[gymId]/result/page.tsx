@@ -10,7 +10,6 @@ export async function generateMetadata({
   params: Promise<{ gymId: string }>;
   searchParams: Promise<{ name?: string; status?: string }>;
 }): Promise<Metadata> {
-  const resolvedParams = await params;
   const resolvedSearchParams = await searchParams;
 
   return {
@@ -51,13 +50,6 @@ export default async function ScanResultPage({
   }
 
   // 3. Formatage des données pour le client
-  const resultData = {
-    memberName: decodeURIComponent(name),
-    accessStatus: status === 'active' ? 'granted' : 'denied',
-    gymName: gym.name,
-    timestamp: new Date().toLocaleString('fr-FR'),
-    gymId,
-  };
 
   return (
     <div className="max-w-3xl mx-auto p-6 overflow-x-hidden">

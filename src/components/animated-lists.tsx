@@ -2,12 +2,40 @@
 
 import { motion } from 'framer-motion';
 import { Badge } from "@/components/ui/badge";
-import Link from "next/link";
 
-export function AnimatedSubscriptions({ subscriptions, gymId }: { 
-  subscriptions: any[],
-  gymId: string 
-}) {
+interface Subscription {
+  id: string;
+  members: {
+    full_name: string;
+  };
+  subscriptions: {
+    name: string;
+  };
+  end_date: string;
+  amount: number;
+  start_date: string;
+}
+
+interface Entry {
+  id: string;
+  members: {
+    full_name: string;
+  };
+  access_granted: boolean;
+  timestamp: string;
+}
+
+interface AnimatedSubscriptionsProps {
+  subscriptions: Subscription[];
+  gymId?: string; // Marked as optional since it's not used
+}
+
+interface AnimatedEntriesProps {
+  entries: Entry[];
+  gymId?: string; // Marked as optional since it's not used
+}
+
+export function AnimatedSubscriptions({ subscriptions }: AnimatedSubscriptionsProps) {
   return (
     <div className="space-y-4">
       {subscriptions?.map((sub, index) => (
@@ -44,10 +72,7 @@ export function AnimatedSubscriptions({ subscriptions, gymId }: {
   );
 }
 
-export function AnimatedEntries({ entries, gymId }: { 
-  entries: any[],
-  gymId: string 
-}) {
+export function AnimatedEntries({ entries }: AnimatedEntriesProps) {
   return (
     <div className="space-y-4">
       {entries?.map((entry, index) => (

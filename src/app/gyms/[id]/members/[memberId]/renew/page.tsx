@@ -1,5 +1,5 @@
 import { createClient } from '@/utils/supabase/server';
-import { notFound } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import Link from 'next/link';
@@ -61,7 +61,7 @@ export default async function RenewSubscriptionPage({
               </Link>
 
               <div>
-                <h1 className="text-xl sm:text-2xl font-bold">Renouveler l'abonnement</h1>
+                <h1 className="text-xl sm:text-2xl font-bold">Renouveler l&apos;abonnement</h1>
                 <p className="text-sm text-gray-400">{member.full_name} - {member.gyms?.name}</p>
               </div>
             </div>
@@ -84,7 +84,7 @@ export default async function RenewSubscriptionPage({
                     <div>
                       <p className="font-medium">{activeSubscription.subscriptions?.type}</p>
                       <p className="text-sm text-gray-300">
-                        Valide jusqu'au {new Date(activeSubscription.end_date).toLocaleDateString()}
+                        Valide jusqu&apos;au {new Date(activeSubscription.end_date).toLocaleDateString()}
                       </p>
                     </div>
                     <div className="text-right">
@@ -104,7 +104,7 @@ export default async function RenewSubscriptionPage({
               <CardHeader>
                 <CardTitle className="text-lg">Nouvel abonnement</CardTitle>
                 <CardDescription className="text-gray-300">
-                  Choisissez un nouveau type d'abonnement
+                  Choisissez un nouveau type d&apos;abonnement
                 </CardDescription>
               </CardHeader>
               <CardContent>

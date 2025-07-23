@@ -9,17 +9,37 @@ import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';
 
+interface Member {
+  id: string;
+  has_subscription?: boolean;
+}
+
+interface Subscription {
+  id: string;
+  type: string;
+  duration_days: number;
+  price: number;
+  description?: string;
+}
+
+interface MemberSubscription {
+  subscription_id: string;
+  status: string;
+}
+
+interface SubscriptionRenewalFormProps {
+  member: Member;
+  gymId: string;
+  subscriptions: Subscription[];
+  currentSubscription?: MemberSubscription;
+}
+
 export default function SubscriptionRenewalForm({
   member,
   gymId,
   subscriptions,
   currentSubscription,
-}: {
-  member: any;
-  gymId: string;
-  subscriptions: any[];
-  currentSubscription?: any;
-}) {
+}: SubscriptionRenewalFormProps) {
   const supabase = createClientComponentClient();
   const router = useRouter();
   const [selectedSubscription, setSelectedSubscription] = useState<string>(
@@ -27,87 +47,85 @@ export default function SubscriptionRenewalForm({
   );
   const [isProcessing, setIsProcessing] = useState(false);
 
-const handleRenew = async () => {
-  if (!selectedSubscription || !gymId) {
-    toast.error('Paramètres manquants');
-    return;
-  }
+  const handleRenew = async () => {
+    if (!selectedSubscription || !gymId) {
+      toast.error('Paramètres manquants');
+      return;
+    }
 
-  setIsProcessing(true);
-  try {
-    // Get the selected subscription details
-    const { data: subscription, error: subError } = await supabase
-      .from('subscriptions')
-      .select('*')
-      .eq('id', selectedSubscription)
-      .single();
+    setIsProcessing(true);
+    try {
+      // Get the selected subscription details
+      const { data: subscription, error: subError } = await supabase
+        .from('subscriptions')
+        .select('*')
+        .eq('id', selectedSubscription)
+        .single();
 
-    if (subError || !subscription) throw subError || new Error('Abonnement non trouvé');
+      if (subError || !subscription) throw subError || new Error('Abonnement non trouvé');
 
-    // Calculate dates based on subscription duration
-    const startDate = new Date();
-    const endDate = new Date(startDate);
-    endDate.setDate(endDate.getDate() + subscription.duration_days);
+      // Calculate dates based on subscription duration
+      const startDate = new Date();
+      const endDate = new Date(startDate);
+      endDate.setDate(endDate.getDate() + subscription.duration_days);
 
-    // Désactiver les anciens abonnements
-    const { error: updateError } = await supabase
-      .from('member_subscriptions')
-      .update({ status: 'expired' })
-      .eq('member_id', member.id)
-      .eq('status', 'active');
+      // Désactiver les anciens abonnements
+      const { error: updateError } = await supabase
+        .from('member_subscriptions')
+        .update({ status: 'expired' })
+        .eq('member_id', member.id)
+        .eq('status', 'active');
 
-    if (updateError) throw updateError;
+      if (updateError) throw updateError;
 
-    // Create new member subscription
-    const { error: subscriptionError } = await supabase
-      .from('member_subscriptions')
-      .insert({
-        member_id: member.id,
-        subscription_id: selectedSubscription,
-        gym_id: gymId,
-        start_date: startDate.toISOString(),
-        end_date: endDate.toISOString(),
-        status: 'active',
-      });
+      // Create new member subscription
+      const { error: subscriptionError } = await supabase
+        .from('member_subscriptions')
+        .insert({
+          member_id: member.id,
+          subscription_id: selectedSubscription,
+          gym_id: gymId,
+          start_date: startDate.toISOString(),
+          end_date: endDate.toISOString(),
+          status: 'active',
+        });
 
-    if (subscriptionError) throw subscriptionError;
+      if (subscriptionError) throw subscriptionError;
 
-    // Create payment record
-    const { error: paymentError } = await supabase
-      .from('payments')
-      .insert({
-        member_id: member.id,
-        gym_id: gymId,
-        amount: subscription.price,
-        type: 'subscription',
-        subscription_id: selectedSubscription,
-        status: 'paid',
-        payment_method: 'cash',
-      });
+      // Create payment record
+      const { error: paymentError } = await supabase
+        .from('payments')
+        .insert({
+          member_id: member.id,
+          gym_id: gymId,
+          amount: subscription.price,
+          type: 'subscription',
+          subscription_id: selectedSubscription,
+          status: 'paid',
+          payment_method: 'cash',
+        });
 
-    if (paymentError) throw paymentError;
+      if (paymentError) throw paymentError;
 
-    // Update member's subscription status
-    const { error: memberError } = await supabase
-      .from('members')
-      .update({ has_subscription: true })
-      .eq('id', member.id);
+      // Update member's subscription status
+      const { error: memberError } = await supabase
+        .from('members')
+        .update({ has_subscription: true })
+        .eq('id', member.id);
 
-    if (memberError) throw memberError;
+      if (memberError) throw memberError;
 
-    toast.success('Abonnement renouvelé avec succès');
-    router.refresh();
-    router.push(`/gyms/${gymId}/members/${member.id}`);
-  } catch (error) {
-    console.error('Renewal error:', error);
-    toast.error(`Erreur lors du renouvellement: ${error instanceof Error ? error.message : 'Erreur inconnue'}`);
-  } finally {
-    setIsProcessing(false);
-  }
-};
-    console.log('Selected subscription:', selectedSubscription);
-console.log('Gym ID:', gymId);
-console.log('Member ID:', member.id);
+      toast.success('Abonnement renouvelé avec succès');
+      router.refresh();
+      router.push(`/gyms/${gymId}/members/${member.id}`);
+    } catch (error) {
+      console.error('Renewal error:', error);
+      toast.error(`Erreur lors du renouvellement: ${error instanceof Error ? error.message : 'Erreur inconnue'}`);
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <RadioGroup 

@@ -29,7 +29,7 @@ export default function NewSubscriptionPage() {
 
             <div className="space-y-2">
               <Label htmlFor="name" className="text-white">
-                Nom de l'abonnement
+                Nom de l&apos;abonnement
               </Label>
               <Input
                 id="name"
@@ -86,7 +86,7 @@ export default function NewSubscriptionPage() {
 
             <div className="flex justify-end pt-4">
               <Button type="submit" className="bg-[#00c9a7] hover:bg-[#00a58e]">
-                Créer l'abonnement
+                Créer l&apos;abonnement
               </Button>
             </div>
           </form>

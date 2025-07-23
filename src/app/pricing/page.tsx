@@ -48,7 +48,7 @@ export default function PricingPage() {
             </ul>
 
             <button className="w-full bg-cyan-500 hover:bg-cyan-600 text-white font-bold py-3 px-6 rounded-lg transition">
-              Commencer l'essai gratuit
+              Commencer l&apos;essai gratuit
             </button>
           </div>
         </motion.div>

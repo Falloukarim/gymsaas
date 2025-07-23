@@ -12,7 +12,7 @@ export default function PreviewSection() {
         transition={{ duration: 0.5 }}
         className="text-3xl font-bold mb-16"
       >
-        Un aperçu de l'application
+        Un aperçu de l&apos;application
       </motion.h3>
 
       <motion.div
@@ -55,7 +55,7 @@ export default function PreviewSection() {
             className="w-full h-auto object-cover"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent opacity-0 hover:opacity-100 transition-opacity duration-300 flex items-end p-6">
-            <span className="text-white text-lg font-medium">Badges d'accès</span>
+            <span className="text-white text-lg font-medium">Badges d&apos;accès</span>
           </div>
         </motion.div>
       </motion.div>

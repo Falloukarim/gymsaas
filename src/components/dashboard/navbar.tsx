@@ -11,6 +11,7 @@ import { QRScanner } from "@/components/QRScanner";
 import { Dialog, DialogContent, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Menu } from "lucide-react";
 import { useSidebar } from "@/context/SidebarContext";
+import { PulsatingButton } from "../buttons/PulsatingButton";
 
 type UserData = {
   email: string;
@@ -24,6 +25,9 @@ export default function Navbar() {
   const [scannerOpen, setScannerOpen] = useState(false);
   const pathname = usePathname();
   const { toggle } = useSidebar();
+
+  // Extraire l'ID du gymnase de l'URL
+  const gymId = pathname.split('/')[2];
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -50,9 +54,13 @@ export default function Navbar() {
   }, [pathname]);
 
   const handleLogout = async () => {
-    await supabase.auth.signOut();
-    window.location.href = "/login";
-  };
+  try {
+    await fetch('/logout', { method: 'POST' });
+    window.location.href = '/login';
+  } catch (error) {
+    console.error('Logout failed:', error);
+  }
+};
 
   const getInitials = () =>
     userData?.full_name?.charAt(0).toUpperCase() ||
@@ -66,18 +74,24 @@ export default function Navbar() {
         <Menu className="h-6 w-6" />
       </button>
       <div className="flex items-center gap-4 w-full max-w-sm">
-        <Link href="/" className="text-white font-bold text-lg hidden md:block">
-          SG
+        {/* Bouton SG modifié pour rediriger vers le dashboard du gymnase */}
+        <Link href={`/gyms/${gymId}/dashboard`}>
+          <motion.div
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            className="flex items-center gap-2 cursor-pointer"
+          >
+            <PulsatingButton
+              className="rounded-full bg-white/20 backdrop-blur-md border-2 border-white hidden md:flex items-center justify-center"
+              pulseColor="#ffffff"
+              duration="0.8s"
+              pulseIntensity={0.4}
+              style={{ width: "50px", height: "50px", padding: 0 }}
+            >
+              <span className="text-xl font-bold text-white">SG</span>
+            </PulsatingButton>
+          </motion.div>
         </Link>
-
-        <div className="relative w-full">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-          <input
-            type="text"
-            placeholder="Rechercher..."
-            className="w-full rounded-md bg-gray-800/50 py-1.5 pl-9 pr-3 text-sm text-white placeholder-gray-400 border border-gray-700 focus:outline-none focus:ring-1 focus:ring-[#00c9a7]"
-          />
-        </div>
       </div>
 
       {/* Right (Actions) */}
