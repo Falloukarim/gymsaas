@@ -122,7 +122,7 @@ export default function ScanResultClient({
               className="w-full gap-2"
               onClick={() => router.push(`/gyms/${gymId}/dashboard`)}
             >
-              <ArrowLeft className="h-5 w-5" />
+              <ArrowLeft className="h-5 bg-gray500 w-5" />
               Retour au tableau de bord
             </Button>
           )}

@@ -455,33 +455,31 @@ if (member.gyms && member.gyms.name) {
   }
 
   // QR Code
-  const qrSize = 150;
-  const qrX = card.x + card.width - qrSize - 40;
-  const qrY = card.y + card.height - qrSize - 40;
+// QR Code
+const qrSize = 200;
+const qrX = card.x + card.width - qrSize - 30;
+const qrY = card.y + card.height - qrSize - 30;
 
-  // Cadre QR Code avec ombre
-  ctx.shadowColor = 'rgba(0,0,0,0.1)';
-  ctx.shadowBlur = 10;
-  ctx.shadowOffsetY = 5;
-  ctx.beginPath();
-  ctx.roundRect(qrX - 10, qrY - 10, qrSize + 20, qrSize + 20, 12);
-  ctx.fillStyle = BADGE_CONFIG.colors.white;
-  ctx.fill();
-  ctx.shadowColor = 'transparent';
+// Cadre QR Code avec ombre et fond clair
+ctx.shadowColor = 'rgba(0,0,0,0.1)';
+ctx.shadowBlur = 10;
+ctx.shadowOffsetY = 5;
+ctx.beginPath();
+ctx.roundRect(qrX - 10, qrY - 10, qrSize + 20, qrSize + 20, 12);
+ctx.fillStyle = '#f1f5f9'; // fond clair pour contraste
+ctx.fill();
+ctx.shadowColor = 'transparent';
 
-  // QR Code
-  const qrCanvas = await generateQRCode(member.qr_code, qrSize);
-  ctx.drawImage(qrCanvas, qrX, qrY);
+// Génération et dessin du QR
+const qrCanvas = await generateQRCode(member.qr_code, qrSize);
+ctx.drawImage(qrCanvas, qrX, qrY);
 
-  // Texte "Scannez le code"
-  ctx.fillStyle = BADGE_CONFIG.colors.textMedium;
-  ctx.font = '500 14px "Poppins", sans-serif';
-  ctx.textAlign = 'center';
-  ctx.fillText(
-    'Scannez le code pour vérifier',
-    qrX + qrSize / 2,
-    qrY + qrSize + 25
-  );
+// Texte en dessous
+ctx.fillStyle = BADGE_CONFIG.colors.textMedium;
+ctx.font = '600 16px "Poppins", sans-serif';
+ctx.textAlign = 'center';
+;
+
 
   // Pied de page
   const footerY = card.y + card.height - 20;

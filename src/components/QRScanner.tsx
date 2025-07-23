@@ -58,45 +58,13 @@ export function QRScanner() {
     }
   }
 
-  const handleScanSuccess = async (decodedText: string) => {
-  try {
-    // 1. Récupération du gymId
-    const gymId = window.location.pathname.split('/')[2];
-    if (!gymId) throw new Error("Impossible de déterminer la salle de sport");
-
-    // 2. Appel API
-    const response = await fetch('/api/validate', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        qrCode: decodedText,
-        gymId: gymId
-      })
-    });
-
-    const data = await response.json();
-    
-    // 3. Gestion des résultats
-    if (data.accessGranted) {
-      toast.success(`Accès autorisé pour ${data.member.name}`);
-    } else {
-      toast.error(`Accès refusé: ${data.subscription?.status === 'inactive' ? 'Abonnement inactif' : 'Abonnement expiré'}`);
-    }
-
-    // 4. Redirection si nécessaire
-// Modifiez la redirection pour inclure le gymId
-router.push(`/scan/${gymId}/result?name=${encodeURIComponent(data.member.name)}&status=${data.subscriptionStatus}`);
-  } catch (error) {
-    console.error("Erreur complète:", error);
-    setError("Échec de la validation du badge");
-  }
-};
-
   const stopScanner = async () => {
     if (!scannerRef.current || !isScanning) return
 
     try {
       await scannerRef.current.stop()
+      await scannerRef.current.clear()
+      scannerRef.current = null
       setIsScanning(false)
     } catch (err) {
       if (!err.message.includes('not running')) {
@@ -126,15 +94,46 @@ router.push(`/scan/${gymId}/result?name=${encodeURIComponent(data.member.name)}&
     await handleScanSuccess(mockQR)
   }
 
+  const handleScanSuccess = async (decodedText: string) => {
+    try {
+      const gymId = window.location.pathname.split('/')[2]
+      if (!gymId) throw new Error("Impossible de déterminer la salle de sport")
+
+      const response = await fetch('/api/validate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ qrCode: decodedText, gymId })
+      })
+
+      const data = await response.json()
+
+      if (data.accessGranted) {
+        toast.success(`Accès autorisé pour ${data.member.name}`)
+      } else {
+        toast.error(`Accès refusé: ${data.subscription?.status === 'inactive' ? 'Abonnement inactif' : 'Abonnement expiré'}`)
+      }
+
+      // ✅ STOP scanner avant redirection
+      await stopScanner()
+
+      // ✅ Optionnel : petite pause pour libérer la caméra
+      setTimeout(() => {
+        router.push(`/scan/${gymId}/result?name=${encodeURIComponent(data.member.name)}&status=${data.subscriptionStatus}`)
+      }, 200)
+
+    } catch (error) {
+      console.error("Erreur complète:", error)
+      setError("Échec de la validation du badge")
+    }
+  }
+
   useEffect(() => {
     let isMounted = true
 
     const setupScanner = async () => {
       try {
         const { Html5Qrcode, cameras } = await initScanner()
-
         if (isMounted && cameras.length > 0) {
-          // 🔍 Cherche caméra arrière
           const backCamIndex = cameras.findIndex(cam =>
             cam.label.toLowerCase().includes('back') || cam.label.toLowerCase().includes('rear')
           )
@@ -157,41 +156,24 @@ router.push(`/scan/${gymId}/result?name=${encodeURIComponent(data.member.name)}&
 
   return (
     <div className="space-y-4">
-      <div
-        id="qr-scanner-container"
-        className="w-full aspect-video rounded-lg overflow-hidden border bg-black"
-      />
+      <div id="qr-scanner-container" className="w-full aspect-video rounded-lg overflow-hidden border bg-black" />
 
       <div className="flex flex-col gap-2">
         <div className="flex gap-2">
-          <Button
-            variant="outline"
-            onClick={resetScanner}
-            className="flex-1 gap-2"
-            disabled={!isScanning || isTransitioning}
-          >
+          <Button onClick={resetScanner} className="flex-1 gap-2" disabled={!isScanning || isTransitioning}>
             <RotateCw className="h-4 w-4" />
             Redémarrer
           </Button>
 
           {availableCameras.length > 1 && (
-            <Button
-              variant="outline"
-              onClick={switchCamera}
-              className="flex-1 gap-2"
-              disabled={!isScanning || isTransitioning}
-            >
+            <Button onClick={switchCamera} className="flex-1 gap-2" disabled={!isScanning || isTransitioning}>
               <Camera className="h-4 w-4" />
               Changer caméra ({activeCameraIndex + 1}/{availableCameras.length})
             </Button>
           )}
         </div>
 
-        <Button
-          variant="secondary"
-          onClick={testWithMockQR}
-          className="w-full gap-2"
-        >
+        <Button onClick={testWithMockQR} className="w-full gap-2" variant="secondary">
           <span>🔍</span> Tester avec QR code de test
         </Button>
       </div>

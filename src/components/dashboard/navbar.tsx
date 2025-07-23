@@ -96,7 +96,6 @@ const handleLogout = async () => {
             >
               <span className="text-xl font-bold text-white">SG</span>
             </PulsatingButton>
-            <span className="text-white font-bold text-lg md:hidden">SG</span>
           </motion.div>
         </Link>
 
