@@ -54,13 +54,9 @@ export default function Navbar() {
   }, [pathname]);
 
   const handleLogout = async () => {
-  try {
-    await fetch('/logout', { method: 'POST' });
-    window.location.href = '/login';
-  } catch (error) {
-    console.error('Logout failed:', error);
-  }
-};
+    await supabase.auth.signOut();
+    window.location.href = "/login";
+  };
 
   const getInitials = () =>
     userData?.full_name?.charAt(0).toUpperCase() ||
@@ -90,8 +86,10 @@ export default function Navbar() {
             >
               <span className="text-xl font-bold text-white">SG</span>
             </PulsatingButton>
+            <span className="text-white font-bold text-lg md:hidden">SG</span>
           </motion.div>
         </Link>
+
       </div>
 
       {/* Right (Actions) */}
