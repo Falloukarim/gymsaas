@@ -4,9 +4,10 @@ import { useEffect, useState } from 'react';
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
-import SubscriptionForm from '@/components/SubscriptionForm';
+import InlineSubscriptionForm from '@/components/subscriptions/InlineSubscriptionForm';
 import SessionForm from '@/components/susbscriptions/SessionForm';
-import { ArrowLeft, Link } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
+import Link from 'next/link';
 
 export default function SubscriptionsPage({
   params,
@@ -75,7 +76,7 @@ export default function SubscriptionsPage({
   return (
     <div className="p-6 max-w-6xl mx-auto">
       <div className="flex justify-between items-center mb-6">
-               <Link
+        <Link
           href={`/gyms/${gymId}/dashboard`}
           className="flex items-center gap-2 text-sm hover:text-blue-400 transition-colors mb-4 sm:mb-0"
         >
@@ -91,16 +92,15 @@ export default function SubscriptionsPage({
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
-        <div className="border rounded-lg p-6">
-          <h2 className="text-xl font-bold mb-4">Abonnements standards</h2>
-          {gymId && (
-            <SubscriptionForm 
-              gymId={gymId} 
-              onSuccess={() => fetchSubscriptions(gymId)} 
-              isSession={false}
-            />
-          )}
-        </div>
+      <div className="border rounded-lg p-6">
+  <h2 className="text-xl font-bold mb-4">Abonnements standards</h2>
+  {gymId && (
+    <InlineSubscriptionForm 
+      gymId={gymId} 
+      onSuccess={() => fetchSubscriptions(gymId)}
+    />
+  )}
+</div>
 
         <div className="border rounded-lg p-6">
           <h2 className="text-xl font-bold mb-4">Sessions prédéfinies</h2>
@@ -113,6 +113,7 @@ export default function SubscriptionsPage({
         </div>
       </div>
 
+      {/* Le reste du code (affichage des abonnements) reste inchangé */}
       {loading ? (
         <div className="text-center py-8">
           <div className="inline-block animate-spin rounded-full h-8 w-8 border-4 border-blue-500 border-t-transparent"></div>
@@ -158,37 +159,37 @@ export default function SubscriptionsPage({
 
           <div>
             <h3 className="text-lg font-semibold mb-4">Sessions</h3>
-           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-  {subscriptions
-    .filter(sub => sub.is_session)
-    .map(session => (
-      <div
-        key={session.id}
-        className="border rounded-lg p-4 flex flex-col shadow-sm hover:shadow-md transition"
-      >
-        <div className="flex-1">
-          <h3 className="font-bold text-lg">Session</h3>
-          <p className="text-2xl font-semibold my-2">{session.price} FCFA</p>
-          <p className="text-sm text-muted-foreground">Accès: 1 jour</p>
-          {session.description && (
-            <p className="mt-2 text-sm text-gray-600">
-              {session.description}
-            </p>
-          )}
-        </div>
-        <div className="mt-4 flex justify-end">
-          <Button
-            variant="destructive"
-            size="sm"
-            onClick={() => handleDelete(session.id)}
-            disabled={loading}
-          >
-            Supprimer
-          </Button>
-        </div>
-      </div>
-    ))}
-</div>
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {subscriptions
+                .filter(sub => sub.is_session)
+                .map(session => (
+                  <div
+                    key={session.id}
+                    className="border rounded-lg p-4 flex flex-col shadow-sm hover:shadow-md transition"
+                  >
+                    <div className="flex-1">
+                      <h3 className="font-bold text-lg">Session</h3>
+                      <p className="text-2xl font-semibold my-2">{session.price} FCFA</p>
+                      <p className="text-sm text-muted-foreground">Accès: 1 jour</p>
+                      {session.description && (
+                        <p className="mt-2 text-sm text-gray-600">
+                          {session.description}
+                        </p>
+                      )}
+                    </div>
+                    <div className="mt-4 flex justify-end">
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        onClick={() => handleDelete(session.id)}
+                        disabled={loading}
+                      >
+                        Supprimer
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+            </div>
           </div>
         </div>
       )}

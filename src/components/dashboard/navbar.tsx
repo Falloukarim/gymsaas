@@ -53,10 +53,20 @@ export default function Navbar() {
     };
   }, [pathname]);
 
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    window.location.href = "/login";
-  };
+// Solution : Modifiez la fonction handleLogout dans votre navbar
+const handleLogout = async () => {
+  try {
+    const response = await fetch('/logout', {
+      method: 'POST',
+    });
+    
+    if (response.ok) {
+      window.location.href = '/login';
+    }
+  } catch (error) {
+    console.error('Logout failed:', error);
+  }
+};
 
   const getInitials = () =>
     userData?.full_name?.charAt(0).toUpperCase() ||
@@ -145,10 +155,10 @@ export default function Navbar() {
 
                   <div className="mt-2 border-t border-gray-700" />
 
-                  <Link href="/profile" className="flex items-center px-3 py-2 hover:bg-gray-800/50">
-                    <User className="h-4 w-4 mr-2" />
-                    Mon profil
-                  </Link>
+                  <Link href={`/gyms/${gymId}/profile`} className="flex items-center px-3 py-2 hover:bg-gray-800/50">
+  <User className="h-4 w-4 mr-2" />
+  Mon profil
+</Link>
                   <Link href="/settings" className="flex items-center px-3 py-2 hover:bg-gray-800/50">
                     <Settings className="h-4 w-4 mr-2" />
                     Paramètres
