@@ -81,7 +81,6 @@ export function RevenueChart({ data, totalAmount, changePercentage }: RevenueCha
       </div>
 
       <div className="flex justify-between items-center border-t pt-4 border-gray-800 text-xs text-gray-400">
-        <span>Total : <span className="font-semibold text-white">{formatAmount(totalAmount)}</span></span>
         <span className="flex items-center gap-1">
           <CalendarDays className="h-3 w-3" />
           {new Date().toLocaleDateString('fr-FR')}

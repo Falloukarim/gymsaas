@@ -9,17 +9,9 @@ import { SubscriptionStatusBadge } from '@/components/subscription-status-badge'
 import { QRCodeGenerator } from '@/components/members/QRCodeGenerator';
 import { DownloadMemberBadgeButton } from '@/components/members/DownloadMemberBadgeButton';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
-// Define explicit types
 interface Payment {
   id: string;
   type: string;
@@ -39,17 +31,32 @@ interface MemberSubscription {
   start_date: string;
   end_date: string;
   status: string;
+  is_session?: boolean;
   subscriptions?: {
     type: string;
     description?: string;
+    price?: number;
+    is_session?: boolean;
   };
 }
 
-// Composant pour afficher les lignes de paiement responsive
-function PaymentRow({ payment }: { payment: any }) {
+interface Member {
+  id: string;
+  full_name: string;
+  phone: string;
+  email?: string;
+  created_at: string;
+  qr_code?: string;
+  avatar_url?: string;
+  gyms?: {
+    name: string;
+  };
+  member_subscriptions?: MemberSubscription[];
+}
+
+function PaymentRow({ payment }: { payment: Payment }) {
   return (
     <>
-      {/* Version mobile */}
       <div className="lg:hidden border-b border-gray-700 py-3">
         <div className="flex justify-between">
           <span className="font-medium">Type:</span>
@@ -65,25 +72,18 @@ function PaymentRow({ payment }: { payment: any }) {
         </div>
       </div>
 
-      {/* Version desktop */}
       <TableRow className="hidden lg:table-row border-gray-700 hover:bg-gray-700">
         <TableCell>{payment.type}</TableCell>
-        <TableCell>
-          {new Date(payment.created_at).toLocaleDateString()}
-        </TableCell>
-        <TableCell className="text-right">
-          {payment.amount} F CFA
-        </TableCell>
+        <TableCell>{new Date(payment.created_at).toLocaleDateString()}</TableCell>
+        <TableCell className="text-right">{payment.amount} F CFA</TableCell>
       </TableRow>
     </>
   );
 }
 
-// Composant pour les lignes d'abonnement responsive
-function SubscriptionRow({ sub }: { sub: any }) {
+function SubscriptionRow({ sub }: { sub: MemberSubscription }) {
   return (
     <>
-      {/* Version mobile */}
       <div className="lg:hidden border-b border-gray-700 py-3">
         <div className="flex justify-between">
           <span className="font-medium">Type:</span>
@@ -108,7 +108,6 @@ function SubscriptionRow({ sub }: { sub: any }) {
         </div>
       </div>
 
-      {/* Version desktop */}
       <TableRow className="hidden lg:table-row border-gray-700 hover:bg-gray-700">
         <TableCell className="truncate max-w-[100px]">{sub.subscriptions?.type}</TableCell>
         <TableCell>
@@ -129,11 +128,9 @@ function SubscriptionRow({ sub }: { sub: any }) {
   );
 }
 
-// Composant pour les logs d'accès responsive
-function AccessLogRow({ log }: { log: any }) {
+function AccessLogRow({ log }: { log: AccessLog }) {
   return (
     <>
-      {/* Version mobile */}
       <div className="lg:hidden border-b border-gray-700 py-3">
         <div className="flex justify-between">
           <span className="font-medium">Type:</span>
@@ -151,33 +148,33 @@ function AccessLogRow({ log }: { log: any }) {
         </div>
       </div>
 
-      {/* Version desktop */}
       <TableRow className="hidden lg:table-row border-gray-700 hover:bg-gray-700">
         <TableCell>
           <Badge variant={log.type === 'entry' ? 'default' : 'secondary'}>
             {log.type === 'entry' ? 'Entrée' : 'Sortie'}
           </Badge>
         </TableCell>
-        <TableCell>
-          {new Date(log.timestamp).toLocaleString()}
-        </TableCell>
-        <TableCell className="text-right">
-          {log.method === 'qr' ? 'QR Code' : 'Manuel'}
-        </TableCell>
+        <TableCell>{new Date(log.timestamp).toLocaleString()}</TableCell>
+        <TableCell className="text-right">{log.method === 'qr' ? 'QR Code' : 'Manuel'}</TableCell>
       </TableRow>
     </>
   );
 }
 
+function isSubscription(sub: MemberSubscription): boolean {
+  const start = new Date(sub.start_date);
+  const end = new Date(sub.end_date);
+  const diffTime = Math.abs(end.getTime() - start.getTime());
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  return diffDays > 1;
+}
+
 export default async function MemberDetailPage({
-  params,
+  params: resolvedParams,
 }: {
   params: Promise<{ id: string; memberId: string }>;
 }) {
-  const resolvedParams = await params;
-  const gymId = resolvedParams.id;
-  const memberId = resolvedParams.memberId;
-
+  const { id: gymId, memberId } = await resolvedParams;
   const supabase = createClient();
 
   const { data: member, error } = await (await supabase)
@@ -187,7 +184,7 @@ export default async function MemberDetailPage({
       gyms(name),
       member_subscriptions (
         *,
-        subscriptions (type, description)
+        subscriptions (type, description, price, is_session)
       )
     `)
     .eq('id', memberId)
@@ -210,19 +207,24 @@ export default async function MemberDetailPage({
     .order('timestamp', { ascending: false });
 
   const subscriptions = member.member_subscriptions || [];
+
   const activeSubscription = subscriptions.find(
-    (sub: { end_date: string | number | Date }) => new Date(sub.end_date) > new Date()
+    sub =>
+      sub.status === 'active' &&
+      new Date(sub.end_date) > new Date() &&
+      isSubscription(sub)
   );
   const hasActiveSubscription = !!activeSubscription;
 
-  const lastSubscription = subscriptions.sort(
-    (a: { end_date: string }, b: { end_date: string }) =>
-      new Date(b.end_date).getTime() - new Date(a.end_date).getTime()
-  )[0];
+  const lastSubscription = subscriptions
+    .filter(isSubscription)
+    .sort((a, b) => new Date(b.end_date).getTime() - new Date(a.end_date).getTime())[0];
+
+  const sessions = subscriptions.filter(sub => !isSubscription(sub));
 
   const initials = member.full_name
     .split(' ')
-    .map((n: string) => n[0])
+    .map(n => n[0])
     .join('')
     .toUpperCase();
 
@@ -242,7 +244,7 @@ export default async function MemberDetailPage({
 
               <div className="flex items-center gap-4 w-full">
                 <Avatar className="h-10 w-10 sm:h-12 sm:w-12">
-                  <AvatarImage src={member.avatar_url || undefined} />
+                  <AvatarImage src={member.avatar_url} />
                   <AvatarFallback className="bg-gradient-to-r from-blue-500 to-blue-700 text-white">
                     {initials}
                   </AvatarFallback>
@@ -253,11 +255,9 @@ export default async function MemberDetailPage({
                 </div>
               </div>
             </div>
-
           </div>
         </CardHeader>
 
-        {/* Main Content */}
         <CardContent className="p-0">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 p-4 sm:p-6">
             {/* Member Information */}
@@ -320,95 +320,114 @@ export default async function MemberDetailPage({
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="p-4 sm:p-6 pt-0">
-                 {hasActiveSubscription ? (
-  <div className="space-y-4">
-    <div className="flex items-center justify-between">
-      <div className="min-w-0">
-        <p className="font-medium truncate">{activeSubscription!.subscriptions?.type}</p>
-        <p className="text-sm text-gray-400 truncate">
-          {activeSubscription!.subscriptions?.description}
-        </p>
-      </div>
-      <SubscriptionStatusBadge status="active" />
-    </div>
-    
-    <div className="space-y-2">
-      <div className="flex items-center justify-between text-sm">
-        <span className="text-gray-400">Début</span>
-        <span>{new Date(activeSubscription.start_date).toLocaleDateString()}</span>
-      </div>
-      <div className="flex items-center justify-between text-sm">
-        <span className="text-gray-400">Fin</span>
-        <span>{new Date(activeSubscription.end_date).toLocaleDateString()}</span>
-      </div>
-    </div>
-    
-    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-      <Button 
-        variant="outline" 
-        className="bg-green-500 hover:bg-gray-100 border-gray-600"
-        asChild
-      >
-        <Link href={`/gyms/${gymId}/members/${memberId}/renew`}>
-          Renouveler
-        </Link>
-      </Button>
-    </div>
-  </div>
-) : lastSubscription ? (
-  <div className="space-y-4">
-    <div className="flex items-center justify-between">
-      <div className="min-w-0">
-        <p className="font-medium truncate">{lastSubscription.subscriptions?.type}</p>
-        <p className="text-sm text-gray-400 truncate">
-          {lastSubscription.subscriptions?.description}
-        </p>
-      </div>
-      <SubscriptionStatusBadge status="expired" />
-    </div>
-    
-    <div className="space-y-2">
-      <div className="flex items-center justify-between text-sm">
-        <span className="text-gray-400">Dernier abonnement</span>
-        <span>{new Date(lastSubscription.end_date).toLocaleDateString()}</span>
-      </div>
-    </div>
-    
-    <Button 
-      variant="outline" 
-      className="w-full bg-gray-700 hover:bg-gray-600 border-gray-600"
-      asChild
-    >
-      <Link href={`/gyms/${gymId}/members/${memberId}/renew`}>
-        Renouveler l'abonnement
-      </Link>
-    </Button>
-  </div>
-) : (
-  <div className="flex flex-col items-center justify-center space-y-3 text-center py-4">
-    <Activity className="h-8 w-8 text-gray-400" />
-    <p className="text-gray-400">Aucun abonnement actif</p>
-    <div className="flex flex-col sm:flex-row gap-2 w-full">
-      <Button size="sm" asChild className="w-full">
-        <Link href={`/gyms/${gymId}/members/${memberId}/renew`}>
-          Ajouter un abonnement
-        </Link>
-      </Button>
-      <Button size="sm" variant="secondary" asChild className="w-full">
-        <Link href={`/gyms/${gymId}/members/${memberId}/new-session`}>
-          Nouvelle session
-        </Link>
-      </Button>
-    </div>
-  </div>
-)}
+                  {hasActiveSubscription ? (
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <div className="min-w-0">
+                          <p className="font-medium truncate">{activeSubscription.subscriptions?.type}</p>
+                          <p className="text-sm text-gray-400 truncate">
+                            {activeSubscription.subscriptions?.description}
+                          </p>
+                        </div>
+                        <SubscriptionStatusBadge status="active" />
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="text-gray-400">Début</span>
+                          <span>{new Date(activeSubscription.start_date).toLocaleDateString()}</span>
+                        </div>
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="text-gray-400">Fin</span>
+                          <span>{new Date(activeSubscription.end_date).toLocaleDateString()}</span>
+                        </div>
+                      </div>
+                      
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        <Button 
+                          variant="outline" 
+                          className="bg-green-500 hover:bg-gray-100 border-gray-600"
+                          asChild
+                        >
+                          <Link href={`/gyms/${gymId}/members/${memberId}/renew`}>
+                            Renouveler
+                          </Link>
+                        </Button>
+                        <Button 
+                          variant="secondary"
+                          asChild
+                        >
+                          <Link href={`/gyms/${gymId}/members/${memberId}/new-session`}>
+                            Ajouter une session
+                          </Link>
+                        </Button>
+                      </div>
+                    </div>
+                  ) : lastSubscription ? (
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <div className="min-w-0">
+                          <p className="font-medium truncate">{lastSubscription.subscriptions?.type}</p>
+                          <p className="text-sm text-gray-400 truncate">
+                            {lastSubscription.subscriptions?.description}
+                          </p>
+                        </div>
+                        <SubscriptionStatusBadge status="expired" />
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="text-gray-400">Dernier abonnement</span>
+                          <span>{new Date(lastSubscription.end_date).toLocaleDateString()}</span>
+                        </div>
+                      </div>
+                      
+                      <div className="flex flex-col sm:flex-row gap-2 w-full">
+                        <Button 
+                          variant="outline" 
+                          className="w-full bg-gray-700 hover:bg-gray-600 border-gray-600"
+                          asChild
+                        >
+                          <Link href={`/gyms/${gymId}/members/${memberId}/renew`}>
+                            Renouveler l'abonnement
+                          </Link>
+                        </Button>
+                        <Button 
+                          variant="secondary"
+                          className="w-full"
+                          asChild
+                        >
+                          <Link href={`/gyms/${gymId}/members/${memberId}/new-session`}>
+                            Nouvelle session
+                          </Link>
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex flex-col items-center justify-center space-y-3 text-center py-4">
+                      <Activity className="h-8 w-8 text-gray-400" />
+                      <p className="text-gray-400">Aucun abonnement actif</p>
+                      <div className="flex flex-col sm:flex-row gap-2 w-full">
+                        <Button size="sm" asChild className="w-full">
+                          <Link href={`/gyms/${gymId}/members/${memberId}/renew`}>
+                            Ajouter un abonnement
+                          </Link>
+                        </Button>
+                        <Button size="sm" variant="secondary" asChild className="w-full">
+                          <Link href={`/gyms/${gymId}/members/${memberId}/new-session`}>
+                            Nouvelle session
+                          </Link>
+                        </Button>
+                      </div>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             </div>
 
             {/* Middle Column - Badge and QR Code */}
             <div className="space-y-4 sm:space-y-6 md:col-span-1">
-              {activeSubscription && (
+              {hasActiveSubscription && (
                 <Card className="bg-gray-800 border-gray-700">
                   <CardHeader className="p-4 sm:p-6">
                     <CardTitle className="text-lg">Badge Membre</CardTitle>
@@ -421,7 +440,7 @@ export default async function MemberDetailPage({
                       <div className="border border-gray-600 p-4 rounded-lg bg-gray-700 w-full max-w-xs">
                         <div className="flex justify-center">
                           <QRCodeGenerator 
-                            value={member.qr_code} 
+                            value={member.qr_code || ''} 
                             size={160}
                             className="p-2 border border-gray-600 rounded bg-white" 
                           />
@@ -458,7 +477,6 @@ export default async function MemberDetailPage({
                 <CardContent className="p-4 sm:p-6 pt-0">
                   {payments?.length ? (
                     <ScrollArea className="h-64">
-                      {/* En-tête desktop seulement */}
                       <Table className="hidden lg:table">
                         <TableHeader>
                           <TableRow className="hover:bg-transparent">
@@ -474,7 +492,6 @@ export default async function MemberDetailPage({
                         </TableBody>
                       </Table>
 
-                      {/* Liste mobile */}
                       <div className="lg:hidden space-y-2">
                         {payments.map((payment: any) => (
                           <PaymentRow key={payment.id} payment={payment} />
@@ -502,9 +519,8 @@ export default async function MemberDetailPage({
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="p-4 sm:p-6 pt-0">
-                  {member.member_subscriptions?.length ? (
+                  {subscriptions.filter(isSubscription).length ? (
                     <ScrollArea className="h-64">
-                      {/* En-tête desktop seulement */}
                       <Table className="hidden lg:table">
                         <TableHeader>
                           <TableRow className="hover:bg-transparent">
@@ -514,15 +530,14 @@ export default async function MemberDetailPage({
                           </TableRow>
                         </TableHeader>
                         <TableBody>
-                          {member.member_subscriptions.map((sub: any) => (
+                          {subscriptions.filter(isSubscription).map((sub: any) => (
                             <SubscriptionRow key={sub.id} sub={sub} />
                           ))}
                         </TableBody>
                       </Table>
 
-                      {/* Liste mobile */}
                       <div className="lg:hidden space-y-2">
-                        {member.member_subscriptions.map((sub: any) => (
+                        {subscriptions.filter(isSubscription).map((sub: any) => (
                           <SubscriptionRow key={sub.id} sub={sub} />
                         ))}
                       </div>
@@ -531,6 +546,70 @@ export default async function MemberDetailPage({
                     <div className="flex flex-col items-center justify-center py-8 text-center">
                       <Calendar className="h-8 w-8 text-gray-400 mb-2" />
                       <p className="text-gray-400">Aucun abonnement enregistré</p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Session History */}
+              <Card className="bg-gray-800 border-gray-700">
+                <CardHeader className="p-4 sm:p-6">
+                  <CardTitle className="text-lg">Historique des sessions</CardTitle>
+                  <CardDescription className="text-gray-400">
+                    Sessions ponctuelles utilisées
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="p-4 sm:p-6 pt-0">
+                  {sessions.length ? (
+                    <ScrollArea className="h-64">
+                      <Table className="hidden lg:table">
+                        <TableHeader>
+                          <TableRow className="hover:bg-transparent">
+                            <TableHead className="text-gray-300 bg-gray-900">Date</TableHead>
+                            <TableHead className="text-gray-300 bg-gray-900">Type</TableHead>
+                            <TableHead className="text-gray-300 bg-gray-900 text-right">Montant</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {sessions.map((session: any) => (
+                            <TableRow key={session.id} className="border-gray-700 hover:bg-gray-700">
+                              <TableCell>
+                                {new Date(session.start_date).toLocaleDateString()}
+                              </TableCell>
+                              <TableCell>
+                                {session.subscriptions?.description || 'Session ponctuelle'}
+                              </TableCell>
+                              <TableCell className="text-right">
+                                {session.subscriptions?.price} F CFA
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+
+                      <div className="lg:hidden space-y-2">
+                        {sessions.map((session: any) => (
+                          <div key={session.id} className="border-b border-gray-700 py-3">
+                            <div className="flex justify-between">
+                              <span className="font-medium">Date:</span>
+                              <span>{new Date(session.start_date).toLocaleDateString()}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="font-medium">Type:</span>
+                              <span>{session.subscriptions?.description || 'Session'}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="font-medium">Montant:</span>
+                              <span>{session.subscriptions?.price} F CFA</span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </ScrollArea>
+                  ) : (
+                    <div className="flex flex-col items-center justify-center py-8 text-center">
+                      <Calendar className="h-8 w-8 text-gray-400 mb-2" />
+                      <p className="text-gray-400">Aucune session enregistrée</p>
                     </div>
                   )}
                 </CardContent>
@@ -547,7 +626,6 @@ export default async function MemberDetailPage({
                 <CardContent className="p-4 sm:p-6 pt-0">
                   {accessLogs?.length ? (
                     <ScrollArea className="h-64">
-                      {/* En-tête desktop seulement */}
                       <Table className="hidden lg:table">
                         <TableHeader>
                           <TableRow className="hover:bg-transparent">
@@ -563,7 +641,6 @@ export default async function MemberDetailPage({
                         </TableBody>
                       </Table>
 
-                      {/* Liste mobile */}
                       <div className="lg:hidden space-y-2">
                         {accessLogs.map((log: any) => (
                           <AccessLogRow key={log.id} log={log} />

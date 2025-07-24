@@ -36,25 +36,16 @@ export default function NewGymPage() {
     try {
       const supabase = createClient();
       const { data: { user }, error: authError } = await supabase.auth.getUser();
-
       if (authError || !user) throw new Error("Utilisateur non authentifié");
 
-      console.log("Utilisateur :", user);
-
-      // 1. Créer le gym
       const { data: gym, error: gymError } = await supabase
         .from('gyms')
-        .insert({
-          ...data,
-          owner_id: user.id,
-        })
+        .insert({ ...data, owner_id: user.id })
         .select()
         .single();
 
-      console.log("Résultat création gym :", { gym, gymError });
       if (gymError) throw new Error(gymError.message || "Erreur lors de la création du gym");
 
-      // 2. Associer le user comme OWNER
       const { data: gbus, error: gbusError } = await supabase
         .from('gbus')
         .insert({
@@ -65,28 +56,25 @@ export default function NewGymPage() {
         .select()
         .single();
 
-      console.log("Résultat association gbus :", { gbus, gbusError });
       if (gbusError) {
-        // Nettoyage en cas d'échec
         await supabase.from('gyms').delete().eq('id', gym.id);
         throw new Error(gbusError.message || "Erreur lors de l'association utilisateur");
       }
 
-      // 3. Revalider le cache ou session côté serveur (optionnel selon ta app)
       await fetch('/api/auth/refresh', {
         method: 'POST',
         credentials: 'same-origin',
       });
 
-      // 4. Rediriger vers le dashboard
       window.location.assign(`/gyms/${gym.id}/dashboard?t=${Date.now()}`);
 
     } catch (err: unknown) {
-      const errorMessage = err instanceof Error 
-        ? err.message 
-        : typeof err === 'string'
-          ? err
-          : "Erreur inconnue";
+      const errorMessage =
+        err instanceof Error
+          ? err.message
+          : typeof err === 'string'
+            ? err
+            : "Erreur inconnue";
 
       toast.error(errorMessage);
       console.error("Erreur création gym :", err);
@@ -96,61 +84,53 @@ export default function NewGymPage() {
   };
 
   return (
-    <div className="max-w-md mx-auto p-6">
-      <h1 className="text-2xl font-bold mb-6">Créer votre salle de sport</h1>
-      
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-        <div className="space-y-2">
-          <Label htmlFor="name">Nom du gym *</Label>
-          <Input
-            id="name"
-            {...register('name')}
-            error={errors.name?.message}
-          />
+    <div className="min-h-screen flex items-center justify-center px-4">
+      <div className="w-full max-w-lg bg-black border rounded-2xl shadow-sm p-6 space-y-6">
+        <div className="text-center space-y-1">
+          <h1 className="text-2xl font-semibold">Créer une salle de sport</h1>
+          <p className="text-sm text-white">
+            Renseignez les informations nécessaires pour créer votre établissement.
+          </p>
         </div>
 
-        <div className="space-y-2">
-          <Label htmlFor="address">Adresse *</Label>
-          <Input
-            id="address"
-            {...register('address')}
-            error={errors.address?.message}
-          />
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="phone">Téléphone *</Label>
-          <Input
-            id="phone"
-            {...register('phone')}
-            error={errors.phone?.message}
-          />
-        </div>
-
-        <div className="grid grid-cols-2 gap-4">
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
           <div className="space-y-2">
-            <Label htmlFor="city">Ville</Label>
-            <Input
-              id="city"
-              {...register('city')}
-              error={errors.city?.message}
-            />
+            <Label htmlFor="name">Nom du gym *</Label>
+            <Input id="name" {...register('name')} />
+            {errors.name && <p className="text-sm text-red-500">{errors.name.message}</p>}
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="postal_code">Code postal</Label>
-            <Input
-              id="postal_code"
-              {...register('postal_code')}
-              error={errors.postal_code?.message}
-            />
+            <Label htmlFor="address">Adresse *</Label>
+            <Input id="address" {...register('address')} />
+            {errors.address && <p className="text-sm text-red-500">{errors.address.message}</p>}
           </div>
-        </div>
 
-        <Button type="submit" className="w-full" disabled={isSubmitting}>
-          {isSubmitting ? "Création en cours..." : "Créer la salle"}
-        </Button>
-      </form>
+          <div className="space-y-2">
+            <Label htmlFor="phone">Téléphone *</Label>
+            <Input id="phone" {...register('phone')} />
+            {errors.phone && <p className="text-sm text-red-500">{errors.phone.message}</p>}
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="city">Ville</Label>
+              <Input id="city" {...register('city')} />
+              {errors.city && <p className="text-sm text-red-500">{errors.city.message}</p>}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="postal_code">Code postal</Label>
+              <Input id="postal_code" {...register('postal_code')} />
+              {errors.postal_code && <p className="text-sm text-red-500">{errors.postal_code.message}</p>}
+            </div>
+          </div>
+
+          <Button type="submit" className="w-full" disabled={isSubmitting}>
+            {isSubmitting ? "Création en cours..." : "Créer la salle"}
+          </Button>
+        </form>
+      </div>
     </div>
   );
 }

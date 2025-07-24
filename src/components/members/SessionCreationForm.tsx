@@ -2,17 +2,17 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
 import { Button } from '@/components/ui/button';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';
+import { createSessionPayment } from '@/actions/createSessionPayment';
 
 interface Member {
   id: string;
   full_name: string;
-  qr_code: string;
+  qr_code?: string;
   avatar_url?: string;
 }
 
@@ -20,6 +20,7 @@ interface Session {
   id: string;
   price: number;
   description?: string;
+  is_session?: boolean;
 }
 
 export default function SessionCreationForm({
@@ -31,52 +32,38 @@ export default function SessionCreationForm({
   gymId: string;
   sessions: Session[];
 }) {
-  const supabase = createClientComponentClient();
   const router = useRouter();
   const [selectedSession, setSelectedSession] = useState<string>(sessions[0]?.id || '');
   const [isProcessing, setIsProcessing] = useState(false);
 
   const handleCreateSession = async () => {
-    if (!selectedSession) return;
+    if (!selectedSession) {
+      toast.error('Veuillez sélectionner une session');
+      return;
+    }
 
     setIsProcessing(true);
     try {
       const session = sessions.find(s => s.id === selectedSession);
       if (!session) throw new Error('Session non trouvée');
 
-      const startDate = new Date();
-      const endDate = new Date(startDate);
-      endDate.setDate(endDate.getDate() + 1);
+      const result = await createSessionPayment({
+        member_id: member.id,
+        amount: session.price,
+        subscription_id: selectedSession,
+        gym_id: gymId
+      });
 
-      const { error: subscriptionError } = await supabase
-        .from('member_subscriptions')
-        .insert({
-          member_id: member.id,
-          subscription_id: selectedSession,
-          gym_id: gymId,
-          start_date: startDate.toISOString(),
-          end_date: endDate.toISOString(),
-          status: 'active',
-        });
+      if (result.error) throw new Error(result.error);
 
-      if (subscriptionError) throw subscriptionError;
+      toast.success('Session créée avec succès', {
+        description: `${member.full_name} a maintenant accès pour aujourd'hui`
+      });
 
-      const { error: paymentError } = await supabase
-        .from('payments')
-        .insert({
-          member_id: member.id,
-          gym_id: gymId,
-          amount: session.price,
-          type: 'session',
-          subscription_id: selectedSession,
-          status: 'paid',
-          payment_method: 'cash',
-        });
-
-      if (paymentError) throw paymentError;
-
-      toast.success('Session créée avec succès');
-      router.push(`/gyms/${gymId}/members/${member.id}`);
+      router.refresh();
+      setTimeout(() => {
+        router.push(`/gyms/${gymId}/members/${member.id}`);
+      }, 1500);
     } catch (error) {
       console.error('Session creation error:', error);
       toast.error('Erreur lors de la création de la session');
@@ -87,6 +74,13 @@ export default function SessionCreationForm({
 
   return (
     <div className="space-y-6">
+      <div className="border-b border-gray-700 pb-4 mb-4">
+        <h3 className="text-lg font-medium">Session ponctuelle</h3>
+        <p className="text-sm text-gray-400">
+          Accès valable pour une seule journée - Pas de badge généré
+        </p>
+      </div>
+
       <RadioGroup 
         value={selectedSession} 
         onValueChange={setSelectedSession}
@@ -120,12 +114,22 @@ export default function SessionCreationForm({
         ))}
       </RadioGroup>
 
-      <div className="flex justify-end pt-4">
-        <Button onClick={handleCreateSession} disabled={isProcessing || !selectedSession}>
+      <div className="flex justify-between pt-4">
+        <Button 
+          variant="outline" 
+          onClick={() => router.push(`/gyms/${gymId}/members/${member.id}/renew`)}
+        >
+          Créer un abonnement
+        </Button>
+        <Button 
+          onClick={handleCreateSession} 
+          disabled={isProcessing || !selectedSession}
+          className="bg-blue-600 hover:bg-blue-700"
+        >
           {isProcessing ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Traitement...
+              Création en cours...
             </>
           ) : (
             'Confirmer la session'

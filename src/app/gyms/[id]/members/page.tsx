@@ -1,6 +1,6 @@
 import { createClient } from '@/utils/supabase/server';
 import Link from 'next/link';
-import { notFound } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -8,16 +8,22 @@ import { Badge } from '@/components/ui/badge';
 import { ArrowLeft, Plus } from 'lucide-react';
 
 export default async function MembersPage({
-  params,
+  params: resolvedParams,
   searchParams
 }: {
   params: Promise<{ id: string }>;
-  searchParams?: { q?: string };
+  searchParams: { q?: string };
 }) {
-  const resolvedParams = await params;
-  const gymId = resolvedParams.id;
-  const search = searchParams?.q || '';
+  const params = await resolvedParams;
+  const gymId = params.id;
 
+  if (!gymId) {
+    console.error('Gym ID non défini');
+    redirect('/gyms/new');
+  }
+
+  // Attendre les searchParams
+  const search = (await searchParams)?.q || '';
   const supabase = createClient();
 
   const { data: members, error } = await (await supabase)
@@ -30,7 +36,7 @@ export default async function MembersPage({
       )
     `)
     .eq('gym_id', gymId)
-    .ilike('full_name', `%${search}%`) // recherche insensible à la casse
+    .ilike('full_name', `%${search}%`)
     .order('full_name', { ascending: true });
 
   if (error) {
