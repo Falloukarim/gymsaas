@@ -74,7 +74,7 @@ export default function SessionCreationForm({
 
   return (
     <div className="space-y-6">
-      <div className="border-b border-gray-700 pb-4 mb-4">
+      <div className="border-b border-gray-700 pb-4">
         <h3 className="text-lg font-medium">Session ponctuelle</h3>
         <p className="text-sm text-gray-400">
           Accès valable pour une seule journée - Pas de badge généré
@@ -84,7 +84,7 @@ export default function SessionCreationForm({
       <RadioGroup 
         value={selectedSession} 
         onValueChange={setSelectedSession}
-        className="grid gap-4 md:grid-cols-2 lg:grid-cols-3"
+        className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3"
       >
         {sessions.map((session) => (
           <div key={session.id}>
@@ -95,18 +95,22 @@ export default function SessionCreationForm({
             />
             <Label
               htmlFor={session.id}
-              className="flex flex-col items-center justify-between rounded-md border-2 border-gray-600 bg-gray-800 p-4 hover:bg-gray-700 hover:text-white peer-data-[state=checked]:border-blue-500 [&:has([data-state=checked])]:border-blue-500 cursor-pointer"
+              className="flex flex-col items-center justify-between rounded-md border-2 border-gray-600 bg-gray-800 p-3 sm:p-4 hover:bg-gray-700 hover:text-white peer-data-[state=checked]:border-blue-500 [&:has([data-state=checked])]:border-blue-500 cursor-pointer transition-colors"
             >
               <div className="w-full">
-                <div className="flex justify-between items-start">
+                <div className="flex justify-between items-start gap-2">
                   <div>
-                    <p className="font-bold text-lg">Session</p>
-                    <p className="text-sm text-gray-400">Accès: 1 jour</p>
+                    <p className="font-bold text-base sm:text-lg">Session</p>
+                    <p className="text-xs sm:text-sm text-gray-400">Accès: 1 jour</p>
                   </div>
-                  <p className="text-2xl font-bold">{session.price} F CFA</p>
+                  <p className="text-xl sm:text-2xl font-bold whitespace-nowrap">
+                    {session.price.toLocaleString('fr-FR')} F CFA
+                  </p>
                 </div>
                 {session.description && (
-                  <p className="mt-2 text-sm text-gray-300">{session.description}</p>
+                  <p className="mt-2 text-xs sm:text-sm text-gray-300">
+                    {session.description}
+                  </p>
                 )}
               </div>
             </Label>
@@ -114,17 +118,18 @@ export default function SessionCreationForm({
         ))}
       </RadioGroup>
 
-      <div className="flex justify-between pt-4">
+      <div className="flex flex-col-reverse sm:flex-row justify-between gap-3 pt-4">
         <Button 
           variant="outline" 
           onClick={() => router.push(`/gyms/${gymId}/members/${member.id}/renew`)}
+          className="w-full text-black sm:w-auto"
         >
           Créer un abonnement
         </Button>
         <Button 
           onClick={handleCreateSession} 
           disabled={isProcessing || !selectedSession}
-          className="bg-blue-600 hover:bg-blue-700"
+          className="w-full sm:w-auto bg-green-600 hover:bg-blue-700"
         >
           {isProcessing ? (
             <>

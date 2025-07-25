@@ -100,14 +100,7 @@ export default function ScanResultClient({
         <motion.div variants={itemVariants} className="flex flex-col gap-3">
           <Dialog open={scannerOpen} onOpenChange={setScannerOpen}>
             <DialogTrigger asChild>
-              <Button 
-                size="lg"
-                className="w-full gap-2"
-                onClick={handleNewScan}
-              >
-                <QrCode className="h-5 w-5" />
-                Nouveau scan
-              </Button>
+              
             </DialogTrigger>
             <DialogContent className="sm:max-w-[425px]">
               <DialogTitle className="text-center">Scanner un badge</DialogTitle>
@@ -119,10 +112,10 @@ export default function ScanResultClient({
             <Button
               variant="outline"
               size="lg"
-              className="w-full gap-2"
+              className="w-full text-black gap-2"
               onClick={() => router.push(`/gyms/${gymId}/dashboard`)}
             >
-              <ArrowLeft className="h-5 bg-gray500 w-5" />
+              <ArrowLeft className="h-5 bg-gray w-5" />
               Retour au tableau de bord
             </Button>
           )}

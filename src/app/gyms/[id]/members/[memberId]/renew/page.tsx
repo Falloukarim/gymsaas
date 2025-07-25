@@ -92,58 +92,56 @@ export default async function RenewSubscriptionPage({
     );
 
     return (
-      <div className="max-w-4xl mx-auto px-4 py-6 sm:px-6 lg:px-8">
+      <div className="max-w-4xl mx-auto px-4 py-4 sm:py-6 sm:px-6 lg:px-8">
         <Card className="bg-gray-800 text-white border-gray-700">
           {/* Header Section */}
-          <CardHeader className="border-b border-gray-700">
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-              <div className="flex items-center gap-4">
-                <Link
-                  href={`/gyms/${gymId}/members/${memberId}`}
-                  className="flex items-center gap-2 text-sm hover:text-blue-400 transition-colors"
-                >
-                  <ArrowLeft className="h-4 w-4" />
-                  <span>Retour au profil du membre</span>
-                </Link>
+          <CardHeader className="border-b border-gray-700 p-4 sm:p-6">
+            <div className="flex flex-col gap-4">
+              <Link
+                href={`/gyms/${gymId}/members/${memberId}`}
+                className="flex items-center gap-2 text-sm hover:text-blue-400 transition-colors w-fit"
+              >
+                <ArrowLeft className="h-4 w-4" />
+                <span>Retour au profil du membre</span>
+              </Link>
 
-                <div className="flex items-center gap-3">
-                  <Avatar className="h-10 w-10">
-                    <AvatarImage 
-                      src={member.avatar_url || undefined} 
-                      alt={`Avatar de ${member.full_name}`}
-                    />
-                    <AvatarFallback className="bg-gray-600">
-                      {member.full_name
-                        .split(' ')
-                        .map(n => n[0])
-                        .join('')
-                        .toUpperCase()}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div>
-                    <h1 className="text-xl sm:text-2xl font-bold">Renouveler l&apos;abonnement</h1>
-                    <p className="text-sm text-gray-400">
-                      {member.full_name} - {member.gyms?.name || 'Salle inconnue'}
-                    </p>
-                  </div>
+              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4">
+                <Avatar className="h-10 w-10">
+                  <AvatarImage 
+                    src={member.avatar_url || undefined} 
+                    alt={`Avatar de ${member.full_name}`}
+                  />
+                  <AvatarFallback className="bg-gray-600">
+                    {member.full_name
+                      .split(' ')
+                      .map(n => n[0])
+                      .join('')
+                      .toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
+                <div>
+                  <h1 className="text-xl sm:text-2xl font-bold">Renouveler l&apos;abonnement</h1>
+                  <p className="text-sm text-gray-400">
+                    {member.full_name} - {member.gyms?.name || 'Salle inconnue'}
+                  </p>
                 </div>
               </div>
             </div>
           </CardHeader>
 
           {/* Main Content */}
-          <CardContent className="p-6">
-            <div className="space-y-6">
+          <CardContent className="p-4 sm:p-6">
+            <div className="space-y-4 sm:space-y-6">
               {activeSubscription && (
                 <Card className="bg-gray-700 border-gray-600">
-                  <CardHeader>
+                  <CardHeader className="p-4 sm:p-6">
                     <CardTitle className="text-lg">Abonnement actuel</CardTitle>
                     <CardDescription className="text-gray-300">
                       Cet abonnement sera prolongé ou remplacé
                     </CardDescription>
                   </CardHeader>
-                  <CardContent>
-                    <div className="flex justify-between items-center">
+                  <CardContent className="p-4 sm:p-6 pt-0">
+                    <div className="flex flex-col sm:flex-row justify-between gap-2 sm:items-center">
                       <div>
                         <p className="font-medium capitalize">
                           {activeSubscription.subscriptions?.type}
@@ -152,8 +150,8 @@ export default async function RenewSubscriptionPage({
                           Valide jusqu&apos;au {new Date(activeSubscription.end_date).toLocaleDateString('fr-FR')}
                         </p>
                       </div>
-                      <div className="text-right">
-                        <p className="text-2xl font-bold">
+                      <div className="sm:text-right">
+                        <p className="text-xl sm:text-2xl font-bold">
                           {activeSubscription.subscriptions?.price.toLocaleString('fr-FR')} F CFA
                         </p>
                         <p className="text-sm text-gray-300">
@@ -166,13 +164,13 @@ export default async function RenewSubscriptionPage({
               )}
 
               <Card className="bg-gray-700 border-gray-600">
-                <CardHeader>
+                <CardHeader className="p-4 sm:p-6">
                   <CardTitle className="text-lg">Nouvel abonnement</CardTitle>
                   <CardDescription className="text-gray-300">
                     Choisissez un nouveau type d&apos;abonnement
                   </CardDescription>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="p-4 sm:p-6 pt-0">
                   {subscriptions.length > 0 ? (
                     <SubscriptionRenewalForm
                       member={member}
@@ -181,7 +179,7 @@ export default async function RenewSubscriptionPage({
                       currentSubscription={activeSubscription}
                     />
                   ) : (
-                    <div className="text-center py-8">
+                    <div className="text-center py-6 sm:py-8">
                       <CreditCard className="mx-auto h-8 w-8 text-gray-400 mb-2" />
                       <p className="text-gray-400">Aucun abonnement disponible pour cette salle</p>
                       <Button className="mt-4" asChild>
