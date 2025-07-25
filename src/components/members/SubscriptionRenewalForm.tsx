@@ -15,6 +15,7 @@ interface Member {
 }
 
 interface Subscription {
+  is_session: any;
   id: string;
   type: string;
   duration_days: number;
@@ -67,6 +68,7 @@ const generateQrCode = async (memberId: string) => {
 };
 
 // Modifiez la fonction handleRenew :
+// Dans SubscriptionRenewalForm.tsx
 const handleRenew = async () => {
   if (!selectedSubscription || !gymId) {
     toast.error('Paramètres manquants');
@@ -74,87 +76,46 @@ const handleRenew = async () => {
   }
 
   setIsProcessing(true);
-  
+  const toastId = toast.loading('Traitement du renouvellement...');
+
   try {
-    console.log('Étape 1: Récupération des détails de l\'abonnement');
-    const { data: subscription, error: subError } = await supabase
-      .from('subscriptions')
-      .select('*')
-      .eq('id', selectedSubscription)
-      .single();
-
-    if (subError || !subscription) {
-      throw subError || new Error('Abonnement non trouvé');
+    // Vérifier que ce n'est pas une session
+    const selectedSub = subscriptions.find(s => s.id === selectedSubscription);
+    if (selectedSub?.is_session) {
+      throw new Error('Impossible de renouveler une session');
     }
 
-    console.log('Étape 2: Génération du QR code');
-    const qrGenerated = await generateQrCode(member.id);
-    if (!qrGenerated) {
-      toast.warning('Le badge ne sera pas disponible immédiatement');
+    const response = await fetch('/api/renew-subscription', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        memberId: member.id,
+        gymId,
+        subscriptionId: selectedSubscription
+      }),
+    });
+
+    const result = await response.json();
+
+    if (!response.ok || result.error) {
+      throw new Error(result.error || 'Erreur lors du renouvellement');
     }
 
-    console.log('Étape 3: Calcul des dates');
-    const startDate = new Date();
-    const endDate = new Date(startDate);
-    endDate.setDate(endDate.getDate() + subscription.duration_days);
+    toast.success('Abonnement renouvelé avec succès', {
+      id: toastId,
+      description: `Nouvelle date de fin: ${new Date(
+        new Date().setDate(new Date().getDate() + 
+        (selectedSub?.duration_days || 30))
+      ).toLocaleDateString('fr-FR')}`
+    });
 
-    console.log('Étape 4: Désactivation des anciens abonnements');
-    const { error: updateError } = await supabase
-      .from('member_subscriptions')
-      .update({ status: 'expired' })
-      .eq('member_id', member.id)
-      .eq('status', 'active');
+    router.push(`/gyms/${gymId}/members/${member.id}`);
+    router.refresh();
 
-    if (updateError) throw updateError;
-
-    console.log('Étape 5: Création du nouvel abonnement');
-    const { error: subscriptionError } = await supabase
-      .from('member_subscriptions')
-      .insert({
-        member_id: member.id,
-        subscription_id: selectedSubscription,
-        gym_id: gymId,
-        start_date: startDate.toISOString(),
-        end_date: endDate.toISOString(),
-        status: 'active',
-      });
-
-    if (subscriptionError) throw subscriptionError;
-
-    console.log('Étape 6: Enregistrement du paiement');
-    const { error: paymentError } = await supabase
-      .from('payments')
-      .insert({
-        member_id: member.id,
-        gym_id: gymId,
-        amount: subscription.price,
-        type: 'subscription',
-        subscription_id: selectedSubscription,
-        status: 'paid',
-        payment_method: 'cash',
-      });
-
-    if (paymentError) throw paymentError;
-
-    console.log('Étape 7: Mise à jour du statut du membre');
-    const { error: memberError } = await supabase
-      .from('members')
-      .update({ 
-        has_subscription: true,
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', member.id);
-
-    if (memberError) throw memberError;
-
-    console.log('Étape 8: Redirection');
-    toast.success('Abonnement renouvelé avec succès');
-
-    window.location.href = `/gyms/${gymId}/members/${member.id}`;
-    
   } catch (error) {
-    console.error('Erreur détaillée:', error);
-    toast.error(`Erreur lors du renouvellement: ${error instanceof Error ? error.message : 'Erreur inconnue'}`);
+    toast.error(error instanceof Error ? error.message : 'Erreur inconnue', {
+      id: toastId
+    });
   } finally {
     setIsProcessing(false);
   }

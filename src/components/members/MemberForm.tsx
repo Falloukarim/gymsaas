@@ -83,45 +83,41 @@ export function MemberForm({
     reader.readAsDataURL(file);
   };
 
-  const onSubmit = async (data: z.infer<typeof memberSchema>) => {
-    setIsUploading(true);
-    try {
-      const formData = new FormData();
-      formData.append('gym_id', data.gym_id);
-      formData.append('full_name', data.full_name);
-      formData.append('phone', data.phone);
-      
-      if (data.email) formData.append('email', data.email);
-      if (data.subscription_id) formData.append('subscription_id', data.subscription_id);
-      if (data.avatar) formData.append('avatar', data.avatar);
+const onSubmit = async (data: z.infer<typeof memberSchema>) => {
+  setIsUploading(true);
+  const toastId = toast.loading('Création du membre en cours...'); // Ajoutez cette ligne
 
-      const result = await createMember(formData);
+  try {
+    const formData = new FormData();
+    formData.append('gym_id', data.gym_id);
+    formData.append('full_name', data.full_name);
+    formData.append('phone', data.phone);
+    
+    if (data.email) formData.append('email', data.email);
+    if (data.subscription_id) formData.append('subscription_id', data.subscription_id);
+    if (data.avatar) formData.append('avatar', data.avatar);
 
-      if (result?.error) {
-        toast.error(result.error);
-        return;
-      }
+    const result = await createMember(formData);
 
-      toast.success('Membre ajouté avec succès', {
-        description: `${data.full_name} a été enregistré`,
-        action: {
-          label: 'Voir',
-          onClick: () => router.push(`/gyms/${gymId}/members/${result.memberId}`)
-        },
-      });
+    toast.success('Membre ajouté avec succès', {
+      id: toastId, // Utilisez la variable déclarée
+      description: `${data.full_name} a été enregistré`,
+      action: {
+        label: 'Voir',
+        onClick: () => router.push(`/gyms/${gymId}/members/${result.memberId}`)
+      },
+    });
 
-      setTimeout(() => {
-        router.push(result.redirectUrl || `/gyms/${gymId}/dashboard`);
-      }, 2000);
-
-    } catch (error) {
-      toast.error('Erreur lors de la création du membre');
-      console.error(error);
-    } finally {
-      setIsUploading(false);
-    }
-  };
-
+    router.push(result.redirectUrl || `/gyms/${gymId}/dashboard`);
+    router.refresh();
+  } catch (error) {
+    toast.error('Erreur lors de la création du membre', {
+      id: toastId // Utilisez la variable déclarée
+    });
+  } finally {
+    setIsUploading(false);
+  }
+};
   const triggerFileInput = () => {
     fileInputRef.current?.click();
   };

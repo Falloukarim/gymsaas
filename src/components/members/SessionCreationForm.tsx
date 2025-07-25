@@ -14,6 +14,7 @@ interface Member {
   full_name: string;
   qr_code?: string;
   avatar_url?: string;
+  gyms?: { name: string };
 }
 
 interface Session {
@@ -43,30 +44,36 @@ export default function SessionCreationForm({
     }
 
     setIsProcessing(true);
-    try {
-      const session = sessions.find(s => s.id === selectedSession);
-      if (!session) throw new Error('Session non trouvée');
+    const toastId = toast.loading('Création de la session en cours...');
 
+    try {
       const result = await createSessionPayment({
         member_id: member.id,
-        amount: session.price,
         subscription_id: selectedSession,
         gym_id: gymId
       });
 
-      if (result.error) throw new Error(result.error);
+      if (result?.error) {
+        throw new Error(result.error);
+      }
 
       toast.success('Session créée avec succès', {
-        description: `${member.full_name} a maintenant accès pour aujourd'hui`
+        id: toastId,
+        description: `${member.full_name} a maintenant accès pour aujourd'hui`,
+        action: {
+          label: 'Voir le membre',
+          onClick: () => router.push(`/gyms/${gymId}/members/${member.id}`)
+        }
       });
 
+      // Rafraîchissement et redirection optimisés
+      router.push(`/gyms/${gymId}/members/${member.id}`);
       router.refresh();
-      setTimeout(() => {
-        router.push(`/gyms/${gymId}/members/${member.id}`);
-      }, 1500);
     } catch (error) {
-      console.error('Session creation error:', error);
-      toast.error('Erreur lors de la création de la session');
+      toast.error('Erreur lors de la création', {
+        id: toastId,
+        description: error instanceof Error ? error.message : undefined
+      });
     } finally {
       setIsProcessing(false);
     }
@@ -77,7 +84,7 @@ export default function SessionCreationForm({
       <div className="border-b border-gray-700 pb-4">
         <h3 className="text-lg font-medium">Session ponctuelle</h3>
         <p className="text-sm text-gray-400">
-          Accès valable pour une seule journée - Pas de badge généré
+          Accès valable pour une seule journée • {member.gyms?.name || 'Salle inconnue'}
         </p>
       </div>
 
@@ -120,16 +127,9 @@ export default function SessionCreationForm({
 
       <div className="flex flex-col-reverse sm:flex-row justify-between gap-3 pt-4">
         <Button 
-          variant="outline" 
-          onClick={() => router.push(`/gyms/${gymId}/members/${member.id}/renew`)}
-          className="w-full text-black sm:w-auto"
-        >
-          Créer un abonnement
-        </Button>
-        <Button 
           onClick={handleCreateSession} 
           disabled={isProcessing || !selectedSession}
-          className="w-full sm:w-auto bg-green-600 hover:bg-blue-700"
+          className="w-full sm:w-auto bg-green-600 hover:bg-green-700"
         >
           {isProcessing ? (
             <>

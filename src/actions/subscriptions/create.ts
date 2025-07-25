@@ -45,6 +45,7 @@ export async function createSessionSubscription(
   const gymId = formData.get('gym_id') as string;
   const price = parseFloat(formData.get('price') as string);
   const description = formData.get('description') as string;
+  const durationDays = parseInt(formData.get('duration_days') as string) || 1; // ← Modifié ici
 
   const { data, error } = await (await supabase)
     .from('subscriptions')
@@ -52,7 +53,7 @@ export async function createSessionSubscription(
       gym_id: gymId,
       type: 'session',
       price,
-      duration_days: 1,
+      duration_days: durationDays, // ← Utilisez la durée fournie
       description: description || null,
       is_session: true,
       session_price: price

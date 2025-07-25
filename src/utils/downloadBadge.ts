@@ -14,12 +14,6 @@ interface Member {
     name: string;
     logo_url?: string;
   };
-  member_subscriptions?: Array<{
-    end_date: string;
-    subscriptions?: {
-      type?: string;
-    };
-  }>;
 }
 
 interface BadgeConfig {
@@ -42,8 +36,6 @@ interface BadgeConfig {
     textLight: string;
     white: string;
     black: string;
-    success: string;
-    warning: string;
   };
   fonts: {
     title: string;
@@ -67,8 +59,6 @@ const BADGE_CONFIG: BadgeConfig = {
     textLight: '#94a3b8',
     white: '#ffffff',
     black: '#000000',
-    success: '#10b981',
-    warning: '#f59e0b',
   },
   fonts: {
     title: 'bold 28px "Poppins", sans-serif',
@@ -248,7 +238,6 @@ export async function downloadMemberBadge(member: Member): Promise<void> {
       const tempCtx = tempCanvas.getContext('2d');
       if (!tempCtx) throw new Error('tempCtx manquant');
 
-      // Créer un masque circulaire pour le logo
       tempCtx.beginPath();
       tempCtx.arc(logoSize / 2, logoSize / 2, logoSize / 2, 0, Math.PI * 2);
       tempCtx.closePath();
@@ -276,45 +265,40 @@ export async function downloadMemberBadge(member: Member): Promise<void> {
     }
   }
 
-  // Nom du gym dans un cadre élégant
-  // Nom du gym dans un cadre élégant
-// Nom du gym dans un cadre élégant
-if (member.gyms && member.gyms.name) {
-  const gymName = member.gyms.name.length > 24 
-    ? member.gyms.name.substring(0, 21) + '...' 
-    : member.gyms.name;
+  // Nom du gym
+  if (member.gyms?.name) {
+    const gymName = member.gyms.name.length > 24 
+      ? member.gyms.name.substring(0, 21) + '...' 
+      : member.gyms.name;
 
-  const gymNameWidth = ctx.measureText(gymName).width + 40;
-  const gymNameX = card.x + card.width - gymNameWidth - 30;
-  const gymNameY = card.y + headerHeight / 2 - 20;
+    const gymNameWidth = ctx.measureText(gymName).width + 40;
+    const gymNameX = card.x + card.width - gymNameWidth - 30;
+    const gymNameY = card.y + headerHeight / 2 - 20;
 
-  // Dégradé pour le cadre du nom du gym
-  const gymNameGradient = ctx.createLinearGradient(
-    gymNameX,
-    gymNameY,
-    gymNameX + gymNameWidth,
-    gymNameY + 40
-  );
-  gymNameGradient.addColorStop(0, BADGE_CONFIG.colors.secondary);
-  gymNameGradient.addColorStop(1, BADGE_CONFIG.colors.accent);
+    const gymNameGradient = ctx.createLinearGradient(
+      gymNameX,
+      gymNameY,
+      gymNameX + gymNameWidth,
+      gymNameY + 40
+    );
+    gymNameGradient.addColorStop(0, BADGE_CONFIG.colors.secondary);
+    gymNameGradient.addColorStop(1, BADGE_CONFIG.colors.accent);
 
-  // Cadre arrondi pour le nom du gym
-  ctx.beginPath();
-  ctx.roundRect(gymNameX, gymNameY, gymNameWidth, 40, 20);
-  ctx.fillStyle = gymNameGradient;
-  ctx.fill();
+    ctx.beginPath();
+    ctx.roundRect(gymNameX, gymNameY, gymNameWidth, 40, 20);
+    ctx.fillStyle = gymNameGradient;
+    ctx.fill();
 
-  // Texte du nom du gym
-  ctx.fillStyle = BADGE_CONFIG.colors.white;
-  ctx.font = BADGE_CONFIG.fonts.subtitle;
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  ctx.fillText(
-    gymName.toUpperCase(),
-    gymNameX + gymNameWidth / 2,
-    gymNameY + 20
-  );
-}
+    ctx.fillStyle = BADGE_CONFIG.colors.white;
+    ctx.font = BADGE_CONFIG.fonts.subtitle;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(
+      gymName.toUpperCase(),
+      gymNameX + gymNameWidth / 2,
+      gymNameY + 20
+    );
+  }
 
   // ID du membre
   ctx.fillStyle = BADGE_CONFIG.colors.white;
@@ -370,7 +354,6 @@ if (member.gyms && member.gyms.name) {
       const tempCtx = tempCanvas.getContext('2d');
       if (!tempCtx) throw new Error('tempCtx manquant');
 
-      // Appliquer un masque arrondi
       tempCtx.beginPath();
       tempCtx.roundRect(0, 0, photoSize, photoSize, 16);
       tempCtx.closePath();
@@ -413,73 +396,34 @@ if (member.gyms && member.gyms.name) {
   ctx.textAlign = 'left';
   ctx.fillText(member.full_name, infoX, infoY + 30);
 
-  // Type de membre (si disponible)
+  // Type de membre
   ctx.fillStyle = BADGE_CONFIG.colors.textMedium;
   ctx.font = BADGE_CONFIG.fonts.body;
   ctx.fillText('Membre Abonné', infoX, infoY + 70);
 
-  // Date d'expiration (si abonnement)
-  const subscription = member.member_subscriptions?.[0];
-  if (subscription?.end_date) {
-    const endDate = new Date(subscription.end_date);
-    const formattedDate = format(endDate, 'dd MMMM yyyy', { locale: fr });
-    const daysRemaining = Math.ceil((endDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
-
-    ctx.fillStyle = daysRemaining > 7 ? BADGE_CONFIG.colors.success : BADGE_CONFIG.colors.warning;
-    ctx.font = BADGE_CONFIG.fonts.subtitle;
-    ctx.fillText(
-      `Valide jusqu'au ${formattedDate}`,
-      infoX,
-      infoY + 110
-    );
-
-    // Badge "jours restants"
-    if (daysRemaining > 0) {
-      const daysText = `${daysRemaining} jour${daysRemaining > 1 ? 's' : ''} restant${daysRemaining > 1 ? 's' : ''}`;
-      const daysWidth = ctx.measureText(daysText).width + 20;
-
-      ctx.beginPath();
-      ctx.roundRect(infoX, infoY + 130, daysWidth, 28, 14);
-      ctx.fillStyle = daysRemaining > 7 ? BADGE_CONFIG.colors.success : BADGE_CONFIG.colors.warning;
-      ctx.fill();
-
-      ctx.fillStyle = BADGE_CONFIG.colors.white;
-      ctx.font = '500 14px "Poppins", sans-serif';
-      ctx.textAlign = 'center';
-      ctx.fillText(
-        daysText,
-        infoX + daysWidth / 2,
-        infoY + 130 + 18
-      );
-    }
-  }
-
   // QR Code
-// QR Code
-const qrSize = 200;
-const qrX = card.x + card.width - qrSize - 30;
-const qrY = card.y + card.height - qrSize - 30;
+  const qrSize = 200;
+  const qrX = card.x + card.width - qrSize - 30;
+  const qrY = card.y + card.height - qrSize - 30;
 
-// Cadre QR Code avec ombre et fond clair
-ctx.shadowColor = 'rgba(0,0,0,0.1)';
-ctx.shadowBlur = 10;
-ctx.shadowOffsetY = 5;
-ctx.beginPath();
-ctx.roundRect(qrX - 10, qrY - 10, qrSize + 20, qrSize + 20, 12);
-ctx.fillStyle = '#f1f5f9'; // fond clair pour contraste
-ctx.fill();
-ctx.shadowColor = 'transparent';
+  // Cadre QR Code avec ombre et fond clair
+  ctx.shadowColor = 'rgba(0,0,0,0.1)';
+  ctx.shadowBlur = 10;
+  ctx.shadowOffsetY = 5;
+  ctx.beginPath();
+  ctx.roundRect(qrX - 10, qrY - 10, qrSize + 20, qrSize + 20, 12);
+  ctx.fillStyle = '#f1f5f9';
+  ctx.fill();
+  ctx.shadowColor = 'transparent';
 
-// Génération et dessin du QR
-const qrCanvas = await generateQRCode(member.qr_code, qrSize);
-ctx.drawImage(qrCanvas, qrX, qrY);
+  // Génération et dessin du QR
+  const qrCanvas = await generateQRCode(member.qr_code, qrSize);
+  ctx.drawImage(qrCanvas, qrX, qrY);
 
-// Texte en dessous
-ctx.fillStyle = BADGE_CONFIG.colors.textMedium;
-ctx.font = '600 16px "Poppins", sans-serif';
-ctx.textAlign = 'center';
-;
-
+  // Texte en dessous
+  ctx.fillStyle = BADGE_CONFIG.colors.textMedium;
+  ctx.font = '600 16px "Poppins", sans-serif';
+  ctx.textAlign = 'center';
 
   // Pied de page
   const footerY = card.y + card.height - 20;

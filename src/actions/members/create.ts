@@ -9,126 +9,91 @@ import { uploadQRCode } from '@/utils/cloudinary';
 export async function createMember(formData: FormData) {
   const supabase = createClient();
   const { data: { user } } = await (await supabase).auth.getUser();
-  if (!user) return { error: 'Authentication required' };
+  if (!user) return { error: 'Authentification requise' };
 
-  const memberData = {
+  // 1. Extraction et validation des données
+  const rawData = {
     gym_id: formData.get('gym_id') as string,
     full_name: formData.get('full_name') as string,
-    email: formData.get('email') as string,
+    email: formData.get('email') as string || null,
     phone: formData.get('phone') as string,
+    subscription_id: formData.get('subscription_id') as string || null,
+    avatar: formData.get('avatar') as File | null
   };
 
-  const subscription_id = formData.get('subscription_id') as string;
-  const avatarFile = formData.get('avatar') as File | null;
-
+  // 2. Utilisation d'une transaction RPC pour atomicité
   try {
-    // 1. Upload avatar
-    let avatarUrl = null;
-    if (avatarFile?.size > 0) {
-      const fileExt = avatarFile.name.split('.').pop();
+    // 2.1. Upload de l'avatar (si fourni)
+    let avatar_url = null;
+    if (rawData.avatar?.size > 0) {
+      const fileExt = rawData.avatar.name.split('.').pop();
       const fileName = `${nanoid()}.${fileExt}`;
-      const filePath = `members/${memberData.gym_id}/${fileName}`;
+      const filePath = `members/${rawData.gym_id}/${fileName}`;
 
-      const { data: uploadData, error: uploadError } = await (await supabase)
-        .storage
+      const { error: uploadError } = await (await supabase).storage
         .from('avatars')
-        .upload(filePath, avatarFile);
+        .upload(filePath, rawData.avatar);
 
       if (uploadError) throw uploadError;
-      avatarUrl = (await supabase).storage.from('avatars').getPublicUrl(uploadData.path).data.publicUrl;
+      avatar_url = (await supabase).storage.from('avatars').getPublicUrl(filePath).data.publicUrl;
     }
 
-    // 2. Create member
-    const { data: member, error: insertError } = await (await supabase)
-      .from('members')
-      .insert({
-        ...memberData,
-        avatar_url: avatarUrl,
-        has_subscription: !!subscription_id
-      })
-      .select()
-      .single();
+    // 2.2. Appel à une fonction stockée pour la création atomique
+    const { data: member, error: rpcError } = await (await supabase).rpc(
+      'handle_member_creation', 
+      {
+        p_gym_id: rawData.gym_id,
+        p_full_name: rawData.full_name,
+        p_phone: rawData.phone,
+        p_email: rawData.email,
+        p_avatar_url: avatar_url,
+        p_subscription_id: rawData.subscription_id,
+        p_created_by: user.id
+      }
+    ).select().single();
 
-    if (insertError) throw insertError;
+    if (rpcError) throw rpcError;
 
-    // 3. Handle subscription/session
-    
-    if (subscription_id) {
+    // 2.3. Génération du QR code pour les abonnements
+    if (rawData.subscription_id) {
       const { data: subscription } = await (await supabase)
         .from('subscriptions')
-        .select('*')
-        .eq('id', subscription_id)
+        .select('is_session')
+        .eq('id', rawData.subscription_id)
         .single();
 
-      if (!subscription) throw new Error('Subscription not found');
-
-      if (subscription.is_session) {
-        // Session payment
-        await (await supabase)
-          .from('payments')
-          .insert({
-            member_id: member.id,
-            gym_id: memberData.gym_id,
-            amount: subscription.price,
-            type: 'session',
-            subscription_id: subscription.id,
-            status: 'paid'
-          });
-      } else {
-        // Regular subscription
-        const startDate = new Date();
-        const endDate = new Date();
-        endDate.setDate(startDate.getDate() + subscription.duration_days);
-
-        await (await supabase)
-          .from('member_subscriptions')
-          .insert({
-            member_id: member.id,
-            subscription_id: subscription.id,
-            start_date: startDate.toISOString(),
-            end_date: endDate.toISOString(),
-            gym_id: memberData.gym_id,
-            status: 'active'
-          });
-
-        await (await supabase)
-          .from('payments')
-          .insert({
-            member_id: member.id,
-            gym_id: memberData.gym_id,
-            amount: subscription.price,
-            type: 'subscription',
-            subscription_id: subscription.id,
-            status: 'paid'
-          });
-
-        // Generate QR code for subscriptions only
-        const qrToken = nanoid();
+      if (!subscription?.is_session) {
+        const qrToken = `GYM-${member.id}-${nanoid(8)}`;
         const qrDataUrl = await toDataURL(qrToken, { width: 300 });
         const qrBuffer = Buffer.from(qrDataUrl.split(',')[1], 'base64');
-        const uploadResult = await uploadQRCode(qrBuffer, qrToken) as { secure_url: string };
+        const uploadResult = await uploadQRCode(qrBuffer, qrToken);
 
         await (await supabase)
           .from('members')
           .update({
             qr_code: qrToken,
-            qr_image_url: uploadResult.secure_url
+            qr_image_url: uploadResult.secure_url,
+            updated_at: new Date().toISOString()
           })
           .eq('id', member.id);
       }
     }
 
-    revalidatePath(`/gyms/${memberData.gym_id}/members`);
-    return { 
+    // 3. Rafraîchissement et retour
+    revalidatePath(`/gyms/${rawData.gym_id}/members`);
+    revalidatePath(`/gyms/${rawData.gym_id}/dashboard`);
+
+    return {
       success: true,
       memberId: member.id,
-      redirectUrl: `/gyms/${member.gym_id}/members/${member.id}`
+      redirectUrl: `/gyms/${rawData.gym_id}/members/${member.id}`
     };
 
   } catch (error) {
-    console.error('Error creating member:', error);
-    return { 
-      error: error instanceof Error ? error.message : 'Creation failed'
+    console.error('Erreur création membre:', error);
+    return {
+      error: error instanceof Error ? error.message : 'Erreur inconnue',
+      details: error instanceof Error ? error.stack : undefined
     };
   }
 }

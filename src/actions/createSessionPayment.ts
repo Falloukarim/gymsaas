@@ -3,67 +3,78 @@
 import { createClient } from '@/utils/supabase/server';
 import { revalidatePath } from 'next/cache';
 
-export async function createSessionPayment({
-  member_id,
-  amount,
-  subscription_id,
-  gym_id
-}: {
+export async function createSessionPayment(params: {
   member_id: string;
-  amount: number;
   subscription_id: string;
   gym_id: string;
 }) {
   const supabase = createClient();
   
-  const paymentData = {
-    member_id,
-    amount,
-    type: 'session',
-    subscription_id,
-    gym_id,
-    created_at: new Date().toISOString(),
-    status: 'paid',
-    payment_method: 'cash'
-  };
-
-  if (!paymentData.member_id || !paymentData.amount || !paymentData.subscription_id) {
-    return { error: 'Données requises manquantes' };
-  }
-
   try {
-    // Créer d'abord le paiement
-    const { data: payment, error: paymentError } = await (await supabase)
-      .from('payments')
-      .insert(paymentData)
-      .select()
+    // 1. Récupérer le prix de la session depuis la base
+    const { data: session, error: sessionError } = await (await supabase)
+      .from('subscriptions')
+      .select('price')
+      .eq('id', params.subscription_id)
       .single();
+
+    if (sessionError || !session) {
+      throw new Error(sessionError?.message || 'Session introuvable');
+    }
+
+    // 2. Créer le paiement
+    const { error: paymentError } = await (await supabase)
+      .from('payments')
+      .insert({
+        member_id: params.member_id,
+        amount: session.price,
+        type: 'session',
+        subscription_id: params.subscription_id,
+        gym_id: params.gym_id,
+        status: 'paid',
+        payment_method: 'cash'
+      });
 
     if (paymentError) throw paymentError;
 
-    // Créer l'accès session (1 jour seulement)
+    // 3. Créer l'accès session (valable 1 jour)
     const startDate = new Date();
     const endDate = new Date(startDate);
     endDate.setDate(endDate.getDate() + 1);
 
-    const { error: subscriptionError } = await (await supabase)
+    const { error: accessError } = await (await supabase)
       .from('member_subscriptions')
       .insert({
-        member_id,
-        subscription_id,
-        gym_id,
+        member_id: params.member_id,
+        subscription_id: params.subscription_id,
+        gym_id: params.gym_id,
         start_date: startDate.toISOString(),
         end_date: endDate.toISOString(),
         status: 'active'
       });
 
-    if (subscriptionError) throw subscriptionError;
+    if (accessError) throw accessError;
 
-    // Ne PAS mettre à jour le QR code ou générer de badge
-    revalidatePath(`/gyms/${gym_id}/members/${member_id}`);
-    return { success: true, payment };
+    // 4. Journaliser l'accès
+    const { error: logError } = await (await supabase)
+      .from('access_logs')
+      .insert({
+        member_id: params.member_id,
+        gym_id: params.gym_id,
+        access_granted: true,
+        access_method: 'manual'
+      });
+
+    if (logError) console.error('Erreur de journalisation:', logError);
+
+    // 5. Rafraîchir les données
+    revalidatePath(`/gyms/${params.gym_id}/members/${params.member_id}`);
+    
+    return { success: true };
   } catch (error) {
-    console.error('Error creating session payment:', error);
-    return { error: error instanceof Error ? error.message : 'Erreur inconnue' };
+    console.error('Erreur complète:', error);
+    return { 
+      error: error instanceof Error ? error.message : 'Erreur inconnue' 
+    };
   }
 }
