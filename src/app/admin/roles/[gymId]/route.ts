@@ -1,10 +1,8 @@
 import { createClient } from '@/utils/supabase/server';
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 
-export async function GET(
-  request: Request,
-  { params }: { params: { gymId: string } }
-) {
+export async function GET(request: NextRequest, { params }: { params: { gymId: string } }) {
+
   const supabase = createClient();
   
   // Vérifier les permissions
@@ -35,7 +33,7 @@ export async function GET(
 }
 
 export async function POST(
-  request: Request,
+  request: NextRequest,
   { params }: { params: { gymId: string } }
 ) {
   const supabase = createClient();

@@ -17,7 +17,7 @@ const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser()
 
   // Vérification du rôle owner
-  let isOwner = false
+  const isOwner = false
   if (user) {
  const { data: userRole, error: roleError } = await supabase
   .from('gbus')
