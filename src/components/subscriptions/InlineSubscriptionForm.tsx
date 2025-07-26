@@ -86,9 +86,9 @@ export default function InlineSubscriptionForm({ gymId, onSuccess }: { gymId: st
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="space-y-2">
-        <Label className="text-gray-700">Type d'abonnement *</Label>
+        <Label className="text-white">Type d'abonnement *</Label>
         <Select value={form.type} onValueChange={handleTypeChange} required>
-          <SelectTrigger className="bg-gray-500">
+          <SelectTrigger className="bg-black">
             <SelectValue placeholder="Sélectionnez un type" />
           </SelectTrigger>
           <SelectContent>
@@ -102,7 +102,7 @@ export default function InlineSubscriptionForm({ gymId, onSuccess }: { gymId: st
       </div>
 
       <div className="space-y-2">
-        <Label className="text-gray-700">Prix (FCFA) *</Label>
+        <Label className="text-white">Prix (FCFA) *</Label>
         <Input
           type="number"
           min="0"
@@ -110,30 +110,30 @@ export default function InlineSubscriptionForm({ gymId, onSuccess }: { gymId: st
           value={form.price}
           onChange={(e) => setForm({...form, price: e.target.value})}
           placeholder="Ex: 15000"
-          className="bg-gray-500"
+          className="bg-black"
           required
         />
       </div>
 
       <div className="space-y-2">
-        <Label className="text-gray-700">Durée (jours)</Label>
+        <Label className="text-white">Durée (jours)</Label>
         <Input
           type="number"
           min="1"
           value={form.duration}
-          className="bg-gray-500"
+          className="bg-black"
           disabled
         />
       </div>
 
       <div className="space-y-2">
-        <Label className="text-gray-700">Description (optionnelle)</Label>
+        <Label className="text-white">Description (optionnelle)</Label>
         <Input
           type="text"
           value={form.description}
           onChange={(e) => setForm({...form, description: e.target.value})}
           placeholder="Description courte"
-          className="bg-gray-500"
+          className="bg-black"
         />
       </div>
 

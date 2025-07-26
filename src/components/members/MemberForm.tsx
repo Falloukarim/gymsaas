@@ -12,8 +12,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { createMember } from '@/actions/members/create';
 import { useState, useRef } from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { compressImage } from '../../../utils/imageCompression';
+import { Loader2 } from 'lucide-react';
 
-const MAX_FILE_SIZE = 5 * 1024 * 1024;
+// Constantes pour la validation
+const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 const ACCEPTED_IMAGE_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
 
 const memberSchema = z.object({
@@ -24,12 +27,13 @@ const memberSchema = z.object({
   subscription_id: z.string().optional(),
   avatar: z
     .any()
-    .refine(file => !file || file.size <= MAX_FILE_SIZE, 'La taille maximale est de 5MB')
+    .refine(file => !file || file.size <= MAX_FILE_SIZE, {
+      message: `La taille maximale est de ${MAX_FILE_SIZE / 1024 / 1024}MB`
+    })
     .refine(
       file => !file || ACCEPTED_IMAGE_TYPES.includes(file.type),
-      'Seuls les formats .jpeg, .jpg, .png et .webp sont acceptés'
+      `Formats acceptés: ${ACCEPTED_IMAGE_TYPES.map(t => t.replace('image/', '.')).join(', ')}`
     )
-    .optional()
 });
 
 export function MemberForm({
@@ -42,6 +46,7 @@ export function MemberForm({
   const router = useRouter();
   const [preview, setPreview] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [isCompressing, setIsCompressing] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const { 
@@ -65,59 +70,71 @@ export function MemberForm({
   const subscriptionId = watch('subscription_id');
   const fullName = watch('full_name');
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    const result = memberSchema.shape.avatar.safeParse(file);
-    if (!result.success) {
-      toast.error(result.error.errors[0].message);
+    // Vérification du type de fichier
+    if (!ACCEPTED_IMAGE_TYPES.includes(file.type)) {
+      toast.error(`Format non supporté. Utilisez ${ACCEPTED_IMAGE_TYPES.map(t => t.replace('image/', '.')).join(', ')}`);
       return;
     }
 
-    setValue('avatar', file);
-    trigger('avatar');
+    setIsCompressing(true);
+    
+    try {
+      const compressedFile = await compressImage(file);
+      setValue('avatar', compressedFile);
+      trigger('avatar');
 
-    const reader = new FileReader();
-    reader.onload = () => setPreview(reader.result as string);
-    reader.readAsDataURL(file);
+      // Aperçu de l'image compressée
+      const reader = new FileReader();
+      reader.onload = () => setPreview(reader.result as string);
+      reader.readAsDataURL(compressedFile);
+    } catch (error) {
+      console.error('Erreur de compression:', error);
+      toast.error('Échec de la compression de l\'image');
+    } finally {
+      setIsCompressing(false);
+    }
   };
 
-const onSubmit = async (data: z.infer<typeof memberSchema>) => {
-  setIsUploading(true);
-  const toastId = toast.loading('Création du membre en cours...'); // Ajoutez cette ligne
+  const onSubmit = async (data: z.infer<typeof memberSchema>) => {
+    setIsUploading(true);
+    const toastId = toast.loading('Création du membre en cours...');
 
-  try {
-    const formData = new FormData();
-    formData.append('gym_id', data.gym_id);
-    formData.append('full_name', data.full_name);
-    formData.append('phone', data.phone);
-    
-    if (data.email) formData.append('email', data.email);
-    if (data.subscription_id) formData.append('subscription_id', data.subscription_id);
-    if (data.avatar) formData.append('avatar', data.avatar);
+    try {
+      const formData = new FormData();
+      formData.append('gym_id', data.gym_id);
+      formData.append('full_name', data.full_name);
+      formData.append('phone', data.phone);
+      
+      if (data.email) formData.append('email', data.email);
+      if (data.subscription_id) formData.append('subscription_id', data.subscription_id);
+      if (data.avatar) formData.append('avatar', data.avatar);
 
-    const result = await createMember(formData);
+      const result = await createMember(formData);
 
-    toast.success('Membre ajouté avec succès', {
-      id: toastId, // Utilisez la variable déclarée
-      description: `${data.full_name} a été enregistré`,
-      action: {
-        label: 'Voir',
-        onClick: () => router.push(`/gyms/${gymId}/members/${result.memberId}`)
-      },
-    });
+      toast.success('Membre ajouté avec succès', {
+        id: toastId,
+        description: `${data.full_name} a été enregistré`,
+        action: {
+          label: 'Voir',
+          onClick: () => router.push(`/gyms/${gymId}/members/${result.memberId}`)
+        },
+      });
 
-    router.push(result.redirectUrl || `/gyms/${gymId}/dashboard`);
-    router.refresh();
-  } catch (error) {
-    toast.error('Erreur lors de la création du membre', {
-      id: toastId // Utilisez la variable déclarée
-    });
-  } finally {
-    setIsUploading(false);
-  }
-};
+      router.push(result.redirectUrl || `/gyms/${gymId}/dashboard`);
+    } catch (error) {
+      toast.error('Erreur lors de la création du membre', {
+        id: toastId,
+        description: error instanceof Error ? error.message : 'Une erreur est survenue'
+      });
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
   const triggerFileInput = () => {
     fileInputRef.current?.click();
   };
@@ -145,10 +162,16 @@ const onSubmit = async (data: z.infer<typeof memberSchema>) => {
           type="file"
           ref={fileInputRef}
           onChange={handleFileChange}
-          accept="image/*"
+          accept={ACCEPTED_IMAGE_TYPES.join(',')}
           className="hidden"
         />
         <p className="mt-2 text-sm text-gray-500">Cliquez sur l&apos;avatar pour changer la photo</p>
+        {isCompressing && (
+          <div className="text-sm text-gray-500 mt-1 flex items-center gap-2">
+            <Loader2 className="h-3 w-3 animate-spin" />
+            Compression en cours...
+          </div>
+        )}
         {errors.avatar && (
           <p className="mt-1 text-sm text-red-500">{errors.avatar.message as string}</p>
         )}
@@ -215,7 +238,7 @@ const onSubmit = async (data: z.infer<typeof memberSchema>) => {
         )}
       </div>
 
-      <div className="flex text-black justify-end gap-2 pt-4">
+      <div className="flex justify-end gap-2 pt-4">
         <Button 
           type="button" 
           variant="outline"
@@ -228,7 +251,12 @@ const onSubmit = async (data: z.infer<typeof memberSchema>) => {
           type="submit" 
           disabled={isSubmitting || isUploading}
         >
-          {(isSubmitting || isUploading) ? 'Enregistrement...' : 'Enregistrer'}
+          {(isSubmitting || isUploading) ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Enregistrement...
+            </>
+          ) : 'Enregistrer'}
         </Button>
       </div>
     </form>

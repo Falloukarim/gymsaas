@@ -7,6 +7,12 @@ import { toDataURL } from 'qrcode';
 import { uploadQRCode } from '@/utils/cloudinary';
 
 export async function createMember(formData: FormData) {
+    const file = formData.get('avatar') as File | null;
+  
+  if (file && file.size > 10 * 1024 * 1024) { // 10MB max après compression
+    throw new Error('Fichier trop volumineux après compression');
+  }
+
   const supabase = createClient();
   const { data: { user } } = await (await supabase).auth.getUser();
   if (!user) return { error: 'Authentification requise' };

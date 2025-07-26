@@ -56,18 +56,26 @@ export default function Navbar() {
 // Solution : Modifiez la fonction handleLogout dans votre navbar
 const handleLogout = async () => {
   try {
-    const response = await fetch('/logout', {
+    const response = await fetch('/api/auth/logout', {
       method: 'POST',
+      credentials: 'include' // Important pour les cookies
     });
-    
+
     if (response.ok) {
-      window.location.href = '/login';
+      // Force un refresh complet pour vider le cache
+      window.location.assign('/login');
+    } else {
+      const errorData = await response.json();
+      console.error('Logout failed:', errorData.error);
+      alert('Échec de la déconnexion');
     }
   } catch (error) {
-    console.error('Logout failed:', error);
+    console.error('Network error:', error);
+    alert('Erreur réseau');
+  } finally {
+    setDropdownOpen(false);
   }
 };
-
   const getInitials = () =>
     userData?.full_name?.charAt(0).toUpperCase() ||
     userData?.email?.charAt(0).toUpperCase() ||
@@ -155,13 +163,9 @@ const handleLogout = async () => {
                   <div className="mt-2 border-t border-gray-700" />
 
                   <Link href={`/gyms/${gymId}/profile`} className="flex items-center px-3 py-2 hover:bg-gray-800/50">
-  <User className="h-4 w-4 mr-2" />
-  Mon profil
-</Link>
-                  <Link href="/settings" className="flex items-center px-3 py-2 hover:bg-gray-800/50">
-                    <Settings className="h-4 w-4 mr-2" />
-                    Paramètres
-                  </Link>
+                      <User className="h-4 w-4 mr-2" />
+                       Mon profil
+                 </Link>
 
                   <div className="mt-2 border-t border-gray-700" />
 

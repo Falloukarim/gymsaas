@@ -24,4 +24,10 @@ const nextConfig = {
   },
 }
 
-module.exports = nextConfig
+module.exports = {
+  images: {
+    domains: [process.env.NEXT_PUBLIC_SUPABASE_URL?.replace('https://', '')],
+    minimumCacheTTL: 60,
+    formats: ['image/webp'], // Force le format moderne
+  },
+};

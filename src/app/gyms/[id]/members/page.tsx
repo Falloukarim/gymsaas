@@ -56,20 +56,24 @@ export default async function MembersPage({
           <span className="whitespace-nowrap">Retour au dashboard</span>
         </Link>
 
-        <div className="order-first sm:order-none text-center sm:text-left">
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Membres</h1>
-          <p className="text-muted-foreground text-sm sm:text-base">
-            Gestion des membres de votre salle de sport
-          </p>
-        </div>
-        
-        <Button asChild className="w-full sm:w-auto">
-          <Link href={`/gyms/${gymId}/members/new`} className="gap-2">
-            <Plus className="h-4 w-4" />
-            <span className="whitespace-nowrap">Ajouter un membre</span>
-          </Link>
-        </Button>
-      </div>
+ <div className="relative p-6 sm:p-8 rounded-2xl border bg-white shadow-md">
+  <div className="absolute -inset-0.5 rounded-2xl bg-gradient-to-r from-green-400 via-green-100 to-green-900 blur-sm opacity-50 pointer-events-none"></div>
+
+  <div className="relative z-10">
+    <h1 className="text-3xl font-bold text-gray-800 mb-2">Membres</h1>
+    <p className="text-gray-600 text-sm sm:text-base mb-6">
+      Gestion des membres de votre salle de sport
+    </p>
+
+    <Link href={`/gyms/${gymId}/members/new`}>
+      <button className="px-5 py-2 rounded-full bg-green-600 hover:bg-green-700 text-white font-medium transition-all shadow-md">
+        Ajouter un membre
+      </button>
+    </Link>
+  </div>
+</div>
+</div>
+
 
       {/* Search field */}
       <form method="GET" className="w-full max-w-md flex gap-2 items-center">
@@ -113,38 +117,39 @@ export default async function MembersPage({
                 );
 
                 return (
-                  <Link
-                    key={member.id}
-                    href={`/gyms/${gymId}/members/${member.id}`}
-                    className="group"
-                  >
-                    <Card className="transition-all hover:shadow-md hover:border-primary">
-                      <CardContent className="p-3 sm:p-4 flex items-center gap-3 sm:gap-4">
-                        <Avatar className="h-10 w-10 sm:h-12 sm:w-12">
-                          <AvatarImage src={member.avatar_url} />
-                          <AvatarFallback>
-                            {member.full_name
-                              .split(' ')
-                              .map((n) => n[0])
-                              .join('')}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div className="flex-1 min-w-0">
-                          <h3 className="font-semibold text-sm sm:text-base truncate group-hover:text-primary">
-                            {member.full_name}
-                          </h3>
-                          <p className="text-xs sm:text-sm text-muted-foreground truncate">
-                            {member.email || 'Aucun email'}
-                          </p>
-                        </div>
-                        {activeSubscription && (
-                          <Badge variant="secondary" className="ml-2 text-xs sm:text-sm">
-                            {activeSubscription.subscriptions?.type}
-                          </Badge>
-                        )}
-                      </CardContent>
-                    </Card>
-                  </Link>
+                 <Link
+  key={member.id}
+  href={`/gyms/${gymId}/members/${member.id}`}
+  className="group"
+>
+  <Card className="transition-all hover:scale-[1.02] hover:shadow-xl border-none bg-gradient-to-br from-green-800 via-green-800 to-green-400 text-white">
+    <CardContent className="p-3 sm:p-4 flex items-center gap-3 sm:gap-4">
+      <Avatar className="h-10 w-10 sm:h-12 sm:w-12">
+        <AvatarImage src={member.avatar_url} />
+        <AvatarFallback>
+          {member.full_name
+            .split(' ')
+            .map((n) => n[0])
+            .join('')}
+        </AvatarFallback>
+      </Avatar>
+      <div className="flex-1 min-w-0">
+        <h3 className="font-semibold text-sm sm:text-base truncate group-hover:text-white">
+          {member.full_name}
+        </h3>
+        <p className="text-xs sm:text-sm text-white/80 truncate">
+          {member.email || 'Aucun email'}
+        </p>
+      </div>
+      {activeSubscription && (
+        <Badge variant="secondary" className="ml-2 text-xs sm:text-sm bg-white text-green-700">
+          {activeSubscription.subscriptions?.type}
+        </Badge>
+      )}
+    </CardContent>
+  </Card>
+</Link>
+
                 );
               })}
             </div>

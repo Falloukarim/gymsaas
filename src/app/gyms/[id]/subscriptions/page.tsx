@@ -85,13 +85,18 @@ export default function SubscriptionsPage({
           <span className="whitespace-nowrap">Retour au dashboard</span>
         </Link>
         
-        <div className="order-first sm:order-none text-center sm:text-left">
-          <h1 className="text-xl sm:text-2xl font-bold">Gestion des abonnements</h1>
-          <p className="text-xs sm:text-sm text-muted-foreground">
-            Créez et gérez les abonnements et sessions de votre salle
-          </p>
-        </div>
-      </div>
+        <div className="relative p-6 sm:p-8 rounded-2xl border bg-white shadow-md max-w-xl mx-auto sm:mx-0">
+  <div className="absolute -inset-0.5 rounded-2xl bg-gradient-to-r from-green-400 via-green-100 to-green-900 blur-sm opacity-50 pointer-events-none"></div>
+
+  <div className="relative z-10 text-center sm:text-left">
+    <h1 className="text-xl sm:text-2xl font-bold text-gray-800 mb-1">Gestion des abonnements</h1>
+    <p className="text-xs sm:text-sm text-gray-600">
+      Créez et gérez les abonnements et sessions de votre salle
+    </p>
+  </div>
+</div>
+</div>
+
 
       {/* Forms section */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 mb-6 sm:mb-8">
