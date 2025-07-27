@@ -7,12 +7,15 @@ interface QRCodeGeneratorProps {
   value: string;
   size?: number;
   className?: string;
+  withDownload?: boolean; // Add this line
+
 }
 
 export function QRCodeGenerator({ 
   value, 
   size = 160, 
-  className = ''
+  className = '',
+  withDownload = false 
 }: QRCodeGeneratorProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 

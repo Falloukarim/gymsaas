@@ -13,7 +13,7 @@ export async function POST(req: Request) {
   const supabase = createClient();
 
   // Récupérer la durée de l'abonnement sélectionné
-  const { data: subscription } = await supabase
+  const { data: subscription } = await (await supabase)
     .from('subscriptions')
     .select('duration_days')
     .eq('id', subscription_id)
@@ -24,7 +24,7 @@ export async function POST(req: Request) {
   }
 
   // Créer le membre
-  const { data: member, error: memberError } = await supabase
+  const { data: member, error: memberError } = await (await supabase)
     .from('members')
     .insert({
       gym_id,
@@ -46,7 +46,7 @@ export async function POST(req: Request) {
   endDate.setDate(startDate.getDate() + subscription.duration_days);
 
   // Créer member_subscription
-  const { error: msError } = await supabase
+  const { error: msError } = await (await supabase)
     .from('member_subscriptions')
     .insert({
       member_id: member.id,

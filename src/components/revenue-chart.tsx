@@ -1,91 +1,119 @@
 'use client';
 
-import { AreaChart, Card, Title, Flex, Text } from '@tremor/react';
-import { CalendarDays, TrendingUp } from 'lucide-react';
+import dynamic from 'next/dynamic';
+import { useState, useEffect } from 'react';
+import { AreaChart, Title, Text } from '@tremor/react';
+import { Card } from '@/components/ui/card';
+import { TrendingUp, TrendingDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
+interface ChartData {
+  date: string;
+  amount: number;
+}
+
 interface RevenueChartProps {
-  data: {
-    date: string;
-    amount: number;
-  }[];
+  data: ChartData[];
   totalAmount: number;
   changePercentage: number;
 }
 
 const formatAmount = (value: number) => {
   return new Intl.NumberFormat('fr-FR', {
+    style: 'currency',
+    currency: 'XOF',
     minimumFractionDigits: 0,
     maximumFractionDigits: 0,
   }).format(value);
 };
 
-export function RevenueChart({ data, totalAmount, changePercentage }: RevenueChartProps) {
-  const lastThreeDaysData = data.slice(-3);
-  const chartData = lastThreeDaysData.map(item => ({
+const RevenueChartComponent = ({
+  data,
+  totalAmount,
+  changePercentage,
+}: RevenueChartProps) => {
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  if (!isMounted) {
+    return (
+      <Card className="bg-gradient-to-tr from-[#1a2e3a] to-[#0d1a23] h-[300px] animate-pulse border border-gray-700 rounded-xl p-6" />
+    );
+  }
+
+  const lastDaysData = data.length > 7 ? data.slice(-7) : data;
+  const isPositive = changePercentage >= 0;
+  const IconComponent = isPositive ? TrendingUp : TrendingDown;
+
+  const chartData = lastDaysData.map((item) => ({
     date: new Date(item.date).toLocaleDateString('fr-FR', {
-      weekday: 'short', day: 'numeric', month: 'short'
+      weekday: 'short',
+      day: 'numeric',
+      month: 'short',
     }),
-    'Paiements': item.amount,
+    Paiements: item.amount,
   }));
 
-  const isPositive = changePercentage >= 0;
-
   return (
-    <Card className="bg-gradient-to-tr from-cyan-900 via-slate-900 to-emerald-900 border border-gray-800 rounded-2xl p-6 shadow-xl space-y-6">
-      <div className="flex justify-between items-start">
+    <Card className="bg-gradient-to-tr from-[#1a2e3a] to-[#0d1a23] border border-gray-700 rounded-xl p-6">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <Title className="text-lg text-white font-semibold">
-            Revenus des 3 derniers jours
+          <Title className="text-lg font-semibold text-white">
+            Revenus récents
           </Title>
-          <Text className="text-sm text-muted-foreground mt-1">
-            Évolution journalière des paiements
+          <Text className="text-sm text-gray-400 mt-1">
+            {lastDaysData.length} derniers jours
           </Text>
         </div>
-        <div className={cn(
-          'text-sm font-medium px-3 py-1 rounded-lg flex items-center',
-          isPositive ? 'text-emerald-400 bg-emerald-500/10' : 'text-rose-400 bg-rose-500/10'
-        )}>
-          <TrendingUp className="h-4 w-4 mr-1" />
-          {isPositive ? '+' : ''}{Math.round(changePercentage)}%
+
+        <div className="flex items-center gap-4">
+          <div className="text-right">
+            <Text className="text-sm text-gray-400">Total</Text>
+            <Text className="text-xl font-bold text-white">
+              {formatAmount(totalAmount)}
+            </Text>
+          </div>
+
+          <div
+            className={cn(
+              'flex items-center px-3 py-1 rounded-lg',
+              isPositive
+                ? 'text-emerald-400 bg-emerald-900/30'
+                : 'text-rose-400 bg-rose-900/30'
+            )}
+          >
+            <IconComponent className="h-4 w-4 mr-1" />
+            <span className="text-sm font-medium">
+              {isPositive ? '+' : ''}
+              {Math.round(changePercentage)}%
+            </span>
+          </div>
         </div>
       </div>
 
-      <div className="h-[180px]">
-        <AreaChart
-          data={chartData}
-          index="date"
-          categories={['Paiements']}
-          colors={["cyan"]}
-          valueFormatter={formatAmount}
-          showAnimation
-          curveType="natural"
-          showGridLines={false}
-          showLegend={false}
-          yAxisWidth={60}
-          className="h-full"
-        />
-      </div>
-
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        {lastThreeDaysData.map((day, index) => (
-          <div key={index} className="bg-gray-900 rounded-xl p-4">
-            <Text className="text-xs text-gray-400">
-              {new Date(day.date).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'short' })}
-            </Text>
-            <Text className="mt-1 text-white font-semibold text-xl">
-              {formatAmount(day.amount)}
-            </Text>
-          </div>
-        ))}
-      </div>
-
-      <div className="flex justify-between items-center border-t pt-4 border-gray-800 text-xs text-gray-400">
-        <span className="flex items-center gap-1">
-          <CalendarDays className="h-3 w-3" />
-          {new Date().toLocaleDateString('fr-FR')}
-        </span>
-      </div>
+      <AreaChart
+        data={chartData}
+        index="date"
+        categories={['Paiements']}
+        colors={['emerald']} 
+        showLegend={false}
+        showYAxis={false}
+        showGradient={true}
+        startEndOnly={true}
+        className="mt-6 h-[200px]"
+        curveType="monotone"
+        valueFormatter={(value) => formatAmount(value)}
+      />
     </Card>
   );
-}
+};
+
+export const RevenueChart = dynamic(() => Promise.resolve(RevenueChartComponent), {
+  ssr: false,
+  loading: () => (
+    <Card className="bg-gradient-to-tr from-[#1a2e3a] to-[#0d1a23] h-[300px] animate-pulse border border-gray-700 rounded-xl p-6" />
+  ),
+});

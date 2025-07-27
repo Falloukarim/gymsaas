@@ -7,35 +7,49 @@ import { ArrowLeft, CreditCard } from 'lucide-react';
 import SubscriptionRenewalForm from '@/components/members/SubscriptionRenewalForm';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
+interface SubscriptionType {
+  id: string;
+  type: string;
+  price: number;
+  duration_days: number;
+}
+
 interface MemberSubscription {
   id: string;
   end_date: string;
   status: string;
-  subscriptions: {
-    type: string;
-    price: number;
-    duration_days: number;
-  };
+  subscriptions: SubscriptionType;
+}
+
+interface GymInfo {
+  id: string;
+  name: string;
 }
 
 interface Member {
   id: string;
   full_name: string;
-  email?: string;
+  email?: string | null;
   phone: string;
   avatar_url?: string | null;
-  gyms: {
-    name: string;
-  } | null;
+  gyms: GymInfo | null;
   member_subscriptions?: MemberSubscription[];
 }
 
+interface Subscription {
+  id: string;
+  type: string;
+  price: number;
+  duration_days: number;
+  is_session: boolean;
+  [key: string]: any;
+}
+
 export default async function RenewSubscriptionPage({
-  params: resolvedParams,
+  params,
 }: {
-  params: Promise<{ id: string; memberId: string }>;
+  params: { id: string; memberId: string };
 }) {
-  const params = await resolvedParams;
   const { id: gymId, memberId } = params;
 
   if (!gymId || !memberId) {
@@ -46,7 +60,7 @@ export default async function RenewSubscriptionPage({
   const supabase = createClient();
 
   try {
-    // Fetch member data with avatar_url
+    // Fetch member data
     const { data: member, error: memberError } = await (await supabase)
       .from('members')
       .select(`
@@ -55,10 +69,13 @@ export default async function RenewSubscriptionPage({
         email,
         phone,
         avatar_url,
-        gyms(name),
+        gyms(id, name),
         member_subscriptions(
-          *,
+          id,
+          end_date,
+          status,
           subscriptions(
+            id,
             type,
             price,
             duration_days
@@ -76,20 +93,29 @@ export default async function RenewSubscriptionPage({
     // Fetch available subscriptions
     const { data: subscriptions, error: subscriptionsError } = await (await supabase)
       .from('subscriptions')
-      .select('*')
+      .select('id, type, price, duration_days, is_session')
       .eq('gym_id', gymId)
       .eq('is_session', false)
       .order('price', { ascending: true });
 
-    if (subscriptionsError) {
+    if (subscriptionsError || !subscriptions) {
       console.error('Error fetching subscriptions:', subscriptionsError);
       return notFound();
     }
 
     // Get current active subscription
     const activeSubscription = member.member_subscriptions?.find(
-      (sub) => new Date(sub.end_date) > new Date()
+      (sub: { end_date: string | number | Date; }) => new Date(sub.end_date) > new Date()
     );
+
+    // Helper function for avatar fallback
+    const getAvatarFallback = (name: string) => {
+      return name
+        .split(' ')
+        .map((n) => n[0])
+        .join('')
+        .toUpperCase();
+    };
 
     return (
       <div className="max-w-4xl mx-auto px-4 py-4 sm:py-6 sm:px-6 lg:px-8">
@@ -112,17 +138,15 @@ export default async function RenewSubscriptionPage({
                     alt={`Avatar de ${member.full_name}`}
                   />
                   <AvatarFallback className="bg-gray-600">
-                    {member.full_name
-                      .split(' ')
-                      .map(n => n[0])
-                      .join('')
-                      .toUpperCase()}
+                    {getAvatarFallback(member.full_name)}
                   </AvatarFallback>
                 </Avatar>
                 <div>
                   <h1 className="text-xl sm:text-2xl font-bold">Renouveler l&apos;abonnement</h1>
                   <p className="text-sm text-gray-400">
-                    {member.full_name} - {member.gyms?.name || 'Salle inconnue'}
+                    <p className="text-sm text-gray-400">
+  {member.full_name} - {(member.gyms as any)?.name || 'Salle inconnue'}
+</p>
                   </p>
                 </div>
               </div>
@@ -144,7 +168,7 @@ export default async function RenewSubscriptionPage({
                     <div className="flex flex-col sm:flex-row justify-between gap-2 sm:items-center">
                       <div>
                         <p className="font-medium capitalize">
-                          {activeSubscription.subscriptions?.type}
+                     {(activeSubscription.subscriptions as any).type}
                         </p>
                         <p className="text-sm text-gray-300">
                           Valide jusqu&apos;au {new Date(activeSubscription.end_date).toLocaleDateString('fr-FR')}
@@ -152,10 +176,9 @@ export default async function RenewSubscriptionPage({
                       </div>
                       <div className="sm:text-right">
                         <p className="text-xl sm:text-2xl font-bold">
-                          {activeSubscription.subscriptions?.price.toLocaleString('fr-FR')} F CFA
-                        </p>
+                          {(activeSubscription.subscriptions as any).price.toLocaleString('fr-FR')} F CFA                        </p>
                         <p className="text-sm text-gray-300">
-                          {activeSubscription.subscriptions?.duration_days} jours
+                          {(activeSubscription.subscriptions as any).duration_days}jours
                         </p>
                       </div>
                     </div>
@@ -176,7 +199,7 @@ export default async function RenewSubscriptionPage({
                       member={member}
                       gymId={gymId}
                       subscriptions={subscriptions}
-                      currentSubscription={activeSubscription}
+                      currentSubscription={activeSubscription as any}
                     />
                   ) : (
                     <div className="text-center py-6 sm:py-8">

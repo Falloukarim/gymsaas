@@ -1,7 +1,7 @@
 'use client';
 
 import { createClient } from '@/lib/supabaseClient';
-import { useForm } from 'react-hook-form';
+import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { Button } from '@/components/ui/button';
@@ -11,9 +11,17 @@ import { toast } from 'sonner';
 import { useState } from 'react';
 
 const gymSchema = z.object({
-  name: z.string().min(2, 'Minimum 2 caractères'),
-  address: z.string().min(5, 'Adresse invalide'),
-  phone: z.string().min(7, 'Numéro de téléphone invalide'),
+  name: z.string()
+    .min(1, 'Le nom est requis')
+    .min(2, 'Minimum 2 caractères')
+    .refine(val => val.trim().length >= 2, 'Doit contenir au moins 2 caractères non vides'),
+  address: z.string()
+    .min(1, 'L\'adresse est requise')
+    .min(5, 'Adresse trop courte (min 5 caractères)'),
+  phone: z.string()
+    .min(1, 'Le téléphone est requis')
+    .min(9, 'Minimum 9 chiffres')
+    .refine(val => /^[0-9]+$/.test(val), 'Doit contenir uniquement des chiffres'),
   city: z.string().optional(),
   postal_code: z.string().optional(),
 });
@@ -22,15 +30,24 @@ export default function NewGymPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const {
-    register,
+    control,
     handleSubmit,
-    formState: { errors }
+    formState: { errors, isValid }
   } = useForm<z.infer<typeof gymSchema>>({
     resolver: zodResolver(gymSchema),
+    mode: 'onChange',
+    reValidateMode: 'onChange',
+    defaultValues: {
+      name: '',
+      address: '',
+      phone: '',
+      city: '',
+      postal_code: ''
+    }
   });
 
   const onSubmit = async (data: z.infer<typeof gymSchema>) => {
-    if (isSubmitting) return;
+    if (isSubmitting || !isValid) return;
     setIsSubmitting(true);
 
     try {
@@ -67,7 +84,6 @@ export default function NewGymPage() {
       });
 
       window.location.assign(`/gyms/${gym.id}/dashboard?t=${Date.now()}`);
-
     } catch (err: unknown) {
       const errorMessage =
         err instanceof Error
@@ -96,37 +112,94 @@ export default function NewGymPage() {
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
           <div className="space-y-2">
             <Label htmlFor="name">Nom du gym *</Label>
-            <Input id="name" {...register('name')} />
+            <Controller
+              name="name"
+              control={control}
+              render={({ field }) => (
+                <Input
+                  {...field}
+                  id="name"
+                  placeholder="Nom de votre salle"
+                  aria-invalid={!!errors.name}
+                />
+              )}
+            />
             {errors.name && <p className="text-sm text-red-500">{errors.name.message}</p>}
           </div>
 
           <div className="space-y-2">
             <Label htmlFor="address">Adresse *</Label>
-            <Input id="address" {...register('address')} />
+            <Controller
+              name="address"
+              control={control}
+              render={({ field }) => (
+                <Input
+                  {...field}
+                  id="address"
+                  placeholder="Adresse complète"
+                  aria-invalid={!!errors.address}
+                />
+              )}
+            />
             {errors.address && <p className="text-sm text-red-500">{errors.address.message}</p>}
           </div>
 
           <div className="space-y-2">
             <Label htmlFor="phone">Téléphone *</Label>
-            <Input id="phone" {...register('phone')} />
+            <Controller
+              name="phone"
+              control={control}
+              render={({ field }) => (
+                <Input
+                  {...field}
+                  id="phone"
+                  placeholder="Numéro de téléphone"
+                  aria-invalid={!!errors.phone}
+                />
+              )}
+            />
             {errors.phone && <p className="text-sm text-red-500">{errors.phone.message}</p>}
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="city">Ville</Label>
-              <Input id="city" {...register('city')} />
+              <Controller
+                name="city"
+                control={control}
+                render={({ field }) => (
+                  <Input
+                    {...field}
+                    id="city"
+                    placeholder="Ville"
+                  />
+                )}
+              />
               {errors.city && <p className="text-sm text-red-500">{errors.city.message}</p>}
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="postal_code">Code postal</Label>
-              <Input id="postal_code" {...register('postal_code')} />
+              <Controller
+                name="postal_code"
+                control={control}
+                render={({ field }) => (
+                  <Input
+                    {...field}
+                    id="postal_code"
+                    placeholder="Code postal"
+                  />
+                )}
+              />
               {errors.postal_code && <p className="text-sm text-red-500">{errors.postal_code.message}</p>}
             </div>
           </div>
 
-          <Button type="submit" className="w-full" disabled={isSubmitting}>
+          <Button 
+            type="submit" 
+            className="w-full" 
+            disabled={isSubmitting || !isValid}
+          >
             {isSubmitting ? "Création en cours..." : "Créer la salle"}
           </Button>
         </form>

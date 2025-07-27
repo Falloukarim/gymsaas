@@ -4,9 +4,9 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { SearchBar } from '@/components/search-bar';
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
-import { SetStateAction, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
-import Spinner from '@/components/ui/spinner';
+import { Spinner } from '@/components/ui/spinner';
 import { useParams } from 'next/navigation';
 import { ArrowLeft, Link } from 'lucide-react';
 
@@ -82,11 +82,11 @@ export default function AccessLogsPage() {
         <CardContent>
           <div className="mb-4">
             <SearchBar 
-              placeholder="Rechercher un membre..." 
-              value={searchQuery}
-              onChange={(e: { target: { value: SetStateAction<string>; }; }) => setSearchQuery(e.target.value)}
-              disabled={loading}
-            />
+  placeholder="Rechercher un membre..." 
+  value={searchQuery}
+  onChange={setSearchQuery}
+  disabled={loading}
+/>
           </div>
           
           {/* Table for desktop */}

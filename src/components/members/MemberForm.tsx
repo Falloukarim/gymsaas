@@ -21,9 +21,14 @@ const ACCEPTED_IMAGE_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/web
 
 const memberSchema = z.object({
   gym_id: z.string().min(1, 'Salle requise'),
-  full_name: z.string().min(2, 'Minimum 2 caractères'),
+  full_name: z.string()
+    .min(1, 'Le nom est requis')
+    .refine(val => val.trim().length >= 2, 'Minimum 2 caractères non vides'),
   email: z.string().email('Email invalide').optional().or(z.literal('')),
-  phone: z.string().min(6, 'Minimum 6 caractères'),
+  phone: z.string()
+    .min(1, 'Téléphone requis')
+    .min(9, 'Minimum 9 caractères')
+    .refine(val => /^[0-9]+$/.test(val), 'Doit contenir uniquement des chiffres'),
   subscription_id: z.string().optional(),
   avatar: z
     .any()
@@ -41,7 +46,13 @@ export function MemberForm({
   subscriptions,
 }: {
   gymId: string;
-  subscriptions: { id: string; type: string; price?: number; is_session?: boolean }[];
+  subscriptions: {
+    id: string;
+    type: string;
+    price?: number;
+    description?: string;
+    is_session?: boolean;
+  }[];
 }) {
   const router = useRouter();
   const [preview, setPreview] = useState<string | null>(null);
@@ -49,13 +60,14 @@ export function MemberForm({
   const [isCompressing, setIsCompressing] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const { 
-    register, 
+  const {
+    register,
     handleSubmit,
-    formState: { errors, isSubmitting }, 
+    formState: { errors, isSubmitting },
     setValue,
     watch,
-    trigger
+    trigger,
+    clearErrors
   } = useForm<z.infer<typeof memberSchema>>({
     resolver: zodResolver(memberSchema),
     defaultValues: {
@@ -69,25 +81,23 @@ export function MemberForm({
 
   const subscriptionId = watch('subscription_id');
   const fullName = watch('full_name');
+  const phoneValue = watch('phone');
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Vérification du type de fichier
     if (!ACCEPTED_IMAGE_TYPES.includes(file.type)) {
       toast.error(`Format non supporté. Utilisez ${ACCEPTED_IMAGE_TYPES.map(t => t.replace('image/', '.')).join(', ')}`);
       return;
     }
 
     setIsCompressing(true);
-    
     try {
       const compressedFile = await compressImage(file);
       setValue('avatar', compressedFile);
       trigger('avatar');
 
-      // Aperçu de l'image compressée
       const reader = new FileReader();
       reader.onload = () => setPreview(reader.result as string);
       reader.readAsDataURL(compressedFile);
@@ -106,10 +116,9 @@ export function MemberForm({
     try {
       const formData = new FormData();
       formData.append('gym_id', data.gym_id);
-      formData.append('full_name', data.full_name);
-      formData.append('phone', data.phone);
-      
-      if (data.email) formData.append('email', data.email);
+      formData.append('full_name', data.full_name.trim());
+      formData.append('phone', data.phone.trim());
+      if (data.email) formData.append('email', data.email.trim());
       if (data.subscription_id) formData.append('subscription_id', data.subscription_id);
       if (data.avatar) formData.append('avatar', data.avatar);
 
@@ -139,10 +148,29 @@ export function MemberForm({
     fileInputRef.current?.click();
   };
 
+  const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setValue('full_name', value, { shouldValidate: true });
+    if (value.trim().length > 0) {
+      clearErrors('full_name');
+    }
+  };
+
+  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    // Permet uniquement les chiffres
+    const numericValue = value.replace(/\D/g, '');
+    setValue('phone', numericValue, { shouldValidate: true });
+    if (numericValue.length >= 9) {
+      clearErrors('phone');
+    }
+  };
+
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
       <input type="hidden" {...register('gym_id')} />
 
+      {/* Avatar upload */}
       <div className="flex flex-col items-center mb-6">
         <div className="relative group">
           <Avatar className="w-24 h-24 cursor-pointer" onClick={triggerFileInput}>
@@ -177,15 +205,20 @@ export function MemberForm({
         )}
       </div>
 
+      {/* Form Fields */}
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         <div className="space-y-2">
           <Label htmlFor="full_name">Nom complet *</Label>
           <Input
             id="full_name"
             {...register('full_name')}
-            error={errors.full_name?.message}
+            onChange={handleNameChange}
+            className={errors.full_name ? 'border-red-500' : ''}
             disabled={isSubmitting || isUploading}
           />
+          {errors.full_name && (
+            <p className="text-sm text-red-500">{errors.full_name.message}</p>
+          )}
         </div>
 
         <div className="space-y-2">
@@ -193,10 +226,15 @@ export function MemberForm({
           <Input
             id="email"
             type="email"
-            {...register('email')}
-            error={errors.email?.message}
+            {...register('email', {
+              setValueAs: (value) => value.trim()
+            })}
+            className={errors.email ? 'border-red-500' : ''}
             disabled={isSubmitting || isUploading}
           />
+          {errors.email && (
+            <p className="text-sm text-red-500">{errors.email.message}</p>
+          )}
         </div>
 
         <div className="space-y-2">
@@ -205,9 +243,17 @@ export function MemberForm({
             id="phone"
             type="tel"
             {...register('phone')}
-            error={errors.phone?.message}
+            onChange={handlePhoneChange}
+            value={phoneValue}
+            className={errors.phone ? 'border-red-500' : ''}
             disabled={isSubmitting || isUploading}
           />
+          {errors.phone && (
+            <p className="text-sm text-red-500">{errors.phone.message}</p>
+          )}
+          {phoneValue && phoneValue.length > 0 && phoneValue.length < 9 && (
+            <p className="text-sm text-yellow-500">Doit contenir au moins 9 chiffres</p>
+          )}
         </div>
 
         {subscriptions.length > 0 && (
@@ -224,9 +270,9 @@ export function MemberForm({
               <SelectContent>
                 {subscriptions.map((sub) => (
                   <SelectItem key={sub.id} value={sub.id}>
-                    {sub.is_session 
-                      ? `Session: ${sub.description || 'Accès journée'} (${sub.price} FCFA)`
-                      : `Abonnement ${sub.type} (${sub.price} FCFA)`}
+                    {sub.is_session
+                      ? `Session: ${sub.description ?? 'Accès journée'} (${sub.price ?? '---'} FCFA)`
+                      : `Abonnement ${sub.type} (${sub.price ?? '---'} FCFA)`}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -238,6 +284,7 @@ export function MemberForm({
         )}
       </div>
 
+      {/* Submit */}
       <div className="flex justify-end gap-2 pt-4">
         <Button 
           type="button" 

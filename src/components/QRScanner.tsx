@@ -6,6 +6,11 @@ import { Button } from '@/components/ui/button'
 import { Check, X, RotateCw, Camera } from 'lucide-react'
 import { toast } from 'sonner'
 
+type Html5QrcodeError = Error & {
+  message: string;
+  type?: string;
+};
+
 export function QRScanner() {
   const router = useRouter()
   const scannerRef = useRef<any>(null)
@@ -23,10 +28,11 @@ export function QRScanner() {
       if (cameras.length === 0) throw new Error('Aucune caméra disponible')
       setAvailableCameras(cameras)
       return { Html5Qrcode, cameras }
-    } catch (err) {
-      console.error('Erreur initScanner:', err)
-      setError("Erreur d'accès à la caméra")
-      throw err
+    } catch (err: unknown) {
+      const error = err as Html5QrcodeError;
+      console.error('Erreur initScanner:', error)
+      setError(error.message || "Erreur d'accès à la caméra")
+      throw error
     }
   }
 
@@ -50,9 +56,10 @@ export function QRScanner() {
         )
         setIsScanning(true)
       }
-    } catch (err) {
-      console.error('Erreur startScan:', err)
-      setError('Échec du démarrage du scanner')
+    } catch (err: unknown) {
+      const error = err as Html5QrcodeError;
+      console.error('Erreur startScan:', error)
+      setError(error.message || 'Échec du démarrage du scanner')
     } finally {
       setIsTransitioning(false)
     }
@@ -66,9 +73,10 @@ export function QRScanner() {
       await scannerRef.current.clear()
       scannerRef.current = null
       setIsScanning(false)
-    } catch (err) {
-      if (!err.message.includes('not running')) {
-        console.error("Erreur lors de l'arrêt du scanner:", err)
+    } catch (err: unknown) {
+      const error = err as Html5QrcodeError;
+      if (!error.message.includes('not running')) {
+        console.error("Erreur lors de l'arrêt du scanner:", error)
       }
     }
   }

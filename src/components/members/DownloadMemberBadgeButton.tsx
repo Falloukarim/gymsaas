@@ -4,13 +4,12 @@
 import { Button } from '@/components/ui/button';
 import { downloadMemberBadge } from '@/utils/downloadBadge';
 import { toast } from 'sonner';
-import { MemberWithGym } from '@/types';
+import { MemberWithDetails } from '@/types';
 
 interface DownloadMemberBadgeButtonProps {
-  member: MemberWithGym;
+  member: MemberWithDetails;
   className?: string;
 }
-
 
 export function DownloadMemberBadgeButton({ 
   member,
@@ -23,9 +22,8 @@ export function DownloadMemberBadgeButton({
         full_name: member.full_name,
         avatar_url: member.avatar_url || undefined,
         qr_code: member.qr_code || '',
-        gyms: member.gyms,
-        member_subscriptions: member.member_subscriptions
-      }, member.gyms?.logo_url);
+        gyms: member.gyms || undefined, // Changed from gyms to gym if your downloadBadge expects singular
+      }, member.gyms?.logo_url || undefined);
       
       toast.success('Badge téléchargé avec succès');
     } catch (error) {

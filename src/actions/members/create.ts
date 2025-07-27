@@ -7,6 +7,7 @@ import { toDataURL } from 'qrcode';
 import { uploadQRCode } from '@/utils/cloudinary';
 
 export async function createMember(formData: FormData) {
+  
     const file = formData.get('avatar') as File | null;
   
   if (file && file.size > 10 * 1024 * 1024) { // 10MB max après compression
@@ -78,7 +79,7 @@ export async function createMember(formData: FormData) {
           .from('members')
           .update({
             qr_code: qrToken,
-            qr_image_url: uploadResult.secure_url,
+            qr_image_url: (uploadResult as any).secure_url,
             updated_at: new Date().toISOString()
           })
           .eq('id', member.id);

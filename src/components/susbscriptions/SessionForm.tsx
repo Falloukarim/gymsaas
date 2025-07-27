@@ -3,7 +3,8 @@ import { createSessionSubscription } from '@/actions/subscriptions/create'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { useActionState } from 'react';
+import { useFormState } from 'react-dom'; // Changement ici
+
 export default function SessionForm({ 
   gymId,
   onSuccess 
@@ -11,13 +12,13 @@ export default function SessionForm({
   gymId: string
   onSuccess: () => void
 }) {
-const [state, formAction] = useActionState(createSessionSubscription, null);
+  const [state, formAction] = useFormState(createSessionSubscription, null); // Changement ici
 
   return (
     <form 
       action={async (formData) => {
-        await formAction(formData)
-        onSuccess()
+        await formAction(formData);
+        onSuccess();
       }}
       className="space-y-4"
     >

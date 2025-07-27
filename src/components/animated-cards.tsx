@@ -24,19 +24,29 @@ const iconMap = {
 };
 
 export function AnimatedCards({ stats }: { stats: Stat[] }) {
+  const [isMounted, setIsMounted] = useState(false);
   const { ref, inView } = useInView({ triggerOnce: true, threshold: 0.1 });
-  const [hasAnimated, setHasAnimated] = useState(false);
 
   useEffect(() => {
-    if (inView) setHasAnimated(true);
-  }, [inView]);
+    setIsMounted(true);
+  }, []);
+
+  if (!isMounted) {
+    return (
+      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-5">
+        {stats.map((_, index) => (
+          <Card key={index} className="bg-[#0d1a23] border-gray-700 min-h-[120px] animate-pulse" />
+        ))}
+      </div>
+    );
+  }
 
   return (
     <motion.div
       ref={ref}
       className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-5"
       initial="hidden"
-      animate={hasAnimated ? "visible" : "hidden"}
+      animate={inView ? "visible" : "hidden"}
       variants={{
         visible: {
           transition: {

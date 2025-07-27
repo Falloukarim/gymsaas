@@ -42,15 +42,6 @@ export default function Header() {
             whileTap={{ scale: 0.95 }}
             className="flex items-center gap-2 cursor-pointer"
           >
-            <PulsatingButton
-              className="rounded-full bg-white/20 backdrop-blur-md border-2 border-white"
-              pulseColor="#ffffff"
-              duration="0.8s"
-              pulseIntensity={0.4}
-              style={{ width: "50px", height: "50px", padding: 0 }}
-            >
-              <span className="text-xl font-bold text-white">SG</span>
-            </PulsatingButton>
           </motion.div>
         </Link>
 

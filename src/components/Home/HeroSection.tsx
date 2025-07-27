@@ -1,16 +1,29 @@
 "use client";
 
-import { motion, useScroll, useTransform } from "framer-motion";
+import { motion, useScroll, useTransform, Variants } from "framer-motion";
 import InfiniteScrollingTags from "./InfiniteScrollingTags";
 
-const textVariants = {
+const textVariants: Variants = {
   hidden: { opacity: 0, y: 20 },
-  visible: { opacity: 1, y: 0, transition: { duration: 0.8, ease: [0.2, 0.65, 0.3, 0.9] } }
+  visible: { 
+    opacity: 1, 
+    y: 0, 
+    transition: { 
+      duration: 0.8, 
+      ease: [0.2, 0.65, 0.3, 0.9] as const // Use 'as const' for tuple types
+    } 
+  }
 };
 
-const staggerContainer = {
+const staggerContainer: Variants = {
   hidden: { opacity: 0 },
-  visible: { opacity: 1, transition: { staggerChildren: 0.15, delayChildren: 0.3 } }
+  visible: { 
+    opacity: 1, 
+    transition: { 
+      staggerChildren: 0.15, 
+      delayChildren: 0.3 
+    } 
+  }
 };
 
 export default function HeroSection() {

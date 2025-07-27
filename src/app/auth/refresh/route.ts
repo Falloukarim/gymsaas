@@ -4,7 +4,7 @@ import { cookies } from 'next/headers'
 
 export async function POST() {
   const cookieStore = cookies()
-  const supabase = createClient(cookieStore)
+  const supabase = createClient()
   
   // Force un refresh de la session
   await (await supabase).auth.getUser()

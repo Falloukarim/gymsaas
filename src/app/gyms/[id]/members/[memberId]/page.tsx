@@ -99,17 +99,17 @@ export default async function MemberDetailPage({
 
   const subscriptions = member.member_subscriptions || [];
   const activeSubscription = subscriptions.find(
-    sub => sub.status === 'active' && new Date(sub.end_date) > new Date() && isSubscription(sub)
+    (    sub: MemberSubscription) => sub.status === 'active' && new Date(sub.end_date) > new Date() && isSubscription(sub)
   );
   const hasActiveSubscription = !!activeSubscription;
   const lastSubscription = subscriptions
     .filter(isSubscription)
-    .sort((a, b) => new Date(b.end_date).getTime() - new Date(a.end_date).getTime())[0];
-  const sessions = subscriptions.filter(sub => !isSubscription(sub));
+    .sort((a: { end_date: string | number | Date; }, b: { end_date: string | number | Date; }) => new Date(b.end_date).getTime() - new Date(a.end_date).getTime())[0];
+  const sessions = subscriptions.filter((sub: MemberSubscription) => !isSubscription(sub));
 
   const initials = member.full_name
     .split(' ')
-    .map(n => n[0])
+    .map((n: any[]) => n[0])
     .join('')
     .toUpperCase();
 
@@ -311,18 +311,24 @@ export default async function MemberDetailPage({
                     ID: {member.id.slice(0, 8).toUpperCase()}
                   </p>
                 </div>
-                
-                <DownloadMemberBadgeButton 
-                  member={{
-                    id: member.id,
-                    full_name: member.full_name,
-                    avatar_url: member.avatar_url,
-                    qr_code: member.qr_code,
-                    gyms: member.gyms,
-                    member_subscriptions: member.member_subscriptions
-                  }}
-                  className="w-full max-w-xs"
-                />
+<DownloadMemberBadgeButton 
+  member={{
+    id: member.id,
+    full_name: member.full_name,
+    phone: member.phone, // Added required field
+    created_at: member.created_at, // Added required field
+    has_subscription: !!activeSubscription, // Added required field
+    avatar_url: member.avatar_url,
+    qr_code: member.qr_code,
+    gyms: member.gyms ? {
+      id: gymId,
+      name: member.gyms.name,
+      logo_url: member.gyms.logo_url
+    } : undefined,
+    member_subscriptions: member.member_subscriptions
+  }}
+  className="w-full max-w-xs"
+/>
               </div>
             </div>
           )}

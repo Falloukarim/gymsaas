@@ -1,7 +1,7 @@
 'use client'
 
 import { Check, X, ArrowLeft, QrCode } from 'lucide-react'
-import { motion } from 'framer-motion'
+import { motion, Variants } from 'framer-motion'
 import { useState } from 'react'
 import { Dialog, DialogTrigger, DialogContent, DialogTitle } from '@/components/ui/dialog'
 import { QRScanner } from '@/components/QRScanner'
@@ -21,8 +21,8 @@ export default function ScanResultClient({
   const isActive = status === 'active'
   const [scannerOpen, setScannerOpen] = useState(false)
 
-  // Animation variants
-  const containerVariants = {
+  // Animation variants with proper typing
+  const containerVariants: Variants = {
     hidden: { opacity: 0 },
     visible: {
       opacity: 1,
@@ -32,12 +32,16 @@ export default function ScanResultClient({
     }
   }
 
-  const itemVariants = {
+  const itemVariants: Variants = {
     hidden: { y: 20, opacity: 0 },
     visible: {
       y: 0,
       opacity: 1,
-      transition: { type: 'spring', stiffness: 300 }
+      transition: { 
+        type: 'spring', 
+        stiffness: 300,
+        damping: 10 // Added for better spring animation
+      }
     }
   }
 
@@ -61,7 +65,7 @@ export default function ScanResultClient({
         {/* Member Info */}
         <motion.div variants={itemVariants} className="text-center space-y-2">
           <p className="text-lg font-medium text-gray-700">{decodeURIComponent(name)}</p>
-          <p className="text-sm text-gray-500">ID Salle: {gymId}</p>
+          {gymId && <p className="text-sm text-gray-500">ID Salle: {gymId}</p>}
         </motion.div>
 
         {/* Status Indicator */}
@@ -100,7 +104,15 @@ export default function ScanResultClient({
         <motion.div variants={itemVariants} className="flex flex-col gap-3">
           <Dialog open={scannerOpen} onOpenChange={setScannerOpen}>
             <DialogTrigger asChild>
-              
+              <Button 
+                variant="default" 
+                size="lg" 
+                className="w-full gap-2"
+                onClick={handleNewScan}
+              >
+                <QrCode className="h-5 w-5" />
+                Nouveau scan
+              </Button>
             </DialogTrigger>
             <DialogContent className="sm:max-w-[425px]">
               <DialogTitle className="text-center">Scanner un badge</DialogTitle>
@@ -115,7 +127,7 @@ export default function ScanResultClient({
               className="w-full text-black gap-2"
               onClick={() => router.push(`/gyms/${gymId}/dashboard`)}
             >
-              <ArrowLeft className="h-5 bg-gray w-5" />
+              <ArrowLeft className="h-5 w-5" />
               Retour au tableau de bord
             </Button>
           )}

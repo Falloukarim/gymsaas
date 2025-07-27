@@ -2,21 +2,38 @@ import { createClient } from '@/utils/supabase/server';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import Link from 'next/link';
-import { SearchBar } from '@/components/search-bar';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Plus } from 'lucide-react';
+
+interface Member {
+  full_name: string;
+}
+
+interface Subscription {
+  type: string;
+}
+
+interface Payment {
+  id: string;
+  amount: number;
+  payment_method: string;
+  status: 'paid' | 'pending' | 'failed';
+  created_at: string;
+  members: Member;
+  subscriptions: Subscription;
+  type?: string;
+}
+
+interface PaymentsPageProps {
+  searchParams: { q?: string };
+  params: { id: string };
+}
 
 export default async function PaymentsPage({
   searchParams,
   params
-}: {
-  searchParams: Promise<{ q?: string }>
-  params: Promise<{ id: string }>
-}) {
-  const resolvedParams = await params;
-  const gymId = resolvedParams.id;
-  const resolvedSearchParams = await searchParams;
-  const searchQuery = resolvedSearchParams.q;
+}: PaymentsPageProps) {
+  const gymId = params.id;
 
   const supabase = createClient();
 
@@ -38,10 +55,7 @@ export default async function PaymentsPage({
     .eq('gym_id', gymId)
     .order('created_at', { ascending: false });
 
-  if (searchQuery) {
-    query = query.ilike('members.full_name', `%${searchQuery}%`);
-  }
-
+  
   const { data: payments, error } = await query;
 
   if (error) {
@@ -82,10 +96,6 @@ export default async function PaymentsPage({
 
         <CardContent>
           <div className="mb-4">
-            <SearchBar 
-              placeholder="Rechercher un paiement..." 
-              defaultValue={searchQuery}
-            />
           </div>
 
           {/* Desktop Table */}
@@ -102,7 +112,7 @@ export default async function PaymentsPage({
                 </tr>
               </thead>
               <tbody className="bg-[#0d1a23] divide-y divide-gray-700">
-                {payments?.map((payment) => (
+                {(payments as any)?.map((payment: any) => (
                   <tr key={payment.id} className="hover:bg-[#1a2e3a] transition-colors">
                     <td className="px-4 py-4 whitespace-nowrap text-white font-medium text-sm">
                       {payment.members?.full_name || 'Membre inconnu'}
@@ -111,7 +121,7 @@ export default async function PaymentsPage({
                       {payment.subscriptions?.type || payment.type || '-'}
                     </td>
                     <td className="px-4 py-4 whitespace-nowrap text-white text-sm">
-                      {payment.amount} fcfa
+                      {payment.amount.toLocaleString('fr-FR')} fcfa
                     </td>
                     <td className="px-4 py-4 whitespace-nowrap">
                       <Badge variant="outline" className="bg-white/10 border-gray-600 text-xs">
@@ -147,7 +157,7 @@ export default async function PaymentsPage({
 
           {/* Mobile Cards */}
           <div className="sm:hidden space-y-3">
-            {payments?.map((payment) => (
+            {(payments as any)?.map((payment: any) => (
               <div key={payment.id} className="bg-[#0d1a23] rounded-lg p-4 border border-gray-700">
                 <div className="flex justify-between items-start">
                   <div className="font-medium text-white text-sm">
@@ -178,7 +188,7 @@ export default async function PaymentsPage({
                   </div>
                   <div>
                     <span className="text-gray-400">Montant: </span>
-                    {payment.amount} fcfa
+                    {payment.amount.toLocaleString('fr-FR')} fcfa
                   </div>
                   <div>
                     <span className="text-gray-400">Méthode: </span>

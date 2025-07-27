@@ -42,7 +42,7 @@ export default async function NewMemberPage({
   // Récupérer les abonnements disponibles
   const { data: subscriptions } = await (await supabase)
     .from('subscriptions')
-    .select('id, type, price')
+    .select('id, type, price, description, is_session')
     .eq('gym_id', gymId);
 
   return (

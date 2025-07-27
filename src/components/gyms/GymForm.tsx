@@ -4,7 +4,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { createGym } from '@/actions/gyms/create';
 import { updateGym } from '@/actions/gyms/update';
-import { Button} from '../ui/button';
+import { Button } from '../ui/button';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import * as z from 'zod';
@@ -66,8 +66,11 @@ export function GymForm({
         <Input
           id="name"
           {...register('name')}
-          error={errors.name?.message}
+          className={errors.name ? 'border-red-500' : ''}
         />
+        {errors.name && (
+          <p className="text-sm text-red-500">{errors.name.message}</p>
+        )}
       </div>
 
       <div className="space-y-2">
@@ -75,8 +78,11 @@ export function GymForm({
         <Input
           id="address"
           {...register('address')}
-          error={errors.address?.message}
+          className={errors.address ? 'border-red-500' : ''}
         />
+        {errors.address && (
+          <p className="text-sm text-red-500">{errors.address.message}</p>
+        )}
       </div>
 
       <div className="grid grid-cols-2 gap-4">
@@ -86,8 +92,11 @@ export function GymForm({
             id="phone"
             type="tel"
             {...register('phone')}
-            error={errors.phone?.message}
+            className={errors.phone ? 'border-red-500' : ''}
           />
+          {errors.phone && (
+            <p className="text-sm text-red-500">{errors.phone.message}</p>
+          )}
         </div>
       </div>
 
@@ -101,7 +110,7 @@ export function GymForm({
       </div>
 
       <div className="flex justify-end">
-        <Button type="submit" loading={isSubmitting}>
+        <Button type="submit" disabled={isSubmitting}>
           {initialData?.id ? 'Mettre à jour' : 'Créer'}
         </Button>
       </div>

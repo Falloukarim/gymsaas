@@ -6,7 +6,7 @@ export async function processPayment(
 ): Promise<{ data?: PaymentWithMember; error?: string }> {
   const supabase = createClient();
 
-  const { data, error } = await supabase
+  const { data, error } = await (await supabase)
     .from('payments')
     .insert(paymentData)
     .select('*, member:members(full_name, phone)')
@@ -20,7 +20,7 @@ export async function processPayment(
 export async function generatePaymentReceipt(paymentId: string): Promise<string> {
   const supabase = createClient();
 
-  const { data } = await supabase
+  const { data } = await (await supabase)
     .from('payments')
     .select('*, member:members(full_name)')
     .eq('id', paymentId)

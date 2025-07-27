@@ -170,7 +170,7 @@ function drawRoundedPanel(
   ctx.fill();
 }
 
-export async function downloadMemberBadge(member: Member): Promise<void> {
+export async function downloadMemberBadge(member: Member, logo_url: any): Promise<void> {
   const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!

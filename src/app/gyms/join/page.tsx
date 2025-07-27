@@ -13,6 +13,7 @@ interface Invitation {
   gym_id: string
   accepted: boolean
   created_at: string
+  role: string // Ajoutez cette ligne
   gyms: {
     name: string
   }

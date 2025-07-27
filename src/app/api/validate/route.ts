@@ -53,7 +53,7 @@ export async function POST(request: Request) {
     const accessGranted = !!activeSubscription
     console.log("🔍 Statut abonnement:", {
       accessGranted,
-      subscriptionType: activeSubscription?.subscriptions?.type,
+subscriptionType: (activeSubscription as any)?.subscriptions?.type,
       endDate: activeSubscription?.end_date
     })
 
@@ -68,7 +68,7 @@ export async function POST(request: Request) {
         access_method: 'qr',
         details: {
           member_name: member.full_name,
-          subscription_type: activeSubscription?.subscriptions?.type,
+          subscription_type: (activeSubscription?.subscriptions as any)?.type,
           attempted_at: new Date().toISOString()
         }
       })
@@ -91,7 +91,7 @@ export async function POST(request: Request) {
     gym_id: member.gym_id
   },
   subscription: activeSubscription ? {
-    type: activeSubscription.subscriptions?.type,
+    type: (activeSubscription?.subscriptions as any)?.type,
     end_date: activeSubscription.end_date,
     status: 'active'
   } : null,

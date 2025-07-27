@@ -1,4 +1,3 @@
-// components/search-bar.tsx
 "use client";
 
 import { Input } from "@/components/ui/input";
@@ -7,19 +6,36 @@ import { useEffect, useState } from "react";
 import { useDebounce } from "../../hooks/use-debounce";
 import { Search } from "lucide-react";
 
-export function SearchBar({ placeholder }: { placeholder: string }) {
+interface SearchBarProps {
+  placeholder: string;
+  value?: string;
+  onChange?: (value: string) => void;
+  disabled?: boolean;
+}
+
+export function SearchBar({ placeholder, value, onChange, disabled }: SearchBarProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [query, setQuery] = useState(searchParams.get("q") || "");
+  const [query, setQuery] = useState(value || searchParams.get("q") || "");
   const debouncedQuery = useDebounce(query, 300);
 
   useEffect(() => {
+    if (value !== undefined) {
+      setQuery(value);
+    }
+  }, [value]);
+
+  useEffect(() => {
+    if (onChange) {
+      onChange(query);
+    }
+    
     if (debouncedQuery) {
       router.push(`?q=${debouncedQuery}`);
     } else {
       router.push("");
     }
-  }, [debouncedQuery, router]);
+  }, [debouncedQuery, router, query, onChange]);
 
   return (
     <div className="relative max-w-md">
@@ -29,7 +45,13 @@ export function SearchBar({ placeholder }: { placeholder: string }) {
         placeholder={placeholder}
         className="pl-9 bg-white/10 border-gray-700 text-white placeholder-gray-400 focus-visible:ring-[#00c9a7]"
         value={query}
-        onChange={(e) => setQuery(e.target.value)}
+        onChange={(e) => {
+          setQuery(e.target.value);
+          if (onChange) {
+            onChange(e.target.value);
+          }
+        }}
+        disabled={disabled}
       />
     </div>
   );

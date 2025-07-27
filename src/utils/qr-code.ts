@@ -4,7 +4,7 @@ export async function generateQRCodeForMember(memberId: string): Promise<string>
   const supabase = createClient();
   const token = crypto.randomUUID();
 
-  const { error } = await supabase
+  const { error } = await (await supabase)
     .from('members')
     .update({ qr_code: token })
     .eq('id', memberId);
@@ -19,7 +19,7 @@ export async function generateQRCodeForMember(memberId: string): Promise<string>
 export async function validateQRCode(token: string) {
   const supabase = createClient();
 
-  const { data: member, error } = await supabase
+  const { data: member, error } = await (await supabase)
     .from('members')
     .select('*, subscriptions(*)')
     .eq('qr_code', token)
