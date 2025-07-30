@@ -4,7 +4,7 @@ import crypto from 'crypto';
 interface PaydunyaConfig {
   masterKey: string;
   privateKey: string;
-  publicKey: string; // Ajouté
+  publicKey: string;
   token: string;
   store: {
     name: string;
@@ -34,17 +34,17 @@ interface InvoiceItem {
 const PAYDUNYA_CONFIG: PaydunyaConfig = {
   masterKey: process.env.PAYDUNYA_MASTER_KEY!,
   privateKey: process.env.PAYDUNYA_PRIVATE_KEY!,
-   publicKey: process.env.PAYDUNYA_PUBLIC_KEY!, 
+  publicKey: process.env.PAYDUNYA_PUBLIC_KEY!,
   token: process.env.PAYDUNYA_TOKEN!,
   store: {
-    name: "GymManager",
+    name: "EasyFit",
     website_url: process.env.NEXT_PUBLIC_SITE_URL!,
     logo_url: `${process.env.NEXT_PUBLIC_SITE_URL}/logo.png`,
     tagline: "Gestion de salle de sport",
-    postal_address: "Sénégal",
-    phone: "0000000000"
+    postal_address: "Dakar, Sénégal", // Adresse complète requise
+    phone: "787311616" // Numéro valide requis
   },
-  mode: (process.env.PAYDUNYA_MODE as 'test' | 'live') || 'test',
+  mode: 'live', // Forcé en mode live
 };
 
 const paydunya = {
@@ -55,21 +55,21 @@ const paydunya = {
   headers: {
     'PAYDUNYA-MASTER-KEY': PAYDUNYA_CONFIG.masterKey,
     'PAYDUNYA-PRIVATE-KEY': PAYDUNYA_CONFIG.privateKey,
-   'PAYDUNYA-PUBLIC-KEY': PAYDUNYA_CONFIG.publicKey,
+    'PAYDUNYA-PUBLIC-KEY': PAYDUNYA_CONFIG.publicKey,
     'PAYDUNYA-TOKEN': PAYDUNYA_CONFIG.token,
     'Content-Type': 'application/json',
   },
 
   async createInvoice(
-  amount: number,
-  customer: CustomerData,
-  metadata: Record<string, any>
-): Promise<{
-  url: string;
-  token: string;
-  checkout_url?: string; // Ajout pour compatibilité
-  invoice_token?: string; // Ajout pour compatibilité
-}>{
+    amount: number,
+    customer: CustomerData,
+    metadata: Record<string, any>
+  ): Promise<{
+    url: string;
+    token: string;
+    checkout_url?: string;
+    invoice_token?: string;
+  }> {
     try {
       const payload = {
         invoice: {
@@ -78,37 +78,39 @@ const paydunya = {
             quantity: 1,
             unit_price: amount,
             total_price: amount,
-            description: `Abonnement ${metadata.name || 'GymManager'}`
+            description: `Abonnement GymManager`
           }],
           total_amount: amount,
+          description: "Paiement d'abonnement",
           currency: 'XOF'
         },
-        store: PAYDUNYA_CONFIG.store,
+        store: {
+          ...PAYDUNYA_CONFIG.store,
+          phone_number: customer.phone || PAYDUNYA_CONFIG.store.phone
+        },
         actions: {
           cancel_url: `${process.env.NEXT_PUBLIC_SITE_URL}/payment/error`,
-          return_url: `${process.env.NEXT_PUBLIC_SITE_URL}/payment/confirmation`,
+          return_url: `${process.env.NEXT_PUBLIC_SITE_URL}/payment/success`,
           callback_url: `${process.env.NEXT_PUBLIC_API_URL}/api/paydunya/webhook`
         },
-        custom_data: {
-          ...metadata,
-          timestamp: new Date().toISOString()
-        },
-        channels: ["wave-senegal", "orange-money-senegal"],
-    preferences: {
-      display_mode: "inline", 
-      payment_methods: {
-        mobile: true,
-        card: true 
-      }
-    },
-     hide_payment_methods: false 
-
+        custom_data: metadata,
+        channels: ["wave", "orange-money-senegal"], // Noms corrigés
+        preferences: {
+          payment_methods: {
+            mobile: true,
+            card: false
+          },
+          hide_payment_methods: false // Le plus important !
+        }
       };
 
       const response = await axios.post(
         `${this.baseUrl}/checkout-invoice/create`,
         payload,
-        { headers: this.headers, timeout: 15000 }
+        { 
+          headers: this.headers, 
+          timeout: 15000 
+        }
       );
 
       if (!response.data?.response_text) {
@@ -117,43 +119,52 @@ const paydunya = {
 
       return {
         url: response.data.response_text,
-        token: response.data.token
+        token: response.data.token,
+        checkout_url: response.data.response_text,
+        invoice_token: response.data.token
       };
     } catch (error) {
       console.error('Erreur création facture:', error);
-      throw new Error('Échec de la création du paiement');
+      if (error instanceof AxiosError && error.response) {
+        console.error('Détails erreur PayDunya:', error.response.data);
+      }
+      throw new Error(
+        error instanceof AxiosError 
+          ? error.response?.data?.message || 'Échec de la création du paiement'
+          : 'Échec de la création du paiement'
+      );
     }
   },
 
- async verifyPayment(token: string): Promise<{
-  success: boolean;
-  data?: {
-    invoice?: {
-      receipt_number?: string;
-      total_amount?: number;
-      status?: string;
-    };
-  };
-  url?: string;
-  token?: string;
-}> {
-  try {
-    const response = await axios.get(
-      `${this.baseUrl}/checkout-invoice/confirm/${token}`,
-      { headers: this.headers }
-    );
-    
-    return {
-      success: response.data.status === 'completed',
-      data: response.data,
-      url: response.data.response_text,
-      token: response.data.token
-    };
-  } catch (error) {
-    console.error('Erreur vérification paiement:', error);
-    return { success: false };
-  }
-},
+  async verifyPayment(token: string): Promise<{
+    success: boolean;
+    data?: any;
+    url?: string;
+    token?: string;
+  }> {
+    try {
+      const response = await axios.get(
+        `${this.baseUrl}/checkout-invoice/confirm/${token}`,
+        { headers: this.headers }
+      );
+      
+      return {
+        success: response.data.status === 'completed',
+        data: response.data,
+        url: response.data.response_text,
+        token: response.data.token
+      };
+    } catch (error) {
+      console.error('Erreur vérification paiement:', error);
+      return { 
+        success: false,
+        ...(error instanceof AxiosError && error.response ? {
+          data: error.response.data
+        } : {})
+      };
+    }
+  },
+
   verifyWebhook(signature: string | null, payload: any): boolean {
     if (!signature || !process.env.PAYDUNYA_PRIVATE_KEY) return false;
     
@@ -165,6 +176,7 @@ const paydunya = {
     return signature === computed;
   }
 };
+
 export const createInvoice = paydunya.createInvoice.bind(paydunya);
 export const verifyPayment = paydunya.verifyPayment.bind(paydunya);
 export const verifyWebhook = paydunya.verifyWebhook.bind(paydunya);
