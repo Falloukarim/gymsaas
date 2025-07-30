@@ -12,27 +12,27 @@ export async function POST(request: Request) {
   const formData = await request.json();
 
   try {
-    // 1. Créer d'abord la salle sans abonnement (subscription_active = false)
+    // 1. Créer d'abord la salle avec subscription_active = false
     const { data: salle, error: erreurSalle } = await (await supabase)
       .from('gyms')
       .insert({
         ...formData,
         owner_id: user.id,
-        subscription_active: false, // Désactivé temporairement
+        subscription_active: false, // Désactivé initialement
         trial_end_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-        trial_used: false,
-        current_subscription_id: null // Explicitement null
+        trial_used: true,
+        current_subscription_id: null
       })
       .select()
       .single();
 
     if (erreurSalle) throw erreurSalle;
 
-    // 2. Créer l'abonnement d'essai avec le gym_id
+    // 2. Créer l'abonnement d'essai (sans end_date si la colonne n'existe pas)
     const { data: abonnementEssai, error: erreurEssai } = await (await supabase)
       .from('gym_subscriptions')
       .insert({
-        gym_id: salle.id, // Ici on a maintenant le gym_id
+        gym_id: salle.id,
         name: 'Essai gratuit',
         description: '30 jours gratuits',
         price: 0,
@@ -47,7 +47,7 @@ export async function POST(request: Request) {
 
     if (erreurEssai) throw erreurEssai;
 
-    // 3. Mettre à jour la salle avec l'abonnement
+    // 3. Activer la salle maintenant qu'on a un abonnement valide
     const { error: erreurMiseAJour } = await (await supabase)
       .from('gyms')
       .update({
@@ -58,33 +58,35 @@ export async function POST(request: Request) {
 
     if (erreurMiseAJour) throw erreurMiseAJour;
 
-    // 4. Ajouter les abonnements payants
+    // 4. Créer les abonnements payants (version simplifiée)
+    const abonnementsPayants = [
+      {
+        gym_id: salle.id,
+        name: 'Mensuel',
+        description: 'Accès illimité - 1 mois',
+        price: 30000,
+        currency: 'XOF',
+        billing_cycle: 'monthly',
+        is_trial: false,
+        status: 'inactive',
+        plan_id: `mensuel_${salle.id}`
+      },
+      {
+        gym_id: salle.id,
+        name: 'Annuel',
+        description: 'Accès illimité - 1 an (-20%)',
+        price: 288000,
+        currency: 'XOF',
+        billing_cycle: 'annually',
+        is_trial: false,
+        status: 'inactive',
+        plan_id: `annuel_${salle.id}`
+      }
+    ];
+
     const { error: erreurAbonnements } = await (await supabase)
       .from('gym_subscriptions')
-      .insert([
-        {
-          gym_id: salle.id,
-          name: 'Mensuel',
-          description: 'Accès illimité - 1 mois',
-          price: 30000,
-          currency: 'XOF',
-          billing_cycle: 'monthly',
-          is_trial: false,
-          status: 'active',
-          plan_id: `mensuel_${salle.id}`
-        },
-        {
-          gym_id: salle.id,
-          name: 'Annuel',
-          description: 'Accès illimité - 1 an (-20%)',
-          price: 288000,
-          currency: 'XOF',
-          billing_cycle: 'annually',
-          is_trial: false,
-          status: 'active',
-          plan_id: `annuel_${salle.id}`
-        }
-      ]);
+      .insert(abonnementsPayants);
 
     if (erreurAbonnements) throw erreurAbonnements;
 

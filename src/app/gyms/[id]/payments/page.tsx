@@ -85,12 +85,6 @@ export default async function PaymentsPage({
         <CardHeader>
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <CardTitle className="text-xl sm:text-2xl font-bold">Gestion des Paiements</CardTitle>
-            <Button asChild className="bg-[#00c9a7] hover:bg-[#00a58e] text-white w-full sm:w-auto">
-              <Link href={`/gyms/${gymId}/payments/new`} className="flex items-center">
-                <Plus className="h-4 w-4 mr-2" />
-                <span>Nouveau paiement</span>
-              </Link>
-            </Button>
           </div>
         </CardHeader>
 

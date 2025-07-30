@@ -46,58 +46,22 @@ export default function NewGymPage() {
     }
   });
 
-  const onSubmit = async (data: z.infer<typeof gymSchema>) => {
-    if (isSubmitting || !isValid) return;
-    setIsSubmitting(true);
+const onSubmit = async (formData: z.infer<typeof gymSchema>) => {
+  try {
+    const response = await fetch('/api/gyms/create', {
+      method: 'POST',
+      body: JSON.stringify(formData)
+    });
 
-    try {
-      const supabase = createClient();
-      const { data: { user }, error: authError } = await supabase.auth.getUser();
-      if (authError || !user) throw new Error("Utilisateur non authentifié");
-
-      const { data: gym, error: gymError } = await supabase
-        .from('gyms')
-        .insert({ ...data, owner_id: user.id })
-        .select()
-        .single();
-
-      if (gymError) throw new Error(gymError.message || "Erreur lors de la création du gym");
-
-      const { data: gbus, error: gbusError } = await supabase
-        .from('gbus')
-        .insert({
-          gym_id: gym.id,
-          user_id: user.id,
-          role: 'owner',
-        })
-        .select()
-        .single();
-
-      if (gbusError) {
-        await supabase.from('gyms').delete().eq('id', gym.id);
-        throw new Error(gbusError.message || "Erreur lors de l'association utilisateur");
-      }
-
-      await fetch('/api/auth/refresh', {
-        method: 'POST',
-        credentials: 'same-origin',
-      });
-
-      window.location.assign(`/gyms/${gym.id}/dashboard?t=${Date.now()}`);
-    } catch (err: unknown) {
-      const errorMessage =
-        err instanceof Error
-          ? err.message
-          : typeof err === 'string'
-            ? err
-            : "Erreur inconnue";
-
-      toast.error(errorMessage);
-      console.error("Erreur création gym :", err);
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
+    if (!response.ok) throw new Error(await response.text());
+    
+    const gym = await response.json();
+    window.location.href = `/gyms/${gym.id}/dashboard`;
+  } catch (error) {
+    toast.error("Échec de la création");
+    console.error(error);
+  }
+};
 
   return (
     <div className="min-h-screen flex items-center justify-center px-4">

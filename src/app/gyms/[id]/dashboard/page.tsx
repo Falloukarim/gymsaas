@@ -40,6 +40,20 @@ export default async function GymDashboardPage({
     });
     redirect('/gyms/new');
   }
+      const { data: gym } = await (await supabase)
+    .from('gyms')
+    .select('subscription_active, trial_end_date, trial_used')
+    .eq('id', params.id)
+    .single();
+
+  const isTrialActive = gym?.trial_end_date 
+    && new Date(gym.trial_end_date) > new Date() 
+    && gym.trial_used === false;
+
+  if (!gym?.subscription_active && !isTrialActive) {
+    redirect('/subscription');
+  }
+
 
   return (
     <div className="flex min-h-screen bg-[#0d1a23]">
