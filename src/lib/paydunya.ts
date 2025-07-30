@@ -71,38 +71,38 @@ const paydunya = {
     invoice_token?: string;
   }> {
     try {
-      const payload = {
-        invoice: {
-          items: [{
-            name: `Abonnement ${metadata.billing_cycle || 'mensuel'}`,
-            quantity: 1,
-            unit_price: amount,
-            total_price: amount,
-            description: `Abonnement GymManager`
-          }],
-          total_amount: amount,
-          description: "Paiement d'abonnement",
-          currency: 'XOF'
-        },
-        store: {
-          ...PAYDUNYA_CONFIG.store,
-          phone_number: customer.phone || PAYDUNYA_CONFIG.store.phone
-        },
-        actions: {
-          cancel_url: `${process.env.NEXT_PUBLIC_SITE_URL}/payment/error`,
-          return_url: `${process.env.NEXT_PUBLIC_SITE_URL}/payment/success`,
-          callback_url: `${process.env.NEXT_PUBLIC_API_URL}/api/paydunya/webhook`
-        },
-        custom_data: metadata,
-        channels: ["wave", "orange-money-senegal"], // Noms corrigés
-        preferences: {
-          payment_methods: {
-            mobile: true,
-            card: false
-          },
-          hide_payment_methods: false // Le plus important !
-        }
-      };
+    const payload = {
+  invoice: {
+    items: [{
+      name: `Abonnement ${metadata.billing_cycle || 'mensuel'}`,
+      quantity: 1,
+      unit_price: amount,
+      total_price: amount,
+      description: `Abonnement GymManager`
+    }],
+    total_amount: amount,
+    description: "Paiement d'abonnement",
+    currency: 'XOF'
+  },
+  store: {
+    ...PAYDUNYA_CONFIG.store,
+    phone_number: customer.phone || PAYDUNYA_CONFIG.store.phone
+  },
+  actions: {
+    cancel_url: `${process.env.NEXT_PUBLIC_SITE_URL}/payment/error`,
+    return_url: `${process.env.NEXT_PUBLIC_SITE_URL}/payment/success`,
+    callback_url: `${process.env.NEXT_PUBLIC_API_URL}/api/paydunya/webhook`
+  },
+  custom_data: metadata,
+  preferences: {
+    payment_methods: {
+      mobile: true,
+      card: false
+    },
+    hide_payment_methods: false
+  }
+};
+
 
       const response = await axios.post(
         `${this.baseUrl}/checkout-invoice/create`,
