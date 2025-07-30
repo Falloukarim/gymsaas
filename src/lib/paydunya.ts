@@ -4,6 +4,7 @@ import crypto from 'crypto';
 interface PaydunyaConfig {
   masterKey: string;
   privateKey: string;
+  publicKey: string; // Ajouté
   token: string;
   store: {
     name: string;
@@ -33,6 +34,7 @@ interface InvoiceItem {
 const PAYDUNYA_CONFIG: PaydunyaConfig = {
   masterKey: process.env.PAYDUNYA_MASTER_KEY!,
   privateKey: process.env.PAYDUNYA_PRIVATE_KEY!,
+   publicKey: process.env.PAYDUNYA_PUBLIC_KEY!, 
   token: process.env.PAYDUNYA_TOKEN!,
   store: {
     name: "GymManager",
@@ -53,6 +55,7 @@ const paydunya = {
   headers: {
     'PAYDUNYA-MASTER-KEY': PAYDUNYA_CONFIG.masterKey,
     'PAYDUNYA-PRIVATE-KEY': PAYDUNYA_CONFIG.privateKey,
+   'PAYDUNYA-PUBLIC-KEY': PAYDUNYA_CONFIG.publicKey,
     'PAYDUNYA-TOKEN': PAYDUNYA_CONFIG.token,
     'Content-Type': 'application/json',
   },
@@ -91,13 +94,15 @@ const paydunya = {
           timestamp: new Date().toISOString()
         },
         channels: ["wave-senegal", "orange-money-senegal"],
-       preferences: {
-  display_mode: "tabbed", 
-  payment_methods: {
-    mobile: true,
-    card: false
-  }
-}
+    preferences: {
+      display_mode: "inline", 
+      payment_methods: {
+        mobile: true,
+        card: true 
+      }
+    },
+     hide_payment_methods: false 
+
       };
 
       const response = await axios.post(
