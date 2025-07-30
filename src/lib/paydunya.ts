@@ -91,13 +91,13 @@ const paydunya = {
           timestamp: new Date().toISOString()
         },
         channels: ["wave-senegal", "orange-money-senegal"],
-        preferences: {
-          display_mode: "direct",
-          payment_methods: {
-            mobile: true,
-            card: false
-          }
-        }
+       preferences: {
+  display_mode: "tabbed", 
+  payment_methods: {
+    mobile: true,
+    card: false
+  }
+}
       };
 
       const response = await axios.post(
