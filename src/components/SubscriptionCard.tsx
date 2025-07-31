@@ -109,7 +109,7 @@ export function SubscriptionCard({
 
       {plan.billing_cycle === 'annually' && (
         <p className="text-center text-sm text-green-600 mt-3">
-          Économisez 20% par rapport au mensuel
+          Économisez 30% par rapport au mensuel
         </p>
       )}
     </div>

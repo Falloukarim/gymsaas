@@ -77,7 +77,7 @@ export default async function SubscriptionPage() {
                 key={plan.id}
                 plan={plan}
                 gymId={gymUser.gym_id}
-                isPopular={plan.billing_cycle === 'monthly'} // Exemple: marquer l'abonnement mensuel comme populaire
+                isPopular={plan.billing_cycle === 'monthly'} 
               />
             ))}
           </div>
