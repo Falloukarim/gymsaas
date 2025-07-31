@@ -13,7 +13,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { supabase } from '@/lib/supabaseClient';
+import { createClient } from '@/lib/supabaseClient';
 import { QRScanner } from '@/components/QRScanner';
 import {
   Dialog,
@@ -22,7 +22,6 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { useSidebar } from '@/context/SidebarContext';
-import { PulsatingButton } from '../buttons/PulsatingButton';
 
 type UserData = {
   email: string;
@@ -39,36 +38,68 @@ export default function Navbar() {
 
   const gymId = pathname?.split('/')[2] || '';
 
+  const getImageUrl = (url: string | null) => {
+  if (!url) return '';
+  
+  // Vérifie si l'URL est déjà une URL complète
+  if (url.startsWith('http')) {
+    return `/api/image-proxy?url=${encodeURIComponent(url)}`;
+  }
+  
+  // Si c'est un chemin relatif, construisez l'URL complète
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const fullUrl = `${supabaseUrl}/storage/v1/object/public/avatars/${url}`;
+  return `/api/image-proxy?url=${encodeURIComponent(fullUrl)}`;
+};
+
+  const fetchUser = async () => {
+    const supabase = createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (user) {
+      const { data } = await supabase
+        .from('users')
+        .select('email, avatar_url, full_name')
+        .eq('id', user.id)
+        .single();
+
+      setUserData(data || {
+        email: user.email || '',
+        avatar_url: null,
+        full_name: null,
+      });
+      return user;
+    }
+    return null;
+  };
+
   useEffect(() => {
-    const fetchUser = async () => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
+    const setupRealtimeUpdates = async () => {
+      const user = await fetchUser();
+      const supabase = createClient();
 
-      if (user) {
-        const { data } = await supabase
-          .from('users')
-          .select('email, avatar_url, full_name')
-          .eq('id', user.id)
-          .single();
+      if (user?.id) {
+        const channel = supabase
+          .channel('realtime users')
+          .on(
+            'postgres_changes',
+            {
+              event: 'UPDATE',
+              schema: 'public',
+              table: 'users',
+              filter: `id=eq.${user.id}`
+            },
+            () => fetchUser()
+          )
+          .subscribe();
 
-        setUserData(data || {
-          email: user.email || '',
-          avatar_url: null,
-          full_name: null,
-        });
+        return () => {
+          supabase.removeChannel(channel);
+        };
       }
     };
 
-    fetchUser();
-
-    const { data: listener } = supabase.auth.onAuthStateChange(() =>
-      fetchUser()
-    );
-
-    return () => {
-      listener?.subscription.unsubscribe();
-    };
+    setupRealtimeUpdates();
   }, [pathname]);
 
   const handleLogout = async () => {
@@ -92,6 +123,10 @@ export default function Navbar() {
       setDropdownOpen(false);
     }
   };
+
+  useEffect(() => {
+    console.log('Current avatar URL:', userData?.avatar_url);
+  }, [userData?.avatar_url]);
 
   const getInitials = () =>
     userData?.full_name?.charAt(0).toUpperCase() ||
@@ -155,7 +190,13 @@ export default function Navbar() {
             aria-label="Menu utilisateur"
           >
             <Avatar className="h-8 w-8">
-              <AvatarImage src={userData?.avatar_url || ''} />
+              <AvatarImage 
+                src={getImageUrl(userData?.avatar_url || null)}
+                onError={(e) => {
+                  e.currentTarget.src = '';
+                  e.currentTarget.style.display = 'none';
+                }}
+              />
               <AvatarFallback className="bg-[#00c9a7] text-white">
                 {getInitials()}
               </AvatarFallback>

@@ -113,6 +113,20 @@ export default async function MemberDetailPage({
     .join('')
     .toUpperCase();
 
+     const getImageUrl = (url: string | null) => {
+  if (!url) return '';
+  
+  // Vérifie si l'URL est déjà une URL complète
+  if (url.startsWith('http')) {
+    return `/api/image-proxy?url=${encodeURIComponent(url)}`;
+  }
+  
+  // Si c'est un chemin relatif, construisez l'URL complète
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const fullUrl = `${supabaseUrl}/storage/v1/object/public/avatars/${url}`;
+  return `/api/image-proxy?url=${encodeURIComponent(fullUrl)}`;
+};
+
   return (
     <div className="w-full px-4 py-6 sm:px-6 lg:px-8 overflow-hidden">
       <div className="bg-gray-800 text-white border border-gray-700 rounded-lg w-full">
@@ -130,11 +144,11 @@ export default async function MemberDetailPage({
 
               <div className="flex items-center gap-4 w-full">
                 <Avatar className="h-10 w-10 sm:h-12 sm:w-12">
-                  <AvatarImage src={member.avatar_url} />
-                  <AvatarFallback className="bg-gradient-to-r from-blue-500 to-blue-700 text-white">
-                    {initials}
-                  </AvatarFallback>
-                </Avatar>
+  <AvatarImage src={getImageUrl(member.avatar_url)} />
+  <AvatarFallback className="bg-gradient-to-r from-blue-500 to-blue-700 text-white">
+    {initials}
+  </AvatarFallback>
+</Avatar>
                 <div className="flex-1 min-w-0">
                   <h1 className="text-xl sm:text-2xl font-bold truncate">{member.full_name}</h1>
                   <p className="text-sm text-gray-400 truncate">{member.gyms?.name}</p>

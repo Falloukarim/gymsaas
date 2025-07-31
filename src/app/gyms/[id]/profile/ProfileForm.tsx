@@ -4,9 +4,9 @@ import { updateProfile } from '@/actions/update-profile';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { useRouter, useSearchParams } from 'next/navigation';
-import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { useFormState } from 'react-dom';
+import { toast } from 'sonner';
 
 export function ProfileForm({
   user,
@@ -20,16 +20,23 @@ export function ProfileForm({
   const router = useRouter();
   const [state, formAction] = useFormState(updateProfile, null);
 
-  useEffect(() => {
-    if (state?.success) {
-      router.push(`/gyms/${gymId}/profile?success=${encodeURIComponent(state.success)}`);
-    } else if (state?.error) {
-      router.push(`/gyms/${gymId}/profile?error=${encodeURIComponent(state.error)}`);
-    }
-  }, [state, router, gymId]);
-
+  const handleSubmit = async (formData: FormData) => {
+    const promise = updateProfile(null, formData);
+    
+    toast.promise(promise, {
+      loading: 'Enregistrement en cours...',
+      success: (data) => {
+        if (data?.error) {
+          throw new Error(data.error);
+        }
+        router.refresh(); // Rafraîchir la page pour mettre à jour la navbar
+        return 'Profil mis à jour avec succès';
+      },
+      error: (error) => error.message || 'Une erreur est survenue',
+    });
+  };
   return (
-    <form action={formAction} className="space-y-6">
+    <form action={handleSubmit} className="space-y-6">
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
         <div className="space-y-2">
           <Label htmlFor="full_name" className="text-white">

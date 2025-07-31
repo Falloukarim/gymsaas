@@ -68,6 +68,19 @@ function MembersPage() {
     const formData = new FormData(e.currentTarget as HTMLFormElement);
     setSearch(formData.get('q') as string);
   };
+      const getImageUrl = (url: string | null) => {
+  if (!url) return '';
+  
+  // Vérifie si l'URL est déjà une URL complète
+  if (url.startsWith('http')) {
+    return `/api/image-proxy?url=${encodeURIComponent(url)}`;
+  }
+  
+  // Si c'est un chemin relatif, construisez l'URL complète
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const fullUrl = `${supabaseUrl}/storage/v1/object/public/avatars/${url}`;
+  return `/api/image-proxy?url=${encodeURIComponent(fullUrl)}`;
+};
 
   return (
     <div className="p-4 sm:p-6 max-w-6xl mx-auto space-y-6">
@@ -150,15 +163,16 @@ function MembersPage() {
                   >
                     <Card className="transition-all hover:scale-[1.02] hover:shadow-lg border border-gray-200">
                       <CardContent className="p-3 sm:p-4 flex items-center gap-3 sm:gap-4">
-                        <Avatar className="h-10 w-10 sm:h-12 sm:w-12">
-                          <AvatarImage src={getAvatarUrl(member.avatar_url)} />
-                          <AvatarFallback className="bg-green-500 text-white">
-                            {member.full_name
-                              .split(' ')
-                              .map((n: string) => n[0])
-                              .join('')}
-                          </AvatarFallback>
-                        </Avatar>
+                       <Avatar className="h-10 w-10 sm:h-12 sm:w-12">
+  <AvatarImage src={getImageUrl(member.avatar_url)} />
+  <AvatarFallback className="bg-green-500 text-white">
+    {member.full_name
+      .split(' ')
+      .map((n: string) => n[0])
+      .join('')}
+  </AvatarFallback>
+</Avatar>
+
                         <div className="flex-1 min-w-0">
                           <h3 className="font-semibold text-sm sm:text-base truncate group-hover:text-green-600">
                             {member.full_name}
