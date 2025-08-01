@@ -44,6 +44,13 @@ export default function Sidebar() {
     },
   };
 
+  // Fonction pour gérer le clic sur un lien
+  const handleLinkClick = () => {
+    if (isMobile) {
+      close();
+    }
+  };
+
   return (
     <>
       {/* Overlay mobile */}
@@ -93,7 +100,7 @@ export default function Sidebar() {
                   const isActive = pathname === href;
                   return (
                     <motion.div key={href} variants={itemVariants}>
-                      <Link href={href}>
+                      <Link href={href} onClick={handleLinkClick}>
                         <MotionSidebarButton isActive={isActive}>
                           <Icon className={`h-4 w-4 ${isActive ? "drop-shadow-[0_0_8px_#00c9a7]" : ""}`} />
                           <span className="truncate">{label}</span>
