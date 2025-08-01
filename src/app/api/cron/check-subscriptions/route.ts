@@ -4,150 +4,147 @@ import { createClient } from '@/utils/supabase/server';
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: Request) {
-  // === 1. Authentification ===
+  // Authentification
   const authHeader = request.headers.get('authorization');
   const expectedToken = `Bearer ${process.env.CRON_SECRET}`;
 
   if (!authHeader || authHeader !== expectedToken) {
-    console.error('❌ Accès refusé - Token:', {
-      received: authHeader?.slice(0, 10) + '...',
-      expected: expectedToken.slice(0, 10) + '...'
-    });
     return NextResponse.json(
-      { error: 'Unauthorized', message: 'Authentification requise' },
+      { error: 'Unauthorized' },
       { status: 401 }
     );
   }
 
-  // === 2. Initialisation ===
   const supabase = createClient();
   const now = new Date();
   const today = new Date(now);
-  today.setHours(0, 0, 0, 0); // Normalisation à minuit UTC
-
-  console.log(`⚡ Cron démarré à ${now.toISOString()}`);
+  today.setHours(0, 0, 0, 0);
 
   try {
-    // === 3. Vérification connexion ===
-    const { error: testError } = await (await supabase)
+    // Vérification connexion
+    const { error: testError } = await (await (await supabase))
       .from('gyms')
       .select('id')
       .limit(1)
       .single();
 
-    if (testError) throw new Error(`Supabase: ${testError.message}`);
+    if (testError) throw testError;
 
-    // === 4. Récupération des données ===
-    console.log('🔍 Recherche des abonnements expirés...');
-    
-    const { data: gyms, error: fetchError } = await (await supabase)
-      .from('gyms')
-      .select(`
-        id,
-        current_subscription_id,
-        subscription_active,
-        current_subscription_end,
-        trial_used,
-        trial_end_date,
-        owner_id
-      `)
-      .or(`trial_used.is.true,subscription_active.is.true`);
+    // Traitement des abonnements
+    const gymsUpdate = await handleGymsSubscriptions(supabase, today, now);
+    const membersUpdate = await handleMembersSubscriptions(supabase, today, now);
 
-    if (fetchError) throw new Error(`Fetch: ${fetchError.message}`);
-
-    // === 5. Filtrage côté serveur ===
-    const expiredTrials = gyms?.filter(g => 
-      g.trial_used && g.trial_end_date && new Date(g.trial_end_date) <= today
-    ) || [];
-
-    const expiredPaid = gyms?.filter(g => 
-      g.subscription_active && 
-      g.current_subscription_end && 
-      new Date(g.current_subscription_end) <= today
-    ) || [];
-
-    console.log('📊 Résultats:', {
-      total: gyms?.length,
-      trials: expiredTrials.length,
-      paid: expiredPaid.length
-    });
-
-    // === 6. Mises à jour avec gestion des contraintes ===
-    const updatePromises = [];
-    
-    if (expiredTrials.length > 0) {
-      updatePromises.push(
-        (await supabase).from('gyms')
-          .update({ 
-            subscription_active: false,
-            updated_at: now.toISOString(),
-            // Reset les champs d'abonnement si nécessaire
-            current_subscription_id: null,
-            current_subscription_start: null,
-            current_subscription_end: null
-          })
-          .in('id', expiredTrials.map(g => g.id))
-      );
-    }
-
-    if (expiredPaid.length > 0) {
-      updatePromises.push(
-        (await supabase).from('gyms')
-          .update({ 
-            subscription_active: false,
-            current_subscription_id: null,
-            current_subscription_start: null,
-            current_subscription_end: null,
-            updated_at: now.toISOString()
-          })
-          .in('id', expiredPaid.map(g => g.id))
-      );
-    }
-
-    // === 7. Exécution des mises à jour ===
-    if (updatePromises.length > 0) {
-      const results = await Promise.all(updatePromises);
-      const errors = results.filter(r => r.error);
-      
-      if (errors.length > 0) {
-        // Log détaillé des erreurs
-        console.error('Erreurs de mise à jour:', errors);
-        throw new Error(`Échec des mises à jour: ${errors.map(e => 
-          `Gym ${e.data?.map(d => d.id)}: ${e.error?.message}`
-        ).join(' | ')}`);
-      }
-      
-      console.log(`✅ Mises à jour réussies: ${expiredTrials.length} essais + ${expiredPaid.length} abonnements`);
-    }
-
-    // === 8. Réponse ===
     return NextResponse.json({
       success: true,
-      stats: {
-        trials_disabled: expiredTrials.length,
-        paid_subscriptions_disabled: expiredPaid.length
-      },
+      stats: { gyms: gymsUpdate, members: membersUpdate },
       timestamp: now.toISOString()
     });
 
   } catch (error) {
-    const err = error instanceof Error ? error : new Error('Erreur inconnue');
-    console.error('🔥 Erreur:', {
-      message: err.message,
-      stack: process.env.NODE_ENV === 'development' ? err.stack : undefined
-    });
-    
+    console.error('Erreur:', error);
     return NextResponse.json(
-      { 
-        success: false,
-        error: 'Erreur de traitement',
-        details: process.env.NODE_ENV === 'development' ? {
-          message: err.message,
-          stack: err.stack
-        } : undefined,
-        timestamp: now.toISOString() 
-      },
+      { success: false, error: error instanceof Error ? error.message : 'Erreur inconnue' },
       { status: 500 }
     );
   }
+}
+
+async function handleGymsSubscriptions(supabase: any, today: Date, now: Date) {
+  const { data: gyms, error: fetchError } = await (await (await supabase))
+    .from('gyms')
+    .select(`
+      id,
+      current_subscription_id,
+      subscription_active,
+      current_subscription_end,
+      trial_used,
+      trial_end_date
+    `)
+    .or('trial_used.is.true,subscription_active.is.true');
+
+  if (fetchError) throw fetchError;
+
+  const expiredTrials = gyms?.filter(g => 
+    g.trial_used && g.trial_end_date && new Date(g.trial_end_date) <= today
+  ) || [];
+
+  const expiredPaid = gyms?.filter(g => 
+    g.subscription_active && g.current_subscription_end && new Date(g.current_subscription_end) <= today
+  ) || [];
+
+  // Mises à jour
+  if (expiredTrials.length > 0) {
+    const { error } = await (await (await supabase))
+      .from('gyms')
+      .update({ 
+        subscription_active: false,
+        updated_at: now.toISOString(),
+        current_subscription_id: null,
+        current_subscription_start: null,
+        current_subscription_end: null
+      })
+      .in('id', expiredTrials.map(g => g.id));
+
+    if (error) throw error;
+  }
+
+  if (expiredPaid.length > 0) {
+    const { error } = await (await (await supabase))
+      .from('gyms')
+      .update({ 
+        subscription_active: false,
+        updated_at: now.toISOString(),
+        current_subscription_id: null,
+        current_subscription_start: null,
+        current_subscription_end: null
+      })
+      .in('id', expiredPaid.map(g => g.id));
+
+    if (error) throw error;
+  }
+
+  return { trials: expiredTrials.length, paid: expiredPaid.length };
+}
+
+async function handleMembersSubscriptions(supabase: any, today: Date, now: Date) {
+  // Récupération des abonnements expirés
+  const { data: expiredSubs, error: subsError } = await (await (await supabase))
+    .from('member_subscriptions')
+    .select('id, member_id')
+    .lte('end_date', today.toISOString())
+    .eq('status', 'active');
+
+  if (subsError) throw subsError;
+
+  let results = { subscriptions: 0, members: 0 };
+  
+  if (expiredSubs?.length > 0) {
+    // Mise à jour des abonnements
+    const { error: updateError } = await (await (await supabase))
+      .from('member_subscriptions')
+      .update({ 
+        status: 'inactive',
+        updated_at: now.toISOString()
+      })
+      .in('id', expiredSubs.map(sub => sub.id));
+
+    if (updateError) throw updateError;
+
+    // Mise à jour des membres
+    const memberIds = expiredSubs.map(sub => sub.member_id);
+    const { error: memberError } = await (await (await supabase))
+      .from('members')
+    .update({ 
+      has_subscription: false,
+      updated_at: now.toISOString()
+    })
+    .in('id', memberIds);
+
+    if (memberError) throw memberError;
+
+    results.subscriptions = expiredSubs.length;
+    results.members = new Set(memberIds).size;
+  }
+
+  return results;
 }

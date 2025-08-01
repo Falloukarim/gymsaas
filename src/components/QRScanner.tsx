@@ -14,6 +14,8 @@ type Html5QrcodeError = Error & {
 export function QRScanner() {
   const router = useRouter()
   const scannerRef = useRef<any>(null)
+  const isProcessing = useRef(false)
+  const lastScannedCode = useRef('')
   const [scanResult, setScanResult] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [availableCameras, setAvailableCameras] = useState<Array<{ id: string, label: string }>>([])
@@ -50,8 +52,20 @@ export function QRScanner() {
       if (!isScanning) {
         await scannerRef.current.start(
           cameraId,
-          { fps: 10, qrbox: { width: 250, height: 250 } },
-          (decodedText: string) => handleScanSuccess(decodedText),
+          { 
+            fps: 10, 
+            qrbox: { width: 250, height: 250 },
+            rememberLastUsedCamera: false
+          },
+          (decodedText: string) => {
+            if (!isProcessing.current && lastScannedCode.current !== decodedText) {
+              isProcessing.current = true
+              lastScannedCode.current = decodedText
+              handleScanSuccess(decodedText).finally(() => {
+                isProcessing.current = false
+              })
+            }
+          },
           (errorMessage: string) => console.log('Scan error:', errorMessage)
         )
         setIsScanning(true)
@@ -85,6 +99,7 @@ export function QRScanner() {
     await stopScanner()
     setScanResult(null)
     setError(null)
+    lastScannedCode.current = ''
     if (availableCameras.length > 0) {
       await startScan(availableCameras[activeCameraIndex].id)
     }
@@ -104,6 +119,9 @@ export function QRScanner() {
 
   const handleScanSuccess = async (decodedText: string) => {
     try {
+      setScanResult(decodedText)
+      await stopScanner()
+
       const gymId = window.location.pathname.split('/')[2]
       if (!gymId) throw new Error("Impossible de déterminer la salle de sport")
 
@@ -121,17 +139,14 @@ export function QRScanner() {
         toast.error(`Accès refusé: ${data.subscription?.status === 'inactive' ? 'Abonnement inactif' : 'Abonnement expiré'}`)
       }
 
-      // ✅ STOP scanner avant redirection
-      await stopScanner()
-
-      // ✅ Optionnel : petite pause pour libérer la caméra
-      setTimeout(() => {
-        router.push(`/scan/${gymId}/result?name=${encodeURIComponent(data.member.name)}&status=${data.subscriptionStatus}`)
-      }, 200)
+      router.push(`/scan/${gymId}/result?name=${encodeURIComponent(data.member.name)}&status=${data.subscriptionStatus}`)
 
     } catch (error) {
       console.error("Erreur complète:", error)
       setError("Échec de la validation du badge")
+      if (availableCameras.length > 0) {
+        await startScan(availableCameras[activeCameraIndex].id)
+      }
     }
   }
 

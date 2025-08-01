@@ -48,18 +48,18 @@ interface BadgeConfig {
 const BADGE_CONFIG: BadgeConfig = {
   dimensions: { width: 900, height: 540 },
   card: { padding: 30, radius: 24 },
-  colors: {
-    primary: '#2563eb',
-    primaryDark: '#1e40af',
-    secondary: '#0ea5e9',
-    accent: '#3b82f6',
-    background: '#f8fafc',
-    textDark: '#1e293b',
-    textMedium: '#64748b',
-    textLight: '#94a3b8',
-    white: '#ffffff',
-    black: '#000000',
-  },
+colors: {
+  primary: '#065f46',        // Vert foncé
+  primaryDark: '#064e3b',    // Vert plus profond
+  secondary: '#047857',      // Vert moyen
+  accent: '#10b981',         // Vert clair
+  background: '#ecfdf5',     // Très pâle, presque blanc-vert
+  textDark: '#f0fdf4',       // Texte clair (presque blanc)
+  textMedium: '#d1fae5',
+  textLight: '#a7f3d0',
+  white: '#ffffff',
+  black: '#000000',
+},
   fonts: {
     title: 'bold 28px "Poppins", sans-serif',
     subtitle: '600 20px "Poppins", sans-serif',
@@ -206,14 +206,17 @@ export async function downloadMemberBadge(member: Member, logo_url: any): Promis
 
   // Bande supérieure avec dégradé
   const headerHeight = 100;
-  const headerGradient = ctx.createLinearGradient(
-    card.x,
-    card.y,
-    card.x,
-    card.y + headerHeight
-  );
-  headerGradient.addColorStop(0, BADGE_CONFIG.colors.primary);
-  headerGradient.addColorStop(1, BADGE_CONFIG.colors.primaryDark);
+const headerGradient = ctx.createRadialGradient(
+  card.x + card.width / 2, // centre X
+  card.y + headerHeight / 2, // centre Y
+  20,
+  card.x + card.width / 2,
+  card.y + headerHeight / 2,
+  200
+);
+headerGradient.addColorStop(0, BADGE_CONFIG.colors.accent);       // centre clair
+headerGradient.addColorStop(1, BADGE_CONFIG.colors.primaryDark);  // extérieur foncé
+
 
   ctx.fillStyle = headerGradient;
   ctx.roundRect(card.x, card.y, card.width, headerHeight, [
