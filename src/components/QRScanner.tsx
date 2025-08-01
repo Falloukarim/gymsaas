@@ -18,35 +18,37 @@ export function QRScanner() {
   const [scanResult, setScanResult] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [availableCameras, setAvailableCameras] = useState<Array<{ id: string, label: string }>>([])
-  const [activeCameraIndex, setActiveCameraIndex] = useState(0)
+  const [activeCameraId, setActiveCameraId] = useState<string | null>(null)
   const [isScanning, setIsScanning] = useState(false)
 
+  // Initialisation du scanner
   const initScanner = async () => {
     try {
       const { Html5Qrcode } = await import('html5-qrcode')
       const cameras = await Html5Qrcode.getCameras()
       if (cameras.length === 0) throw new Error('Aucune caméra disponible')
+      
       setAvailableCameras(cameras)
       return cameras
-    } catch (err: unknown) {
-      const error = err as Html5QrcodeError;
+    } catch (err) {
+      const error = err as Html5QrcodeError
       setError(error.message || "Erreur d'accès à la caméra")
       throw error
     }
   }
 
-  const startScan = async (cameraId: string) => {
+  // Démarrer le scanner
+  const startScanner = async (cameraId: string) => {
     try {
       const { Html5Qrcode } = await import('html5-qrcode')
       
-      if (!scannerRef.current) {
-        scannerRef.current = new Html5Qrcode('qr-scanner-container')
-      }
-
+      // Créer une nouvelle instance à chaque démarrage
+      scannerRef.current = new Html5Qrcode('qr-scanner-container')
+      
       await scannerRef.current.start(
         cameraId,
         { 
-          fps: 10, 
+          fps: 10,
           qrbox: { width: 250, height: 250 },
           rememberLastUsedCamera: false
         },
@@ -58,46 +60,56 @@ export function QRScanner() {
         },
         () => {}
       )
+      
       setIsScanning(true)
-    } catch (err: unknown) {
-      const error = err as Html5QrcodeError;
+      setError(null)
+    } catch (err) {
+      const error = err as Html5QrcodeError
       setError(error.message || 'Échec du démarrage du scanner')
-    }
-  }
-
-  const stopScanner = async () => {
-    if (!scannerRef.current || !isScanning) return
-    
-    try {
-      await scannerRef.current.stop()
-      scannerRef.current = null
-    } catch (err: unknown) {
-      const error = err as Html5QrcodeError;
-      if (!error.message.includes('not running')) {
-        console.error("Erreur lors de l'arrêt du scanner:", error)
-      }
-    } finally {
       setIsScanning(false)
     }
   }
 
-  const resetScanner = async () => {
-    await stopScanner()
-    setScanResult(null)
-    setError(null)
-    isProcessing.current = false
+  // Arrêter proprement le scanner
+  const stopScanner = async () => {
+    if (!scannerRef.current) return
     
-    if (availableCameras.length > 0) {
-      await startScan(availableCameras[activeCameraIndex].id)
+    try {
+      await scannerRef.current.stop()
+      await scannerRef.current.clear()
+    } catch (err) {
+      console.error("Erreur lors de l'arrêt:", err)
+    } finally {
+      scannerRef.current = null
+      setIsScanning(false)
     }
   }
 
+  // Réinitialiser complètement le scanner
+  const resetScanner = async () => {
+    await stopScanner()
+    isProcessing.current = false
+    setScanResult(null)
+    setError(null)
+    
+    if (activeCameraId) {
+      await startScanner(activeCameraId)
+    }
+  }
+
+  // Changer de caméra
   const switchCamera = async () => {
-    const nextIndex = (activeCameraIndex + 1) % availableCameras.length
-    setActiveCameraIndex(nextIndex)
+    if (availableCameras.length < 2) return
+    
+    const currentIndex = availableCameras.findIndex(cam => cam.id === activeCameraId)
+    const nextIndex = (currentIndex + 1) % availableCameras.length
+    const nextCameraId = availableCameras[nextIndex].id
+    
+    setActiveCameraId(nextCameraId)
     await resetScanner()
   }
 
+  // Gestion du scan réussi
   const handleScanSuccess = async (decodedText: string) => {
     try {
       setScanResult(decodedText)
@@ -117,6 +129,7 @@ export function QRScanner() {
         toast.error(`Accès refusé: ${data.reason || 'Raison inconnue'}`)
       }
 
+      await stopScanner()
       router.push(`/scan/${gymId}/result?name=${encodeURIComponent(data.member.name)}&status=${data.subscriptionStatus}`)
     } catch (error) {
       console.error("Erreur:", error)
@@ -125,26 +138,29 @@ export function QRScanner() {
     }
   }
 
+  // Initialisation au montage
   useEffect(() => {
     let isMounted = true
 
-    const setupScanner = async () => {
+    const setup = async () => {
       try {
         const cameras = await initScanner()
         if (isMounted && cameras.length > 0) {
-          const backCamIndex = cameras.findIndex(cam =>
-            cam.label.toLowerCase().includes('back') || cam.label.toLowerCase().includes('rear')
-          )
-          const indexToUse = backCamIndex !== -1 ? backCamIndex : 0
-          setActiveCameraIndex(indexToUse)
-          await startScan(cameras[indexToUse].id)
+          // Préférer la caméra arrière si disponible
+          const backCamera = cameras.find(cam => 
+            cam.label.toLowerCase().includes('back') || 
+            cam.label.toLowerCase().includes('rear')
+          ) || cameras[0]
+          
+          setActiveCameraId(backCamera.id)
+          await startScanner(backCamera.id)
         }
       } catch (err) {
         console.error('Erreur initialisation:', err)
       }
     }
 
-    setupScanner()
+    setup()
 
     return () => {
       isMounted = false
@@ -154,23 +170,33 @@ export function QRScanner() {
 
   return (
     <div className="space-y-4">
+      {/* Container du scanner */}
       <div id="qr-scanner-container" className="w-full aspect-video rounded-lg overflow-hidden border bg-black" />
 
+      {/* Contrôles */}
       <div className="flex flex-col gap-2">
-        <Button onClick={resetScanner} className="w-full gap-2">
-          <RotateCw className="h-4 w-4" />
+        <Button 
+          onClick={resetScanner} 
+          className="w-full gap-2"
+          disabled={isProcessing.current}
+        >
+          <RotateCw className={`h-4 w-4 ${isProcessing.current ? 'animate-spin' : ''}`} />
           {isScanning ? 'Redémarrer' : 'Activer le scanner'}
         </Button>
 
         {availableCameras.length > 1 && (
-          <Button onClick={switchCamera} className="w-full gap-2">
+          <Button 
+            onClick={switchCamera} 
+            className="w-full gap-2"
+            disabled={isProcessing.current}
+          >
             <Camera className="h-4 w-4" />
             Changer de caméra
           </Button>
         )}
       </div>
 
-      {/* Affichage des erreurs et résultats */}
+      {/* Affichage des états */}
       {error && (
         <div className="p-4 bg-red-50 rounded-lg flex items-center gap-3">
           <X className="h-5 w-5 text-red-600" />
@@ -181,7 +207,7 @@ export function QRScanner() {
       {scanResult && (
         <div className="p-4 bg-green-50 rounded-lg flex items-center gap-3">
           <Check className="h-5 w-5 text-green-600" />
-          <p className="truncate">QR Code détecté : {scanResult}</p>
+          <p className="truncate">QR Code détecté: {scanResult}</p>
         </div>
       )}
     </div>

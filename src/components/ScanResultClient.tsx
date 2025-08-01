@@ -104,18 +104,8 @@ export default function ScanResultClient({
         <motion.div variants={itemVariants} className="flex flex-col gap-3">
           <Dialog open={scannerOpen} onOpenChange={setScannerOpen}>
             <DialogTrigger asChild>
-              <Button 
-                variant="default" 
-                size="lg" 
-                className="w-full gap-2"
-                onClick={handleNewScan}
-              >
-                <QrCode className="h-5 w-5" />
-                Nouveau scan
-              </Button>
             </DialogTrigger>
             <DialogContent className="sm:max-w-[425px]">
-              <DialogTitle className="text-center">Scanner un badge</DialogTitle>
               <QRScanner />
             </DialogContent>
           </Dialog>
