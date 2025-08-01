@@ -15,13 +15,11 @@ export function QRScanner() {
   const router = useRouter()
   const scannerRef = useRef<any>(null)
   const isProcessing = useRef(false)
-  const lastScannedCode = useRef('')
   const [scanResult, setScanResult] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [availableCameras, setAvailableCameras] = useState<Array<{ id: string, label: string }>>([])
   const [activeCameraIndex, setActiveCameraIndex] = useState(0)
   const [isScanning, setIsScanning] = useState(false)
-  const [isTransitioning, setIsTransitioning] = useState(false)
 
   const initScanner = async () => {
     try {
@@ -29,69 +27,57 @@ export function QRScanner() {
       const cameras = await Html5Qrcode.getCameras()
       if (cameras.length === 0) throw new Error('Aucune caméra disponible')
       setAvailableCameras(cameras)
-      return { Html5Qrcode, cameras }
+      return cameras
     } catch (err: unknown) {
       const error = err as Html5QrcodeError;
-      console.error('Erreur initScanner:', error)
       setError(error.message || "Erreur d'accès à la caméra")
       throw error
     }
   }
 
   const startScan = async (cameraId: string) => {
-    if (isTransitioning) return
-    setIsTransitioning(true)
-
     try {
       const { Html5Qrcode } = await import('html5-qrcode')
-
+      
       if (!scannerRef.current) {
         scannerRef.current = new Html5Qrcode('qr-scanner-container')
       }
 
-      if (!isScanning) {
-        await scannerRef.current.start(
-          cameraId,
-          { 
-            fps: 10, 
-            qrbox: { width: 250, height: 250 },
-            rememberLastUsedCamera: false
-          },
-          (decodedText: string) => {
-            if (!isProcessing.current && lastScannedCode.current !== decodedText) {
-              isProcessing.current = true
-              lastScannedCode.current = decodedText
-              handleScanSuccess(decodedText).finally(() => {
-                isProcessing.current = false
-              })
-            }
-          },
-          (errorMessage: string) => console.log('Scan error:', errorMessage)
-        )
-        setIsScanning(true)
-      }
+      await scannerRef.current.start(
+        cameraId,
+        { 
+          fps: 10, 
+          qrbox: { width: 250, height: 250 },
+          rememberLastUsedCamera: false
+        },
+        async (decodedText: string) => {
+          if (!isProcessing.current) {
+            isProcessing.current = true
+            await handleScanSuccess(decodedText)
+          }
+        },
+        () => {}
+      )
+      setIsScanning(true)
     } catch (err: unknown) {
       const error = err as Html5QrcodeError;
-      console.error('Erreur startScan:', error)
       setError(error.message || 'Échec du démarrage du scanner')
-    } finally {
-      setIsTransitioning(false)
     }
   }
 
   const stopScanner = async () => {
     if (!scannerRef.current || !isScanning) return
-
+    
     try {
       await scannerRef.current.stop()
-      await scannerRef.current.clear()
       scannerRef.current = null
-      setIsScanning(false)
     } catch (err: unknown) {
       const error = err as Html5QrcodeError;
       if (!error.message.includes('not running')) {
         console.error("Erreur lors de l'arrêt du scanner:", error)
       }
+    } finally {
+      setIsScanning(false)
     }
   }
 
@@ -99,7 +85,8 @@ export function QRScanner() {
     await stopScanner()
     setScanResult(null)
     setError(null)
-    lastScannedCode.current = ''
+    isProcessing.current = false
+    
     if (availableCameras.length > 0) {
       await startScan(availableCameras[activeCameraIndex].id)
     }
@@ -111,20 +98,11 @@ export function QRScanner() {
     await resetScanner()
   }
 
-  const testWithMockQR = async () => {
-    const mockQR = "zEYxiVGZA_gGGKReu1907"
-    console.log("🔍 Test avec QR code mock:", mockQR)
-    await handleScanSuccess(mockQR)
-  }
-
   const handleScanSuccess = async (decodedText: string) => {
     try {
       setScanResult(decodedText)
-      await stopScanner()
-
       const gymId = window.location.pathname.split('/')[2]
-      if (!gymId) throw new Error("Impossible de déterminer la salle de sport")
-
+      
       const response = await fetch('/api/validate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -136,17 +114,14 @@ export function QRScanner() {
       if (data.accessGranted) {
         toast.success(`Accès autorisé pour ${data.member.name}`)
       } else {
-        toast.error(`Accès refusé: ${data.subscription?.status === 'inactive' ? 'Abonnement inactif' : 'Abonnement expiré'}`)
+        toast.error(`Accès refusé: ${data.reason || 'Raison inconnue'}`)
       }
 
       router.push(`/scan/${gymId}/result?name=${encodeURIComponent(data.member.name)}&status=${data.subscriptionStatus}`)
-
     } catch (error) {
-      console.error("Erreur complète:", error)
-      setError("Échec de la validation du badge")
-      if (availableCameras.length > 0) {
-        await startScan(availableCameras[activeCameraIndex].id)
-      }
+      console.error("Erreur:", error)
+      setError("Échec de la validation")
+      await resetScanner()
     }
   }
 
@@ -155,7 +130,7 @@ export function QRScanner() {
 
     const setupScanner = async () => {
       try {
-        const { Html5Qrcode, cameras } = await initScanner()
+        const cameras = await initScanner()
         if (isMounted && cameras.length > 0) {
           const backCamIndex = cameras.findIndex(cam =>
             cam.label.toLowerCase().includes('back') || cam.label.toLowerCase().includes('rear')
@@ -165,7 +140,7 @@ export function QRScanner() {
           await startScan(cameras[indexToUse].id)
         }
       } catch (err) {
-        console.error('Setup error:', err)
+        console.error('Erreur initialisation:', err)
       }
     }
 
@@ -182,25 +157,20 @@ export function QRScanner() {
       <div id="qr-scanner-container" className="w-full aspect-video rounded-lg overflow-hidden border bg-black" />
 
       <div className="flex flex-col gap-2">
-        <div className="flex gap-2">
-          <Button onClick={resetScanner} className="flex-1 gap-2" disabled={!isScanning || isTransitioning}>
-            <RotateCw className="h-4 w-4" />
-            Redémarrer
-          </Button>
-
-          {availableCameras.length > 1 && (
-            <Button onClick={switchCamera} className="flex-1 gap-2" disabled={!isScanning || isTransitioning}>
-              <Camera className="h-4 w-4" />
-              Changer caméra ({activeCameraIndex + 1}/{availableCameras.length})
-            </Button>
-          )}
-        </div>
-
-        <Button onClick={testWithMockQR} className="w-full gap-2" variant="secondary">
-          <span>🔍</span> Tester avec QR code de test
+        <Button onClick={resetScanner} className="w-full gap-2">
+          <RotateCw className="h-4 w-4" />
+          {isScanning ? 'Redémarrer' : 'Activer le scanner'}
         </Button>
+
+        {availableCameras.length > 1 && (
+          <Button onClick={switchCamera} className="w-full gap-2">
+            <Camera className="h-4 w-4" />
+            Changer de caméra
+          </Button>
+        )}
       </div>
 
+      {/* Affichage des erreurs et résultats */}
       {error && (
         <div className="p-4 bg-red-50 rounded-lg flex items-center gap-3">
           <X className="h-5 w-5 text-red-600" />
