@@ -67,14 +67,20 @@ export default function DashboardContent({ gymId }: { gymId: string }) {
   return (
     <Card className="border-0 bg-gradient-to-r from-[#1a2e3a] to-[#0d1a23] text-white">
       <CardHeader>
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-          <div>
-            <CardTitle className="text-xl sm:text-2xl font-bold">{gym?.name}</CardTitle>
-            <p className="text-xs sm:text-sm text-gray-300">{gym?.address}</p>
-          </div>
-          <AddMemberButton gymId={gymId} />
-        </div>
-      </CardHeader>
+  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+    <div
+      className="p-4 rounded-xl border border-green-500 bg-gradient-to-r from-green-100/10 via-green-200/10 to-green-100/10 shadow-md"
+    >
+      <CardTitle className="text-xl sm:text-2xl font-bold text-green-300">
+        {gym?.name}
+      </CardTitle>
+      <p className="text-xs sm:text-sm text-green-200">{gym?.address}</p>
+    </div>
+
+    <AddMemberButton gymId={gymId} />
+  </div>
+</CardHeader>
+
 
       <CardContent className="space-y-6">
         <AnimatedCards stats={stats} />

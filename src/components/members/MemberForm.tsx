@@ -287,14 +287,6 @@ export function MemberForm({
       {/* Submit */}
       <div className="flex justify-end gap-2 pt-4">
         <Button 
-          type="button" 
-          variant="outline"
-          onClick={() => router.push(`/gyms/${gymId}/dashboard`)}
-          disabled={isSubmitting || isUploading}
-        >
-          Annuler
-        </Button>
-        <Button 
           type="submit" 
           disabled={isSubmitting || isUploading}
         >
