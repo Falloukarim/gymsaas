@@ -307,11 +307,6 @@ headerGradient.addColorStop(1, BADGE_CONFIG.colors.primaryDark);  // extérieur 
   ctx.fillStyle = BADGE_CONFIG.colors.white;
   ctx.font = BADGE_CONFIG.fonts.code;
   ctx.textAlign = 'left';
-  ctx.fillText(
-    `ID: ${member.id.replace(/-/g, '').substring(0, 8).toUpperCase()}`,
-    card.x + 30,
-    card.y + headerHeight - 15
-  );
 
   // Section principale du badge
   const mainContentY = card.y + headerHeight + 40;
