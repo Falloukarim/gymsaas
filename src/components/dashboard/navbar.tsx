@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -40,11 +41,9 @@ export default function Navbar() {
 
   const getImageUrl = (url: string | null) => {
     if (!url) return '';
-    
     if (url.startsWith('http')) {
       return `/api/image-proxy?url=${encodeURIComponent(url)}`;
     }
-    
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
     const fullUrl = `${supabaseUrl}/storage/v1/object/public/avatars/${url}`;
     return `/api/image-proxy?url=${encodeURIComponent(fullUrl)}`;
@@ -127,13 +126,12 @@ export default function Navbar() {
     userData?.email?.charAt(0).toUpperCase() ||
     'U';
 
-  // Fermer le dropdown quand on clique sur un lien
   const handleLinkClick = () => {
     setDropdownOpen(false);
   };
 
   return (
-    <header className="sticky top-0 z-50 h-14 bg-[#0d1a23]/90 backdrop-blur-sm flex items-center justify-between px-4 border-b border-gray-800 w-full">
+    <header className="relative sticky top-0 z-50 h-14 bg-[#0d1a23]/90 backdrop-blur-sm flex items-center justify-between px-4 border-b border-gray-800 w-full">
       {/* Menu burger mobile */}
       <button
         onClick={toggle}
@@ -143,20 +141,27 @@ export default function Navbar() {
         <Menu className="h-6 w-6" />
       </button>
 
-      {/* Logo SG */}
-      <div className="flex items-center gap-4 w-full max-w-sm">
-        <Link href={gymId ? `/gyms/${gymId}/dashboard` : '#'} className="hidden md:flex">
+      {/* Logo centré */}
+      <div className="absolute left-1/2 transform -translate-x-1/2 z-40">
+        <Link href={gymId ? `/gyms/${gymId}/dashboard` : '/'}>
           <motion.div
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             className="flex items-center gap-2 cursor-pointer"
           >
+            <Image
+              src="/logo5.png" // 🖼️ Remplace par le chemin correct si nécessaire
+              alt="Logo EasyFit"
+              width={70}
+              height={40}
+              className="object-contain"
+            />
           </motion.div>
         </Link>
       </div>
 
       {/* Actions à droite */}
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-3 ml-auto">
         {/* Scanner QR */}
         <Dialog open={scannerOpen} onOpenChange={setScannerOpen}>
           <DialogTrigger asChild>
@@ -173,7 +178,7 @@ export default function Navbar() {
           </DialogContent>
         </Dialog>
 
-        {/* Notifications (placeholder) */}
+        {/* Notifications */}
         <button
           className="rounded-full p-2 text-gray-400 hover:text-white transition"
           aria-label="Notifications"
@@ -189,7 +194,7 @@ export default function Navbar() {
             aria-label="Menu utilisateur"
           >
             <Avatar className="h-8 w-8">
-              <AvatarImage 
+              <AvatarImage
                 src={getImageUrl(userData?.avatar_url || null)}
                 onError={(e) => {
                   e.currentTarget.src = '';

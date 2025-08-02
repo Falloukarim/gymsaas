@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { InteractiveHoverButton } from "@/components/magicui/interactive-hover-button";
 import { usePathname } from "next/navigation";
 import { Menu, X } from "lucide-react";
+import Image from "next/image";
 
 export default function Header() {
   const [scrolled, setScrolled] = useState(false);
@@ -50,7 +51,15 @@ export default function Header() {
             whileTap={{ scale: 0.95 }}
             className="flex items-center gap-2 cursor-pointer"
           >
-            {/* Votre logo ici */}
+            <div className="relative w-20 h-20">
+              <Image
+                src="/logo1.png" // Remplacez par le chemin de votre logo
+                alt="SENGYM Logo"
+                fill
+                className="object-contain"
+                priority
+              />
+            </div>
           </motion.div>
         </Link>
 

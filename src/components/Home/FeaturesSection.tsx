@@ -4,8 +4,8 @@ import { motion } from "framer-motion";
 
 const features = [
   { title: "Gestion des membres", description: "Ajoutez, modifiez et suivez les abonnements de vos membres.", icon: "👥" },
-  { title: "Suivi des paiements", description: "Visualisez les paiements en attente et les renouvellements.", icon: "💳" },
-  { title: "Planification de cours", description: "Organisez vos cours collectifs avec des horaires précis.", icon: "📅" },
+  { title: "Suivi des paiements", description: "Visualisez les paiements, statistisques journalier et mensuel.", icon: "💳" },
+  { title: "Planification et attibution de roles", description: "Organisez votre salle de gym en toute quiétude.", icon: "📅" },
 ];
 
 export default function FeaturesSection() {
