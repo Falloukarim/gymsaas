@@ -1,6 +1,6 @@
 {
-  "name": "SENGYM",
-  "short_name": "Gym",
+  "name": "EasyFit",
+  "short_name": "EasyFit",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#0d1a23",

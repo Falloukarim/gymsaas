@@ -39,18 +39,16 @@ export default function Navbar() {
   const gymId = pathname?.split('/')[2] || '';
 
   const getImageUrl = (url: string | null) => {
-  if (!url) return '';
-  
-  // Vérifie si l'URL est déjà une URL complète
-  if (url.startsWith('http')) {
-    return `/api/image-proxy?url=${encodeURIComponent(url)}`;
-  }
-  
-  // Si c'est un chemin relatif, construisez l'URL complète
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const fullUrl = `${supabaseUrl}/storage/v1/object/public/avatars/${url}`;
-  return `/api/image-proxy?url=${encodeURIComponent(fullUrl)}`;
-};
+    if (!url) return '';
+    
+    if (url.startsWith('http')) {
+      return `/api/image-proxy?url=${encodeURIComponent(url)}`;
+    }
+    
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const fullUrl = `${supabaseUrl}/storage/v1/object/public/avatars/${url}`;
+    return `/api/image-proxy?url=${encodeURIComponent(fullUrl)}`;
+  };
 
   const fetchUser = async () => {
     const supabase = createClient();
@@ -124,14 +122,15 @@ export default function Navbar() {
     }
   };
 
-  useEffect(() => {
-    console.log('Current avatar URL:', userData?.avatar_url);
-  }, [userData?.avatar_url]);
-
   const getInitials = () =>
     userData?.full_name?.charAt(0).toUpperCase() ||
     userData?.email?.charAt(0).toUpperCase() ||
     'U';
+
+  // Fermer le dropdown quand on clique sur un lien
+  const handleLinkClick = () => {
+    setDropdownOpen(false);
+  };
 
   return (
     <header className="sticky top-0 z-50 h-14 bg-[#0d1a23]/90 backdrop-blur-sm flex items-center justify-between px-4 border-b border-gray-800 w-full">
@@ -227,6 +226,7 @@ export default function Navbar() {
 
                   <Link
                     href={gymId ? `/gyms/${gymId}/profile` : '#'}
+                    onClick={handleLinkClick}
                     className="flex items-center px-3 py-2 hover:bg-gray-800/50"
                   >
                     <User className="h-4 w-4 mr-2" />

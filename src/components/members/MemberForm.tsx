@@ -269,11 +269,21 @@ export function MemberForm({
               </SelectTrigger>
               <SelectContent>
                 {subscriptions.map((sub) => (
-                  <SelectItem key={sub.id} value={sub.id}>
-                    {sub.is_session
-                      ? `Session: ${sub.description ?? 'Accès journée'} (${sub.price ?? '---'} FCFA)`
-                      : `Abonnement ${sub.type} (${sub.price ?? '---'} FCFA)`}
-                  </SelectItem>
+                <SelectItem 
+  key={sub.id} 
+  value={sub.id}
+  className="truncate"
+>
+  <div className="flex flex-col">
+    <span className="font-medium truncate">
+      {sub.is_session ? 'Session' : `Abonnement ${sub.type}`}
+    </span>
+    <span className="text-sm text-gray-500 truncate">
+      {sub.description && `${sub.description} • `}
+      {sub.price ? `${sub.price} FCFA` : '---'}
+    </span>
+  </div>
+</SelectItem>
                 ))}
               </SelectContent>
             </Select>
