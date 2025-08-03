@@ -3,12 +3,14 @@ import { notFound } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import Link from 'next/link';
-import { ArrowLeft, Edit, Calendar, CreditCard, User, Activity } from 'lucide-react';
+import { ArrowLeft, Edit, Calendar, CreditCard, User, Activity, Clock, Mail, Phone } from 'lucide-react';
 import { SubscriptionStatusBadge } from '@/components/subscription-status-badge';
 import { QRCodeGenerator } from '@/components/members/QRCodeGenerator';
 import { DownloadMemberBadgeButton } from '@/components/members/DownloadMemberBadgeButton';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 
 interface Payment {
   id: string;
@@ -59,7 +61,6 @@ function isSubscription(sub: MemberSubscription): boolean {
   const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
   return diffDays > 1;
 }
-
 export default async function MemberDetailPage({
   params: resolvedParams,
 }: {

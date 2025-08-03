@@ -142,23 +142,24 @@ export default function Navbar() {
       </button>
 
       {/* Logo centré */}
-      <div className="absolute left-1/2 transform -translate-x-1/2 z-40">
-        <Link href={gymId ? `/gyms/${gymId}/dashboard` : '/'}>
-          <motion.div
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            className="flex items-center gap-2 cursor-pointer"
-          >
-            <Image
-              src="/logo5.png" // 🖼️ Remplace par le chemin correct si nécessaire
-              alt="Logo EasyFit"
-              width={70}
-              height={40}
-              className="object-contain"
-            />
-          </motion.div>
-        </Link>
-      </div>
+        <div className="z-40">
+          <Link href={gymId ? `/gyms/${gymId}/dashboard` : '/'}>
+            <motion.div
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              className="flex items-center gap-2 cursor-pointer"
+            >
+              <Image
+                src="/logo5.png" 
+                alt="Logo EasyFit"
+                width={70}
+                height={40}
+                className="object-contain"
+                priority
+              />
+            </motion.div>
+          </Link>
+        </div>
 
       {/* Actions à droite */}
       <div className="flex items-center gap-3 ml-auto">

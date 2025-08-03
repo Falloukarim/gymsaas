@@ -84,25 +84,21 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  // 4. Si authentifié mais sur une route publique (sauf post-login)
   if (PUBLIC_PATHS.some(path => request.nextUrl.pathname.startsWith(path))) {
     return NextResponse.redirect(new URL('/gyms/select', request.url))
   }
 
-  // 5. Récupération des associations gbus
   const { data: gbus } = await supabase
     .from('gbus')
     .select('gym_id, role')
     .eq('user_id', user.id)
     .order('created_at', { ascending: false })
 
-  // 6. Routes autorisées sans gbus
   if ((!gbus || gbus.length === 0) && 
       !ALLOWED_WITHOUT_GBUS.some(path => request.nextUrl.pathname.startsWith(path))) {
     return NextResponse.redirect(new URL('/gyms/select', request.url))
   }
 
-  // 7. Vérification des permissions pour /gyms/[id]
   if (request.nextUrl.pathname.startsWith('/gyms/') && 
       !POST_LOGIN_PATHS.some(p => request.nextUrl.pathname.startsWith(p))) {
     
@@ -122,16 +118,13 @@ export async function middleware(request: NextRequest) {
       return NextResponse.redirect(new URL('/gyms/select', request.url))
     }
 
-    // 8. NOUVEAU: Vérification de l'abonnement Paydunya
     if (!ALLOWED_WITHOUT_SUBSCRIPTION.includes(request.nextUrl.pathname)) {
-    // Modifiez la sélection des données du gym
 const { data: gym } = await supabase
   .from('gyms')
   .select('subscription_active, trial_end_date, trial_used')
   .eq('id', gymId)
   .single();
 
-// Nouvelle condition de vérification
 const isTrialActive = gym?.trial_end_date 
   && new Date(gym.trial_end_date) > new Date() 
   && gym.trial_used === false;

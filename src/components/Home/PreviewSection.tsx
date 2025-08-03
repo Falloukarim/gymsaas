@@ -1,171 +1,141 @@
-"use client";
+'use client';
 
-import { motion } from "framer-motion";
-import Image from "next/image";
-import { BarChart2, Users, Clock, DollarSign, Shield, Activity, Calendar } from "lucide-react";
+import { motion } from 'framer-motion';
+import { Play, BarChart2, Users, CreditCard, Shield, CheckCircle } from 'lucide-react';
 
 export default function PreviewSection() {
-  const features = [
+  const processSteps = [
     {
-      icon: <BarChart2 className="w-8 h-8 text-cyan-400" />,
-      title: "Analytique en Temps Réel",
-      description: "Visualisation claire des performances quotidiennes et mensuelles avec comparaisons"
+      icon: <Users className="w-5 h-5 text-cyan-400" />,
+      title: "1. Gestion des Membres",
+      description: "Enregistrement simplifié des adhérents avec création de profils complets"
     },
     {
-      icon: <Users className="w-8 h-8 text-cyan-400" />,
-      title: "Gestion des Abonnés",
-      description: "Suivi des membres actifs/inactifs et création d'abonnements personnalisés"
+      icon: <CreditCard className="w-5 h-5 text-cyan-400" />,
+      title: "2. Abonnements",
+      description: "Configuration flexible des formules avec suivi des paiements et renouvellements"
     },
     {
-      icon: <DollarSign className="w-8 h-8 text-cyan-400" />,
-      title: "Suivi Financier",
-      description: "Revenus journaliers/mensuels avec comparaison période à période"
+      icon: <CheckCircle className="w-5 h-5 text-cyan-400" />,
+      title: "3. Accès en Temps Réel",
+      description: "Validation instantanée des badges avec notification des entrées/sorties"
     },
     {
-      icon: <Clock className="w-8 h-8 text-cyan-400" />,
-      title: "Historique Complet",
-      description: "Journal détaillé de toutes les entrées/sorties avec timestamp précis"
+      icon: <BarChart2 className="w-5 h-5 text-cyan-400" />,
+      title: "4. Analytique",
+      description: "Tableaux de bord personnalisables pour suivre toutes vos métriques clés"
     },
     {
-      icon: <Shield className="w-8 h-8 text-cyan-400" />,
-      title: "Sécurité Renforcée",
-      description: "Contrôle d'accès et traçabilité de chaque entrée dans vos locaux"
-    },
-    {
-      icon: <Activity className="w-8 h-8 text-cyan-400" />,
-      title: "Alertes Intelligentes",
-      description: "Notifications pour activités anormales ou pics de fréquentation"
+      icon: <Shield className="w-5 h-5 text-cyan-400" />,
+      title: "5. Sécurité",
+      description: "Historique complet des activités et contrôle d'accès granularisé"
     }
   ];
 
   return (
-    <section className="relative z-10 px-6 py-16 max-w-7xl mx-auto">
-      <div className="text-center mb-20">
+    <section className="relative z-10 px-6 py-20 max-w-7xl mx-auto">
+      <div className="text-center mb-16">
         <motion.h2
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
           className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-cyan-400 to-blue-500 bg-clip-text text-transparent mb-6"
         >
-          Gestion Intelligente de Votre Salle
+          Découvrez Notre Interface
         </motion.h2>
-        
         <motion.p
           initial={{ opacity: 0 }}
           whileInView={{ opacity: 1 }}
           transition={{ duration: 0.5, delay: 0.2 }}
           className="text-xl text-gray-300 max-w-3xl mx-auto"
         >
-          Un système complet pour optimiser et sécuriser vos opérations au quotidien
+          Une plateforme intuitive conçue pour simplifier la gestion quotidienne de votre salle
         </motion.p>
       </div>
 
-      {/* Features Grid */}
-      <motion.div
-        initial={{ opacity: 0 }}
-        whileInView={{ opacity: 1 }}
-        transition={{ staggerChildren: 0.1 }}
-        className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-20"
-      >
-        {features.map((feature, index) => (
-          <motion.div
-            key={index}
-            initial={{ y: 30, opacity: 0 }}
-            whileInView={{ y: 0, opacity: 1 }}
-            transition={{ duration: 0.5, delay: index * 0.1 }}
-            whileHover={{ y: -5 }}
-            className="bg-white/5 rounded-xl p-8 backdrop-blur-sm border border-white/10 hover:border-cyan-400/30 transition-all"
-          >
-            <div className="flex items-start gap-4">
-              <div className="p-2 bg-cyan-500/10 rounded-lg">
-                {feature.icon}
-              </div>
-              <div>
-                <h3 className="text-xl font-bold text-white mb-2">{feature.title}</h3>
-                <p className="text-gray-400">{feature.description}</p>
-              </div>
+      {/* Video + Process Section */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center mb-20">
+        {/* Video Demo */}
+        <motion.div
+          initial={{ opacity: 0, x: -30 }}
+          whileInView={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.6 }}
+          className="relative rounded-2xl overflow-hidden shadow-2xl"
+        >
+          <div className="aspect-video bg-black/20 flex items-center justify-center">
+            {/* Remplacez par votre composant vidéo ou iframe */}
+            <div className="absolute inset-0 flex items-center justify-center">
+              <button className="w-16 h-16 md:w-20 md:h-20 rounded-full bg-cyan-500/90 hover:bg-cyan-400 transition-all flex items-center justify-center shadow-lg">
+                <Play className="w-8 h-8 text-white ml-1" />
+              </button>
             </div>
-          </motion.div>
-        ))}
-      </motion.div>
+            <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent" />
+            <div className="text-white text-lg absolute bottom-6 left-6">
+              Démo : Dashboard & Badges
+            </div>
+          </div>
+        </motion.div>
 
-      {/* Visual Previews */}
-<motion.div
-  initial={{ opacity: 0 }}
-  whileInView={{ opacity: 1 }}
-  transition={{ duration: 0.8, staggerChildren: 0.2 }}
-  className="grid grid-cols-1 gap-12"
->
-  {/* Première image */}
-  <motion.div
-    initial={{ y: 50, opacity: 0 }}
-    whileInView={{ y: 0, opacity: 1 }}
-    transition={{ duration: 0.6 }}
-    whileHover={{ scale: 1.02 }}
-    className="relative overflow-hidden rounded-2xl shadow-2xl"
-  >
-    <Image
-      src="/dashboard-stats.png"
-      alt="Dashboard analytique affichant statistiques d'abonnement et revenus"
-      width={800}
-      height={500}
-      className="w-full h-auto object-cover"
-    />
-    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-6">
-      <h3 className="text-white text-2xl font-bold mb-2">Tableau de Bord Complet</h3>
-      <p className="text-gray-300">
-        Visualisation en temps réel des KPIs clés : abonnements, revenus, fréquentation
-      </p>
-    </div>
-  </motion.div>
+        {/* Process Description */}
+        <motion.div
+          initial={{ opacity: 0, x: 30 }}
+          whileInView={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.6, delay: 0.2 }}
+          className="space-y-8"
+        >
+          <h3 className="text-2xl font-bold text-white">
+            Flux de travail optimisé
+          </h3>
+          <p className="text-gray-300 leading-relaxed">
+            Notre interface unifiée permet de gérer l'ensemble du cycle client en quelques clics, 
+            depuis l'inscription jusqu'au suivi analytique, avec une prise en main immédiate.
+          </p>
 
-  {/* Deuxième image */}
-  <motion.div
-    initial={{ y: 50, opacity: 0 }}
-    whileInView={{ y: 0, opacity: 1 }}
-    transition={{ duration: 0.6, delay: 0.2 }}
-    whileHover={{ scale: 1.02 }}
-    className="relative overflow-hidden rounded-2xl shadow-2xl"
-  >
-    <Image
-      src="/mockup-dashboard.png"
-      alt="Interface de gestion et badges d'accès"
-      width={800}
-      height={500}
-      className="w-full h-auto object-cover"
-    />
-    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-6">
-      <h3 className="text-white text-2xl font-bold mb-2">Gestion des Accès</h3>
-      <p className="text-gray-300">
-        Système de badges et historique détaillé de toutes les entrées/sorties
-      </p>
-    </div>
-  </motion.div>
-</motion.div>
+          <div className="space-y-6">
+            {processSteps.map((step, index) => (
+              <motion.div
+                key={index}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4, delay: index * 0.1 }}
+                className="flex items-start gap-4"
+              >
+                <div className="p-2 bg-cyan-500/10 rounded-lg mt-1">
+                  {step.icon}
+                </div>
+                <div>
+                  <h4 className="text-lg font-semibold text-white mb-1">{step.title}</h4>
+                  <p className="text-gray-400">{step.description}</p>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        </motion.div>
+      </div>
 
-      {/* Stats Preview */}
+      {/* Stats Section */}
       <motion.div
         initial={{ opacity: 0, y: 30 }}
         whileInView={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
-        className="mt-20 bg-gradient-to-r from-cyan-500/10 to-blue-500/10 rounded-2xl p-8 border border-cyan-400/20"
+        className="bg-gradient-to-r from-cyan-500/10 to-blue-500/10 rounded-2xl p-8 border border-cyan-400/20"
       >
         <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
           <div>
             <div className="text-4xl font-bold text-cyan-400 mb-2">24/7</div>
-            <p className="text-gray-400">Surveillance</p>
-          </div>
-          <div>
-            <div className="text-4xl font-bold text-cyan-400 mb-2">99.9%</div>
             <p className="text-gray-400">Disponibilité</p>
           </div>
           <div>
-            <div className="text-4xl font-bold text-cyan-400 mb-2">+500</div>
-            <p className="text-gray-400">Entrées journalières</p>
+            <div className="text-4xl font-bold text-cyan-400 mb-2">95%</div>
+            <p className="text-gray-400">Réduction tâches administratives</p>
           </div>
           <div>
             <div className="text-4xl font-bold text-cyan-400 mb-2">30s</div>
-            <p className="text-gray-400">Temps de réponse</p>
+            <p className="text-gray-400">Création badge</p>
+          </div>
+          <div>
+            <div className="text-4xl font-bold text-cyan-400 mb-2">100%</div>
+            <p className="text-gray-400">Données sécurisées</p>
           </div>
         </div>
       </motion.div>
