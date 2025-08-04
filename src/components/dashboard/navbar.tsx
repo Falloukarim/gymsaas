@@ -150,7 +150,7 @@ export default function Navbar() {
               className="flex items-center gap-2 cursor-pointer"
             >
               <Image
-                src="/logo5.png" 
+                src="/logo1.jpeg" 
                 alt="Logo EasyFit"
                 width={70}
                 height={40}

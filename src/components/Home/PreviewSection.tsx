@@ -80,7 +80,7 @@ export default function PreviewSection() {
       <div className="absolute inset-0 -z-10 overflow-hidden rounded-2xl">
         <div className="absolute inset-0 bg-[#01012b]/40 rounded-2xl" />
         <Image
-          src="/gym-background.jpeg"
+          src="/gym-backgrounde.jpeg"
           alt="Salle de sport moderne"
           fill
           className="object-cover rounded-2xl"

@@ -330,9 +330,9 @@ export default async function MemberDetailPage({
   member={{
     id: member.id,
     full_name: member.full_name,
-    phone: member.phone, // Added required field
-    created_at: member.created_at, // Added required field
-    has_subscription: !!activeSubscription, // Added required field
+    phone: member.phone, 
+    created_at: member.created_at, 
+    has_subscription: !!activeSubscription, 
     avatar_url: member.avatar_url,
     qr_code: member.qr_code,
     gyms: member.gyms ? {

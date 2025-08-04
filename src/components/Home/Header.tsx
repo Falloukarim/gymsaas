@@ -72,15 +72,18 @@ export default function Header() {
             whileTap={{ scale: 0.95 }}
             className="flex items-center gap-2 cursor-pointer"
           >
-            <div className="relative w-20 h-20">
-              <Image
-                src="/logo1.png"
-                alt="EasyFit"
-                fill
-                className="object-contain"
-                priority
-              />
-            </div>
+<div className="relative w-32 h-16 rounded-xl overflow-hidden bg-transparent">
+  <Image
+    src="/logo1.jpeg"
+    alt="EasyFit"
+    fill
+    className="object-contain"
+    priority
+  />
+</div>
+
+
+
           </motion.div>
         </Link>
 
