@@ -68,84 +68,70 @@ export default function HeroSection() {
       </div>
 
       <div className="max-w-7xl mx-auto relative z-10">
-        <motion.div
-          initial="hidden"
-          animate="visible"
-          variants={staggerContainer}
-          className="flex flex-col items-center"
-        >
-          {/* Titrage principal */}
-          <motion.div 
-            variants={textVariants}
-            className="text-center mb-16 px-4"
-          >
-            <motion.h1
-              className="text-4xl md:text-6xl lg:text-7xl font-bold leading-tight mb-6"
-              initial={{ opacity: 0, y: 50 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8 }}
-            >
-              <span className="block bg-gradient-to-r from-cyan-400 to-blue-500 bg-clip-text text-transparent">
-                Optimisez Votre Salle
-              </span>
-              <span className="block text-white mt-2">
-                Avec une Solution Complète
-              </span>
-            </motion.h1>
+      <motion.div 
+  variants={textVariants}
+  className="w-full max-w-5xl px-4"
+>
+  <motion.div
+    className="relative bg-gradient-to-br from-[#0a0a2a] to-[#01012b] border border-white/10 rounded-2xl p-8 md:p-10 overflow-hidden"
+    whileHover={{
+      boxShadow: '0 20px 50px -10px rgba(34, 211, 238, 0.2)',
+      borderColor: 'rgba(34, 211, 238, 0.3)'
+    }}
+    transition={{ duration: 0.5, ease: 'easeInOut' }}
+  >
+    {/* Effet de lumière au survol */}
+    <motion.div
+      className="absolute inset-0 pointer-events-none"
+      initial={{ opacity: 0 }}
+      whileHover={{ opacity: 1 }}
+      transition={{ duration: 0.5 }}
+    >
+      <div className="absolute top-1/2 left-1/2 w-full h-full bg-[radial-gradient(circle_at_center,rgba(34,211,238,0.1)_0%,transparent_70%)] transform -translate-x-1/2 -translate-y-1/2" />
+    </motion.div>
 
-            <motion.p
-              className="text-lg md:text-xl text-gray-300 max-w-3xl mx-auto leading-relaxed"
-              variants={textVariants}
-            >
-              <span className="font-medium text-white">EasyFit Pro</span> transforme la gestion des salles de sport grâce à une plateforme <span className="text-cyan-400">intuitive et puissante</span>, spécialement conçue pour les professionnels.
-            </motion.p>
-          </motion.div>
+    {/* Bordure animée */}
+    <motion.div
+      className="absolute inset-0 rounded-2xl pointer-events-none"
+      style={{
+        background: 'linear-gradient(90deg, rgba(34,211,238,0) 0%, rgba(34,211,238,0.3) 50%, rgba(34,211,238,0) 100%)',
+        opacity: 0
+      }}
+      whileHover={{
+        opacity: 1,
+        transition: { duration: 0.8 }
+      }}
+    />
 
-          {/* Grille de fonctionnalités */}
-          <motion.div
-            variants={staggerContainer}
-            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-16 w-full max-w-6xl px-4"
-          >
-            {features.map((feature, index) => (
-              <motion.div
-                key={index}
-                variants={textVariants}
-                whileHover={{ y: -8 }}
-                className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-6 hover:border-cyan-400/30 transition-all duration-300 hover:shadow-lg hover:shadow-cyan-500/10"
-              >
-                <div className="flex items-start gap-4">
-                  <div className="p-2 bg-cyan-500/10 rounded-lg">
-                    {feature.icon}
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-semibold text-white mb-1">{feature.title}</h3>
-                    <p className="text-sm text-gray-400">{feature.description}</p>
-                  </div>
-                </div>
-              </motion.div>
-            ))}
-          </motion.div>
+    {/* Contenu */}
+    <div className="relative z-10">
+      <motion.h1
+        className="text-4xl md:text-6xl lg:text-7xl font-bold leading-tight mb-6"
+        initial={{ opacity: 0, y: 50 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.8 }}
+      >
+        <span className="block bg-gradient-to-r from-cyan-400 to-blue-500 bg-clip-text text-transparent">
+          Optimisez Votre Salle
+        </span>
+        <span className="block text-white mt-2">
+          Avec une Solution Complète
+        </span>
+      </motion.h1>
 
-          {/* CTA principal */}
-          <motion.div
-            variants={textVariants}
-            className="flex flex-col items-center gap-8 w-full px-4"
-          >
-            <motion.button
-              whileHover={{ scale: 1.03, boxShadow: "0 10px 25px -5px rgba(34, 211, 238, 0.3)" }}
-              whileTap={{ scale: 0.98 }}
-              onClick={() => router.push('/register')}
-              className="flex items-center gap-3 px-8 py-4 bg-gradient-to-r from-cyan-500 to-blue-600 rounded-xl font-medium text-white transition-all duration-300"
-            >
-              <span>Démarrer gratuitement</span>
-              <ArrowRight className="w-5 h-5" />
-            </motion.button>
+      <motion.p
+        className="text-lg md:text-xl text-gray-300 max-w-3xl mx-auto leading-relaxed"
+        variants={textVariants}
+      >
+        <span className="font-medium text-white">EasyFit Pro</span> transforme la gestion des salles de sport grâce à une plateforme <span className="text-cyan-400">intuitive et puissante</span>, spécialement conçue pour les professionnels.
+      </motion.p>
+    </div>
 
-            <div className="w-full max-w-4xl">
-              <InfiniteScrollingTags />
-            </div>
-          </motion.div>
-        </motion.div>
+    {/* Points décoratifs */}
+    <div className="absolute -top-4 -right-4 w-8 h-8 rounded-full bg-cyan-500/20 blur-md" />
+    <div className="absolute -bottom-4 -left-4 w-12 h-12 rounded-full bg-blue-500/20 blur-md" />
+  </motion.div>
+</motion.div>
       </div>
 
       {/* Indicateur de scroll */}

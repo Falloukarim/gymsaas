@@ -7,8 +7,8 @@ import { ThemeProvider } from 'next-themes';
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "SENGYM",
-  description: "Application de gestion de salle de sport",
+  title: "EasyFit...",
+  description: "Gym manager",
   manifest: "/manifest.json",
 };
 

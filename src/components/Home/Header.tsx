@@ -5,7 +5,7 @@ import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import { InteractiveHoverButton } from "@/components/magicui/interactive-hover-button";
 import { usePathname } from "next/navigation";
-import { Menu, X } from "lucide-react";
+import { Menu, X, Box, Wallet, Mail, Sparkles, User } from "lucide-react";
 import Image from "next/image";
 
 export default function Header() {
@@ -34,6 +34,27 @@ export default function Header() {
     setMobileMenuOpen(false);
   };
 
+  const navItems = [
+    {
+      path: "/features",
+      name: "Fonctionnalités",
+      icon: <Sparkles className="w-5 h-5" />,
+      mobileIcon: <Sparkles className="w-6 h-6" />
+    },
+    {
+      path: "/pricing",
+      name: "Tarifs",
+      icon: <Wallet className="w-5 h-5" />,
+      mobileIcon: <Wallet className="w-6 h-6" />
+    },
+    {
+      path: "/contact",
+      name: "Contact",
+      icon: <Mail className="w-5 h-5" />,
+      mobileIcon: <Mail className="w-6 h-6" />
+    }
+  ];
+
   return (
     <motion.header
       initial={{ y: -80 }}
@@ -53,8 +74,8 @@ export default function Header() {
           >
             <div className="relative w-20 h-20">
               <Image
-                src="/logo1.png" // Remplacez par le chemin de votre logo
-                alt="SENGYM Logo"
+                src="/logo1.png"
+                alt="EasyFit"
                 fill
                 className="object-contain"
                 priority
@@ -64,37 +85,28 @@ export default function Header() {
         </Link>
 
         {/* Navigation Desktop */}
-        <nav className="hidden md:flex gap-8 text-sm font-medium">
-          <Link 
-            href="/features" 
-            className={`hover:text-cyan-300 transition ${
-              isActive("/features") ? "text-cyan-400 font-semibold" : "text-white"
-            }`}
-          >
-            Fonctionnalités
-          </Link>
-          <Link 
-            href="/pricing" 
-            className={`hover:text-cyan-300 transition ${
-              isActive("/pricing") ? "text-cyan-400 font-semibold" : "text-white"
-            }`}
-          >
-            Tarifs
-          </Link>
-          <Link 
-            href="/contact" 
-            className={`hover:text-cyan-300 transition ${
-              isActive("/contact") ? "text-cyan-400 font-semibold" : "text-white"
-            }`}
-          >
-            Contact
-          </Link>
+        <nav className="hidden md:flex gap-6">
+          {navItems.map((item) => (
+            <Link 
+              href={item.path} 
+              key={item.path}
+              className={`group flex flex-col items-center px-3 py-2 hover:text-cyan-300 transition ${
+                isActive(item.path) ? "text-cyan-400" : "text-white"
+              }`}
+            >
+              <div className="p-2 rounded-lg bg-white/5 group-hover:bg-cyan-500/10 transition">
+                {item.icon}
+              </div>
+              <span className="text-xs mt-1 font-medium">{item.name}</span>
+            </Link>
+          ))}
         </nav>
 
         {/* CTA Desktop */}
         <div className="hidden md:block">
           <Link href="/login">
             <InteractiveHoverButton className="bg-white text-[#01012b] hover:bg-gray-200 text-sm px-4 py-2">
+              <User className="w-4 h-4 mr-2" />
               Se connecter
             </InteractiveHoverButton>
           </Link>
@@ -104,7 +116,7 @@ export default function Header() {
         <div className="md:hidden flex items-center gap-4">
           <Link href="/login">
             <InteractiveHoverButton className="bg-white text-[#01012b] hover:bg-gray-200 text-sm px-3 py-1.5">
-              Connexion
+              <User className="w-4 h-4" />
             </InteractiveHoverButton>
           </Link>
           
@@ -128,34 +140,22 @@ export default function Header() {
             transition={{ duration: 0.3 }}
             className="md:hidden bg-[#01012b]/95 backdrop-blur-md overflow-hidden"
           >
-            <nav className="flex flex-col gap-4 p-6 text-center">
-              <Link 
-                href="/features" 
-                onClick={closeMobileMenu}
-                className={`py-3 hover:text-cyan-300 transition ${
-                  isActive("/features") ? "text-cyan-400 font-semibold" : "text-white"
-                }`}
-              >
-                Fonctionnalités
-              </Link>
-              <Link 
-                href="/pricing" 
-                onClick={closeMobileMenu}
-                className={`py-3 hover:text-cyan-300 transition ${
-                  isActive("/pricing") ? "text-cyan-400 font-semibold" : "text-white"
-                }`}
-              >
-                Tarifs
-              </Link>
-              <Link 
-                href="/contact" 
-                onClick={closeMobileMenu}
-                className={`py-3 hover:text-cyan-300 transition ${
-                  isActive("/contact") ? "text-cyan-400 font-semibold" : "text-white"
-                }`}
-              >
-                Contact
-              </Link>
+            <nav className="flex flex-col gap-2 p-4">
+              {navItems.map((item) => (
+                <Link 
+                  href={item.path} 
+                  key={item.path}
+                  onClick={closeMobileMenu}
+                  className={`flex items-center gap-4 px-4 py-3 rounded-lg hover:bg-white/5 transition ${
+                    isActive(item.path) ? "text-cyan-400 font-semibold" : "text-white"
+                  }`}
+                >
+                  <div className="p-2 rounded-lg bg-white/5">
+                    {item.mobileIcon}
+                  </div>
+                  <span>{item.name}</span>
+                </Link>
+              ))}
             </nav>
           </motion.div>
         )}
