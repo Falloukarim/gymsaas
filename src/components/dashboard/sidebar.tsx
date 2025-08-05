@@ -6,6 +6,9 @@ import { Home, Users, CreditCard, DoorOpen, Activity, X } from "lucide-react";
 import MotionSidebarButton from "@/components/ui/MotionSidebarButton";
 import { motion, AnimatePresence, Variants } from "framer-motion";
 import useIsMobile from "../../../hooks/useIsMobile";
+import { createClient } from "@/lib/supabaseClient";
+import { useEffect, useState } from "react";
+import { USER_ROLES } from "@/lib/constants/role";
 
 export default function Sidebar() {
   const pathname = usePathname();
@@ -13,6 +16,27 @@ export default function Sidebar() {
   const gymId = params.id;
   const { isOpen, close } = useSidebar();
   const isMobile = useIsMobile();
+  const [currentUserRole, setCurrentUserRole] = useState<string | null>(null);
+  const supabase = createClient();
+
+  useEffect(() => {
+    const fetchUserRole = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (user && gymId) {
+        const { data } = await supabase
+          .from("gbus")
+          .select("role")
+          .eq("gym_id", gymId)
+          .eq("user_id", user.id)
+          .single();
+        
+        setCurrentUserRole(data?.role || null);
+      }
+    };
+
+    fetchUserRole();
+  }, [gymId, supabase]);
 
   const navItems = [
     { href: `/gyms/${gymId}/dashboard`, icon: Home, label: "Dashboard" },
@@ -20,7 +44,9 @@ export default function Sidebar() {
     { href: `/gyms/${gymId}/subscriptions`, icon: CreditCard, label: "Abonnements" },
     { href: `/gyms/${gymId}/access-logs`, icon: DoorOpen, label: "Accès" },
     { href: `/gyms/${gymId}/payments`, icon: Activity, label: "Paiements" },
-    { href: `/gyms/${gymId}/roles`, icon: Users, label: "Rôles" },
+    ...(currentUserRole === USER_ROLES.OWNER
+      ? [{ href: `/gyms/${gymId}/roles`, icon: Users, label: "Rôles" }]
+      : []),
   ];
 
   const containerVariants: Variants = {
@@ -44,7 +70,6 @@ export default function Sidebar() {
     },
   };
 
-  // Fonction pour gérer le clic sur un lien
   const handleLinkClick = () => {
     if (isMobile) {
       close();
@@ -53,7 +78,6 @@ export default function Sidebar() {
 
   return (
     <>
-      {/* Overlay mobile */}
       <AnimatePresence>
         {isMobile && isOpen && (
           <motion.div
@@ -68,7 +92,6 @@ export default function Sidebar() {
         )}
       </AnimatePresence>
 
-      {/* Sidebar */}
       <AnimatePresence>
         {(isOpen || !isMobile) && (
           <motion.aside
@@ -80,7 +103,6 @@ export default function Sidebar() {
             className="fixed md:relative top-0 left-0 z-50 md:z-auto h-full
                        w-64 md:w-52 bg-[#00624f] shadow-lg border-r border-black-700 flex flex-col"
           >
-            {/* Close button mobile */}
             {isMobile && (
               <div className="flex justify-end p-2">
                 <button onClick={close}>
