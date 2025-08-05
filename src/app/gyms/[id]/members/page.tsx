@@ -9,12 +9,15 @@ import { Badge } from '@/components/ui/badge';
 import { ArrowLeft, Plus } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
+import { LoadingButton } from '@/components/LoadingButton';
 
 function MembersPage() {
   const params = useParams();
   const gymId = params.id as string;
   const [members, setMembers] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [initialLoading, setInitialLoading] = useState(true);
+  const [searchLoading, setSearchLoading] = useState(false);
+  const [isAddingMember, setIsAddingMember] = useState(false);
   const [search, setSearch] = useState('');
   const supabase = createClient();
 
@@ -37,7 +40,7 @@ function MembersPage() {
   useEffect(() => {
     const fetchMembers = async () => {
       try {
-        setLoading(true);
+        setInitialLoading(true);
         const { data, error } = await supabase
           .from('members')
           .select(`
@@ -56,7 +59,8 @@ function MembersPage() {
       } catch (error) {
         console.error('Error fetching members:', error);
       } finally {
-        setLoading(false);
+        setInitialLoading(false);
+        setSearchLoading(false);
       }
     };
 
@@ -65,22 +69,22 @@ function MembersPage() {
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
+    setSearchLoading(true);
     const formData = new FormData(e.currentTarget as HTMLFormElement);
     setSearch(formData.get('q') as string);
   };
-      const getImageUrl = (url: string | null) => {
-  if (!url) return '';
-  
-  // Vérifie si l'URL est déjà une URL complète
-  if (url.startsWith('http')) {
-    return `/api/image-proxy?url=${encodeURIComponent(url)}`;
-  }
-  
-  // Si c'est un chemin relatif, construisez l'URL complète
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const fullUrl = `${supabaseUrl}/storage/v1/object/public/avatars/${url}`;
-  return `/api/image-proxy?url=${encodeURIComponent(fullUrl)}`;
-};
+
+  const getImageUrl = (url: string | null) => {
+    if (!url) return '';
+    
+    if (url.startsWith('http')) {
+      return `/api/image-proxy?url=${encodeURIComponent(url)}`;
+    }
+    
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const fullUrl = `${supabaseUrl}/storage/v1/object/public/avatars/${url}`;
+    return `/api/image-proxy?url=${encodeURIComponent(fullUrl)}`;
+  };
 
   return (
     <div className="p-4 sm:p-6 max-w-6xl mx-auto space-y-6">
@@ -102,9 +106,14 @@ function MembersPage() {
               Gestion des membres de votre salle de sport
             </p>
             <Link href={`/gyms/${gymId}/members/new`} passHref>
-              <Button className="px-5 py-2 rounded-full bg-green-600 hover:bg-green-700 text-white font-medium transition-all shadow-md">
+              <LoadingButton 
+                className="px-5 py-2 rounded-full bg-green-600 hover:bg-green-700 text-white font-medium transition-all shadow-md"
+                isLoading={isAddingMember}
+                onClick={() => setIsAddingMember(true)}
+              >
+                <Plus className="h-4 w-4 mr-2" />
                 Ajouter un membre
-              </Button>
+              </LoadingButton>
             </Link>
           </div>
         </div>
@@ -119,7 +128,14 @@ function MembersPage() {
           defaultValue={search}
           className="w-full p-2 rounded-md border bg-white text-black text-sm sm:text-base"
         />
-        <Button type="submit" variant="secondary" size="icon" className="shrink-0">
+        <LoadingButton 
+          type="submit" 
+          variant="secondary" 
+          size="icon" 
+          className="shrink-0"
+          isLoading={searchLoading}
+          loadingText="Recherche..."
+        >
           <svg
             xmlns="http://www.w3.org/2000/svg"
             className="h-5 w-5"
@@ -135,7 +151,7 @@ function MembersPage() {
             />
           </svg>
           <span className="sr-only">Rechercher</span>
-        </Button>
+        </LoadingButton>
       </form>
 
       {/* Members list */}
@@ -144,7 +160,7 @@ function MembersPage() {
           <CardTitle className="text-lg sm:text-xl">Liste des membres</CardTitle>
         </CardHeader>
         <CardContent>
-          {loading ? (
+          {initialLoading ? (
             <div className="flex justify-center py-8">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-400"></div>
             </div>
@@ -163,15 +179,15 @@ function MembersPage() {
                   >
                     <Card className="transition-all hover:scale-[1.02] hover:shadow-lg border border-gray-200">
                       <CardContent className="p-3 sm:p-4 flex items-center gap-3 sm:gap-4">
-                       <Avatar className="h-10 w-10 sm:h-12 sm:w-12">
-  <AvatarImage src={getImageUrl(member.avatar_url)} />
-  <AvatarFallback className="bg-green-500 text-white">
-    {member.full_name
-      .split(' ')
-      .map((n: string) => n[0])
-      .join('')}
-  </AvatarFallback>
-</Avatar>
+                        <Avatar className="h-10 w-10 sm:h-12 sm:w-12">
+                          <AvatarImage src={getImageUrl(member.avatar_url)} />
+                          <AvatarFallback className="bg-green-500 text-white">
+                            {member.full_name
+                              .split(' ')
+                              .map((n: string) => n[0])
+                              .join('')}
+                          </AvatarFallback>
+                        </Avatar>
 
                         <div className="flex-1 min-w-0">
                           <h3 className="font-semibold text-sm sm:text-base truncate group-hover:text-green-600">

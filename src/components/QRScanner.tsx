@@ -126,7 +126,7 @@ export function QRScanner() {
       if (data.accessGranted) {
         toast.success(`Accès autorisé pour ${data.member.name}`)
       } else {
-        toast.error(`Accès refusé: ${data.reason || 'Raison inconnue'}`)
+        toast.error(`Accès refusé: ${data.reason || 'abonnement expiré'}`)
       }
 
       await stopScanner()

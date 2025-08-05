@@ -82,7 +82,7 @@ export default function PricingPage() {
           {/* Card avec animations */}
           <div className="flex justify-center">
             <motion.div
-              className="bg-gradient-to-br from-blue-900/60 to-cyan-900/60 rounded-2xl p-1 max-w-md w-full backdrop-blur-md border border-cyan-500/30 shadow-xl shadow-cyan-900/20"
+              className="bg-gradient-to-br from-blue-900/60 to-cyan-900/20 rounded-2xl p-1 max-w-md w-full backdrop-blur-md border border-cyan-500/30 shadow-xl shadow-cyan-900/20"
             >
               <motion.div 
                 animate={contentControls}
@@ -130,7 +130,7 @@ export default function PricingPage() {
               {[
                 {
                   question: "Comment fonctionne l'abonnement ?",
-                  answer: "L'abonnement est mensuel et se renouvelle automatiquement. Vous pouvez annuler à tout moment sans frais."
+                  answer: "L'abonnement est mensuel et se renouvelle Manuellement. Vous pouvez annuler à tout moment sans frais."
                 },
                 {
                   question: "Quand serai-je facturé ?",
@@ -142,7 +142,7 @@ export default function PricingPage() {
                 },
                 {
                   question: "Quels moyens de paiement acceptez-vous ?",
-                  answer: "Nous acceptons les cartes bancaires (Visa, Mastercard), les paiements mobiles (Orange Money, MTN Mobile Money) et les virements bancaires."
+                  answer: "Nous acceptons les paiements mobiles (Orange Money, MTN Mobile Money) et les virements bancaires."
                 }
               ].map((item, index) => (
                 <motion.div

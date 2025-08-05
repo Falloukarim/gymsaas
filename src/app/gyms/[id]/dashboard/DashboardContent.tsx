@@ -1,4 +1,3 @@
-// src/app/gyms/[id]/dashboard/DashboardContent.tsx
 'use client';
 
 import { useEffect, useState } from 'react';

@@ -3,14 +3,26 @@ import { notFound } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import Link from 'next/link';
-import { ArrowLeft, Edit, Calendar, CreditCard, User, Activity, Clock, Mail, Phone } from 'lucide-react';
+import { 
+  ArrowLeft, 
+  Calendar, 
+  CreditCard, 
+  User, 
+  Activity,
+  Mail,
+  Phone,
+  Clock,
+  ScanLine,
+  Ticket,
+  History
+} from 'lucide-react';
 import { SubscriptionStatusBadge } from '@/components/subscription-status-badge';
 import { QRCodeGenerator } from '@/components/members/QRCodeGenerator';
 import { DownloadMemberBadgeButton } from '@/components/members/DownloadMemberBadgeButton';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 interface Payment {
   id: string;
@@ -61,6 +73,7 @@ function isSubscription(sub: MemberSubscription): boolean {
   const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
   return diffDays > 1;
 }
+
 export default async function MemberDetailPage({
   params: resolvedParams,
 }: {
@@ -128,371 +141,341 @@ export default async function MemberDetailPage({
   return `/api/image-proxy?url=${encodeURIComponent(fullUrl)}`;
 };
 
-  return (
-    <div className="w-full px-4 py-6 sm:px-6 lg:px-8 overflow-hidden">
-      <div className="bg-gray-800 text-white border border-gray-700 rounded-lg w-full">
-        {/* Header Section */}
-        <div className="border-b border-gray-700 p-4 sm:p-6">
-          <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
-            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 w-full">
-              <Link
-                href={`/gyms/${gymId}/members`}
-                className="flex items-center gap-2 text-sm hover:text-blue-400 transition-colors mb-4 sm:mb-0"
-              >
-                <ArrowLeft className="h-4 w-4" />
-                <span className="whitespace-nowrap">Retour aux membres</span>
-              </Link>
-
-              <div className="flex items-center gap-4 w-full">
-                <Avatar className="h-10 w-10 sm:h-12 sm:w-12">
-  <AvatarImage src={getImageUrl(member.avatar_url)} />
-  <AvatarFallback className="bg-gradient-to-r from-blue-500 to-blue-700 text-white">
-    {initials}
-  </AvatarFallback>
-</Avatar>
-                <div className="flex-1 min-w-0">
-                  <h1 className="text-xl sm:text-2xl font-bold truncate">{member.full_name}</h1>
-                  <p className="text-sm text-gray-400 truncate">{member.gyms?.name}</p>
-                </div>
-              </div>
-            </div>
+ return (
+    <div className="w-full px-4 py-6 sm:px-6 lg:px-8">
+      {/* Header avec bouton retour et infos membre */}
+      <div className="flex items-center justify-between mb-6">
+        <Link
+          href={`/gyms/${gymId}/members`}
+          className="flex items-center gap-2 text-sm hover:text-primary transition-colors"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          <span>Retour aux membres</span>
+        </Link>
+        
+        <div className="flex items-center gap-4">
+          <Avatar className="h-12 w-12">
+            <AvatarImage src={getImageUrl(member.avatar_url)} />
+            <AvatarFallback className="bg-gradient-to-r from-primary to-primary/80">
+              {initials}
+            </AvatarFallback>
+          </Avatar>
+          <div>
+            <h1 className="text-xl font-semibold">{member.full_name}</h1>
+            <p className="text-sm text-muted-foreground">{member.gyms?.name}</p>
           </div>
         </div>
+      </div>
 
-        {/* Main Content */}
-        <div className="p-4 sm:p-6 space-y-6">
-          {/* Member Information Section */}
-          <div className="space-y-4">
-            <h2 className="text-lg font-semibold">Informations du membre</h2>
-            <div className="bg-gray-700 rounded-lg p-4 space-y-4">
-              <div className="flex items-center gap-4">
-                <User className="h-5 w-5 text-gray-400 flex-shrink-0" />
-                <div>
-                  <p className="text-sm text-gray-400">Nom complet</p>
-                  <p>{member.full_name}</p>
-                </div>
+      {/* Grille principale */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Colonne de gauche - Infos membre */}
+        <div className="space-y-6 lg:col-span-1">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <User className="h-5 w-5" />
+                <span>Profil</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-1">
+                <p className="text-sm text-muted-foreground">Email</p>
+                <p className="flex items-center gap-2">
+                  <Mail className="h-4 w-4 text-muted-foreground" />
+                  {member.email || 'Non renseigné'}
+                </p>
               </div>
               
-              <div className="flex items-center gap-4">
-                <Calendar className="h-5 w-5 text-gray-400 flex-shrink-0" />
-                <div>
-                  <p className="text-sm text-gray-400">Date d'inscription</p>
-                  <p>{new Date(member.created_at).toLocaleDateString()}</p>
-                </div>
+              <div className="space-y-1">
+                <p className="text-sm text-muted-foreground">Téléphone</p>
+                <p className="flex items-center gap-2">
+                  <Phone className="h-4 w-4 text-muted-foreground" />
+                  {member.phone || 'Non renseigné'}
+                </p>
               </div>
               
-              <div className="flex items-center gap-4">
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-gray-400 flex-shrink-0">
-                  <rect width="20" height="16" x="2" y="4" rx="2"/>
-                  <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>
-                </svg>
-                <div>
-                  <p className="text-sm text-gray-400">Email</p>
-                  <p>{member.email || '-'}</p>
-                </div>
+              <div className="space-y-1">
+                <p className="text-sm text-muted-foreground">Membre depuis</p>
+                <p className="flex items-center gap-2">
+                  <Calendar className="h-4 w-4 text-muted-foreground" />
+                  {new Date(member.created_at).toLocaleDateString()}
+                </p>
               </div>
-              
-              <div className="flex items-center gap-4">
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-gray-400 flex-shrink-0">
-                  <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
-                </svg>
-                <div>
-                  <p className="text-sm text-gray-400">Téléphone</p>
-                  <p>{member.phone || '-'}</p>
-                </div>
-              </div>
-            </div>
-          </div>
+            </CardContent>
+          </Card>
 
-          {/* Subscription Section */}
-          <div className="space-y-4">
-            <h2 className="text-lg font-semibold">Abonnement</h2>
-            <div className="bg-gray-700 rounded-lg p-4 space-y-4">
-              {hasActiveSubscription ? (
-                <>
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="font-medium">{activeSubscription.subscriptions?.type}</p>
-                      <p className="text-sm text-gray-400">
-                        {activeSubscription.subscriptions?.description}
-                      </p>
-                    </div>
-                    <SubscriptionStatusBadge status="active" />
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <div className="flex justify-between text-sm">
-                      <span className="text-gray-400">Début</span>
-                      <span>{new Date(activeSubscription.start_date).toLocaleDateString()}</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-gray-400">Fin</span>
-                      <span>{new Date(activeSubscription.end_date).toLocaleDateString()}</span>
-                    </div>
-                  </div>
-                  
-                  <div className="flex flex-col sm:flex-row gap-2">
-                    <Button 
-                      variant="outline" 
-                      className="bg-green-500 hover:bg-gray-100 border-gray-600"
-                      asChild
-                    >
-                      <Link href={`/gyms/${gymId}/members/${memberId}/renew`}>
-                        Renouveler
-                      </Link>
-                    </Button>
-                    <Button 
-                      variant="secondary"
-                      asChild
-                    >
-                      <Link href={`/gyms/${gymId}/members/${memberId}/new-session`}>
-                        Ajouter une session
-                      </Link>
-                    </Button>
-                  </div>
-                </>
-              ) : lastSubscription ? (
-                <>
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="font-medium">{lastSubscription.subscriptions?.type}</p>
-                      <p className="text-sm text-gray-400">
-                        {lastSubscription.subscriptions?.description}
-                      </p>
-                    </div>
-                    <SubscriptionStatusBadge status="expired" />
-                  </div>
-                  
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-400">Dernier abonnement</span>
-                    <span>{new Date(lastSubscription.end_date).toLocaleDateString()}</span>
-                  </div>
-                  
-                  <div className="flex flex-col sm:flex-row gap-2">
-                    <Button 
-                      variant="outline" 
-                      className="bg-gray-700 hover:bg-gray-600 border-gray-600"
-                      asChild
-                    >
-                      <Link href={`/gyms/${gymId}/members/${memberId}/renew`}>
-                        Renouveler l'abonnement
-                      </Link>
-                    </Button>
-                    <Button 
-                      variant="secondary"
-                      asChild
-                    >
-                      <Link href={`/gyms/${gymId}/members/${memberId}/new-session`}>
-                        Nouvelle session
-                      </Link>
-                    </Button>
-                  </div>
-                </>
-              ) : (
-                <div className="flex flex-col items-center justify-center space-y-3 text-center py-4">
-                  <Activity className="h-8 w-8 text-gray-400" />
-                  <p className="text-gray-400">Aucun abonnement actif</p>
-                  <div className="flex flex-col sm:flex-row gap-2 w-full">
-                    <Button size="sm" asChild className="w-full">
-                      <Link href={`/gyms/${gymId}/members/${memberId}/renew`}>
-                        Ajouter un abonnement
-                      </Link>
-                    </Button>
-                    <Button size="sm" variant="secondary" asChild className="w-full">
-                      <Link href={`/gyms/${gymId}/members/${memberId}/new-session`}>
-                        Nouvelle session
-                      </Link>
-                    </Button>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
+          {/* Carte Abonnement */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Ticket className="h-5 w-5" />
+                <span>Abonnement</span>
+              </CardTitle>
+            </CardHeader>
+           <CardContent>
+  {hasActiveSubscription ? (
+    <div className="space-y-4">
+      <div className="flex justify-between items-center">
+        <div>
+          <p className="font-medium">{activeSubscription.subscriptions?.type}</p>
+          <p className="text-sm text-muted-foreground">
+            {activeSubscription.subscriptions?.description}
+          </p>
+        </div>
+        <SubscriptionStatusBadge status="active" />
+      </div>
+      
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <p className="text-sm text-muted-foreground">Début</p>
+          <p className="text-sm">{new Date(activeSubscription.start_date).toLocaleDateString()}</p>
+        </div>
+        <div>
+          <p className="text-sm text-muted-foreground">Fin</p>
+          <p className="text-sm">{new Date(activeSubscription.end_date).toLocaleDateString()}</p>
+        </div>
+      </div>
+    </div>
+  ) : lastSubscription ? (
+    <div className="space-y-4">
+      <div className="flex justify-between items-center">
+        <div>
+          <p className="font-medium">{lastSubscription.subscriptions?.type}</p>
+          <p className="text-sm text-muted-foreground">
+            {lastSubscription.subscriptions?.description}
+          </p>
+        </div>
+        <SubscriptionStatusBadge status="expired" />
+      </div>
+      
+      <div>
+        <p className="text-sm text-muted-foreground">Expiré le</p>
+        <p>{new Date(lastSubscription.end_date).toLocaleDateString()}</p>
+      </div>
+    </div>
+  ) : (
+    <div className="flex flex-col items-center text-center space-y-3 py-4">
+      <Activity className="h-8 w-8 text-muted-foreground" />
+      <p className="text-muted-foreground">Aucun abonnement actif</p>
+    </div>
+  )}
+
+  {/* Bouton Nouvelle Session - Toujours visible */}
+  <div className="flex flex-col xs:flex-row gap-2 pt-4">
+    {hasActiveSubscription || lastSubscription ? (
+      <Button asChild size="sm" className="w-full">
+        <Link href={`/gyms/${gymId}/members/${memberId}/renew`}>
+          Renouveler
+        </Link>
+      </Button>
+    ) : (
+      <Button asChild size="sm" className="w-full">
+        <Link href={`/gyms/${gymId}/members/${memberId}/renew`}>
+          Ajouter un abonnement
+        </Link>
+      </Button>
+    )}
+    <Button variant="outline" size="sm" asChild className="w-full">
+      <Link href={`/gyms/${gymId}/members/${memberId}/new-session`}>
+        Nouvelle session
+      </Link>
+    </Button>
+  </div>
+</CardContent>
+          </Card>
 
           {/* QR Code Section */}
           {hasActiveSubscription && (
-            <div className="space-y-4">
-              <h2 className="text-lg font-semibold">Badge Membre</h2>
-              <div className="bg-gray-700 rounded-lg p-4 flex flex-col items-center space-y-4">
-                <div className="border border-gray-600 p-4 rounded-lg bg-gray-800 w-full max-w-xs">
-                  <div className="flex justify-center">
-                    <QRCodeGenerator 
-                      value={member.qr_code || ''} 
-                      size={160}
-                      className="p-2 border border-gray-600 rounded bg-white" 
-                    />
-                  </div>
-                  <p className="text-center text-xs mt-3 text-gray-400">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <ScanLine className="h-5 w-5" />
+                  <span>Badge Membre</span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="flex flex-col items-center space-y-4">
+                <div className="border p-4 rounded-lg bg-background w-full">
+                  <QRCodeGenerator 
+                    value={member.qr_code || ''} 
+                    size={160}
+                    className="p-2 border rounded bg-white mx-auto" 
+                  />
+                  <p className="text-center text-xs mt-3 text-muted-foreground">
                     ID: {member.id.slice(0, 8).toUpperCase()}
                   </p>
                 </div>
-<DownloadMemberBadgeButton 
-  member={{
-    id: member.id,
-    full_name: member.full_name,
-    phone: member.phone, 
-    created_at: member.created_at, 
-    has_subscription: !!activeSubscription, 
-    avatar_url: member.avatar_url,
-    qr_code: member.qr_code,
-    gyms: member.gyms ? {
-      id: gymId,
-      name: member.gyms.name,
-      logo_url: member.gyms.logo_url
-    } : undefined,
-    member_subscriptions: member.member_subscriptions
-  }}
-  className="w-full max-w-xs"
-/>
-              </div>
-            </div>
+                <DownloadMemberBadgeButton 
+                  member={{
+                    ...member,
+                    has_subscription: true,
+                    gyms: member.gyms ? {
+                      id: gymId,
+                      name: member.gyms.name,
+                      logo_url: member.gyms.logo_url
+                    } : undefined
+                  }}
+                  className="w-full"
+                />
+              </CardContent>
+            </Card>
           )}
+        </div>
 
-          {/* Payment History */}
-          <div className="space-y-4">
-            <h2 className="text-lg font-semibold">Historique des paiements</h2>
-            <div className="bg-gray-700 rounded-lg p-4">
-              {payments?.length ? (
-                <ScrollArea className="h-64">
-                  <div className="space-y-3">
-                    {payments.map((payment: any) => (
-                      <div key={payment.id} className="border-b border-gray-600 pb-3 last:border-0">
-                        <div className="flex justify-between">
-                          <span className="font-medium">Type:</span>
-                          <span>{payment.type}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="font-medium">Date:</span>
-                          <span>{new Date(payment.created_at).toLocaleDateString()}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="font-medium">Montant:</span>
-                          <span>{payment.amount} F CFA</span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </ScrollArea>
-              ) : (
-                <div className="flex flex-col items-center justify-center py-8 text-center">
-                  <CreditCard className="h-8 w-8 text-gray-400 mb-2" />
-                  <p className="text-gray-400">Aucun paiement enregistré</p>
+        {/* Colonne de droite - Historiques */}
+        <div className="space-y-6 lg:col-span-2">
+          <Card>
+            <Tabs defaultValue="payments">
+              <CardHeader>
+                <div className="flex justify-between items-center">
+                  <CardTitle className="flex items-center gap-2">
+                    <History className="h-5 w-5" />
+                    <span>Historique</span>
+                  </CardTitle>
+                  <TabsList>
+                    <TabsTrigger value="payments" className="flex gap-2">
+                      <CreditCard className="h-4 w-4" /> Paiements
+                    </TabsTrigger>
+                    <TabsTrigger value="access" className="flex gap-2">
+                      <ScanLine className="h-4 w-4" /> Accès
+                    </TabsTrigger>
+                  </TabsList>
                 </div>
-              )}
-            </div>
-          </div>
+              </CardHeader>
+              <CardContent>
+                <TabsContent value="payments">
+                  {payments?.length ? (
+                    <ScrollArea className="h-[500px]">
+                      <div className="space-y-4">
+                        {payments.map((payment: Payment) => (
+                          <div key={payment.id} className="border-b pb-4 last:border-0">
+                            <div className="flex justify-between">
+                              <p className="font-medium">{payment.type}</p>
+                              <p className="font-semibold">{payment.amount} F CFA</p>
+                            </div>
+                            <div className="flex justify-between text-sm text-muted-foreground">
+                              <span>{new Date(payment.created_at).toLocaleDateString()}</span>
+                              <span>{new Date(payment.created_at).toLocaleTimeString()}</span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </ScrollArea>
+                  ) : (
+                    <div className="flex flex-col items-center justify-center py-8 text-center">
+                      <CreditCard className="h-8 w-8 text-muted-foreground mb-2" />
+                      <p className="text-muted-foreground">Aucun paiement enregistré</p>
+                    </div>
+                  )}
+                </TabsContent>
+                
+                <TabsContent value="access">
+                  {accessLogs?.length ? (
+                    <ScrollArea className="h-[500px]">
+                      <div className="space-y-4">
+                        {accessLogs.map((log: AccessLog) => (
+                          <div key={log.id} className="border-b pb-4 last:border-0">
+                            <div className="flex justify-between">
+                              <Badge variant={log.type === 'entry' ? 'default' : 'secondary'}>
+                                {log.type === 'entry' ? 'Entrée' : 'Sortie'}
+                              </Badge>
+                              <span className="text-sm text-muted-foreground">
+                                {log.method === 'qr' ? 'QR Code' : 'Manuel'}
+                              </span>
+                            </div>
+                            <div className="text-sm text-muted-foreground mt-1">
+                              {new Date(log.timestamp).toLocaleString()}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </ScrollArea>
+                  ) : (
+                    <div className="flex flex-col items-center justify-center py-8 text-center">
+                      <Activity className="h-8 w-8 text-muted-foreground mb-2" />
+                      <p className="text-muted-foreground">Aucun accès enregistré</p>
+                    </div>
+                  )}
+                </TabsContent>
+              </CardContent>
+            </Tabs>
+          </Card>
 
-          {/* Subscription History */}
-          <div className="space-y-4">
-            <h2 className="text-lg font-semibold">Historique des abonnements</h2>
-            <div className="bg-gray-700 rounded-lg p-4">
-              {subscriptions.filter(isSubscription).length ? (
-                <ScrollArea className="h-64">
-                  <div className="space-y-3">
-                    {subscriptions.filter(isSubscription).map((sub: any) => (
-                      <div key={sub.id} className="border-b border-gray-600 pb-3 last:border-0">
-                        <div className="flex justify-between">
-                          <span className="font-medium">Type:</span>
-                          <span className="truncate">{sub.subscriptions?.type}</span>
+          {/* Abonnements et sessions */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Calendar className="h-5 w-5" />
+                  <span>Abonnements</span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {subscriptions.filter(isSubscription).length ? (
+                  <ScrollArea className="h-64">
+                    <div className="space-y-4">
+                      {subscriptions.filter(isSubscription).map((sub: MemberSubscription) => (
+                        <div key={sub.id} className="border-b pb-4 last:border-0">
+                          <div className="flex justify-between">
+                            <p className="font-medium">{sub.subscriptions?.type}</p>
+                            <SubscriptionStatusBadge 
+                              status={
+                                sub.status === 'active' && new Date(sub.end_date) > new Date() 
+                                  ? 'active' 
+                                  : 'expired'
+                              } 
+                            />
+                          </div>
+                          <div className="text-sm text-muted-foreground">
+                            {new Date(sub.start_date).toLocaleDateString()} - {new Date(sub.end_date).toLocaleDateString()}
+                          </div>
                         </div>
-                        <div className="flex justify-between">
-                          <span className="font-medium">Période:</span>
-                          <span className="text-right">
-                            {new Date(sub.start_date).toLocaleDateString()} -{' '}
-                            {new Date(sub.end_date).toLocaleDateString()}
-                          </span>
-                        </div>
-                        <div className="flex justify-between items-center">
-                          <span className="font-medium">Statut:</span>
-                          <SubscriptionStatusBadge 
-                            status={
-                              sub.status === 'active' && new Date(sub.end_date) > new Date() 
-                                ? 'active' 
-                                : 'expired'
-                            } 
-                          />
-                        </div>
-                      </div>
-                    ))}
+                      ))}
+                    </div>
+                  </ScrollArea>
+                ) : (
+                  <div className="flex flex-col items-center justify-center py-8 text-center">
+                    <Calendar className="h-8 w-8 text-muted-foreground mb-2" />
+                    <p className="text-muted-foreground">Aucun abonnement</p>
                   </div>
-                </ScrollArea>
-              ) : (
-                <div className="flex flex-col items-center justify-center py-8 text-center">
-                  <Calendar className="h-8 w-8 text-gray-400 mb-2" />
-                  <p className="text-gray-400">Aucun abonnement enregistré</p>
-                </div>
-              )}
-            </div>
-          </div>
+                )}
+              </CardContent>
+            </Card>
 
-          {/* Session History */}
-          <div className="space-y-4">
-            <h2 className="text-lg font-semibold">Historique des sessions</h2>
-            <div className="bg-gray-700 rounded-lg p-4">
-              {sessions.length ? (
-                <ScrollArea className="h-64">
-                  <div className="space-y-3">
-                    {sessions.map((session: any) => (
-                      <div key={session.id} className="border-b border-gray-600 pb-3 last:border-0">
-                        <div className="flex justify-between">
-                          <span className="font-medium">Date:</span>
-                          <span>{new Date(session.start_date).toLocaleDateString()}</span>
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Clock className="h-5 w-5" />
+                  <span>Sessions</span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {sessions.length ? (
+                  <ScrollArea className="h-64">
+                    <div className="space-y-4">
+                      {sessions.map((session: MemberSubscription) => (
+                        <div key={session.id} className="border-b pb-4 last:border-0">
+                          <div className="flex justify-between">
+                            <p className="font-medium">
+                              {session.subscriptions?.description || 'Session'}
+                            </p>
+                            <p>{session.subscriptions?.price} F CFA</p>
+                          </div>
+                          <div className="text-sm text-muted-foreground">
+                            {new Date(session.start_date).toLocaleDateString()}
+                          </div>
                         </div>
-                        <div className="flex justify-between">
-                          <span className="font-medium">Type:</span>
-                          <span>{session.subscriptions?.description || 'Session ponctuelle'}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="font-medium">Montant:</span>
-                          <span>{session.subscriptions?.price} F CFA</span>
-                        </div>
-                      </div>
-                    ))}
+                      ))}
+                    </div>
+                  </ScrollArea>
+                ) : (
+                  <div className="flex flex-col items-center justify-center py-8 text-center">
+                    <Clock className="h-8 w-8 text-muted-foreground mb-2" />
+                    <p className="text-muted-foreground">Aucune session</p>
                   </div>
-                </ScrollArea>
-              ) : (
-                <div className="flex flex-col items-center justify-center py-8 text-center">
-                  <Calendar className="h-8 w-8 text-gray-400 mb-2" />
-                  <p className="text-gray-400">Aucune session enregistrée</p>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Access Logs */}
-          <div className="space-y-4">
-            <h2 className="text-lg font-semibold">Historique des accès</h2>
-            <div className="bg-gray-700 rounded-lg p-4">
-              {accessLogs?.length ? (
-                <ScrollArea className="h-64">
-                  <div className="space-y-3">
-                    {accessLogs.map((log: any) => (
-                      <div key={log.id} className="border-b border-gray-600 pb-3 last:border-0">
-                        <div className="flex justify-between">
-                          <span className="font-medium">Type:</span>
-                          <Badge variant={log.type === 'entry' ? 'default' : 'secondary'}>
-                            {log.type === 'entry' ? 'Entrée' : 'Sortie'}
-                          </Badge>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="font-medium">Date:</span>
-                          <span>{new Date(log.timestamp).toLocaleString()}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="font-medium">Méthode:</span>
-                          <span>{log.method === 'qr' ? 'QR Code' : 'Manuel'}</span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </ScrollArea>
-              ) : (
-                <div className="flex flex-col items-center justify-center py-8 text-center">
-                  <Activity className="h-8 w-8 text-gray-400 mb-2" />
-                  <p className="text-gray-400">Aucun accès enregistré</p>
-                </div>
-              )}
-            </div>
+                )}
+              </CardContent>
+            </Card>
           </div>
         </div>
       </div>

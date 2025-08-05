@@ -7,6 +7,7 @@ import {
   User,
   QrCode,
   Menu,
+  ScanLine,
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
@@ -164,20 +165,23 @@ export default function Navbar() {
       {/* Actions à droite */}
       <div className="flex items-center gap-3 ml-auto">
         {/* Scanner QR */}
-        <Dialog open={scannerOpen} onOpenChange={setScannerOpen}>
-          <DialogTrigger asChild>
-            <button
-              className="rounded-full p-2 text-gray-400 hover:text-white transition"
-              aria-label="Scanner un QR Code"
-            >
-              <QrCode className="h-4 w-4" />
-            </button>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-[425px]">
-            <DialogTitle className="sr-only">Scanner QR Code</DialogTitle>
-            <QRScanner />
-          </DialogContent>
-        </Dialog>
+    <Dialog open={scannerOpen} onOpenChange={setScannerOpen}>
+  <DialogTrigger asChild>
+  <button
+    className="p-2 rounded-md text-gray-400 hover:text-white hover:bg-gray-800 transition-colors"
+    aria-label="Scanner un QR Code"
+  >
+    <ScanLine className="h-5 w-5" />
+  </button>
+</DialogTrigger>
+  <DialogContent className="sm:max-w-[425px] p-0 border-0 bg-transparent">
+    <div className="bg-[#0d1a23] border border-gray-700 rounded-lg overflow-hidden">
+      <QRScanner />
+      <p className="text-center text-xs py-2 text-gray-400 bg-[#0f1f2a]">
+      </p>
+    </div>
+  </DialogContent>
+</Dialog>
 
         {/* Notifications */}
         <button

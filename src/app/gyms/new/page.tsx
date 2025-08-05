@@ -67,7 +67,7 @@ export default function NewGymPage() {
         resolve(gym);
         setTimeout(() => {
           window.location.href = `/gyms/${gym.id}/dashboard`;
-        }, 1500); // Délai pour laisser voir le toast de succès
+        }, 1500);
       } catch (error) {
         reject(error);
       } finally {
@@ -106,7 +106,97 @@ export default function NewGymPage() {
         </div>
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
-          {/* ... (les autres champs du formulaire restent identiques) ... */}
+          {/* Champ Nom */}
+          <div className="space-y-2">
+            <Label htmlFor="name">Nom de la salle*</Label>
+            <Controller
+              name="name"
+              control={control}
+              render={({ field }) => (
+                <Input
+                  {...field}
+                  id="name"
+                  placeholder="Ma Super Salle"
+                  className={errors.name ? 'border-red-500' : ''}
+                />
+              )}
+            />
+            {errors.name && (
+              <p className="text-red-500 text-sm">{errors.name.message}</p>
+            )}
+          </div>
+
+          {/* Champ Adresse */}
+          <div className="space-y-2">
+            <Label htmlFor="address">Adresse*</Label>
+            <Controller
+              name="address"
+              control={control}
+              render={({ field }) => (
+                <Input
+                  {...field}
+                  id="address"
+                  placeholder="123 Rue du Sport"
+                  className={errors.address ? 'border-red-500' : ''}
+                />
+              )}
+            />
+            {errors.address && (
+              <p className="text-red-500 text-sm">{errors.address.message}</p>
+            )}
+          </div>
+
+          {/* Champ Téléphone */}
+          <div className="space-y-2">
+            <Label htmlFor="phone">Téléphone*</Label>
+            <Controller
+              name="phone"
+              control={control}
+              render={({ field }) => (
+                <Input
+                  {...field}
+                  id="phone"
+                  placeholder="0612345678"
+                  className={errors.phone ? 'border-red-500' : ''}
+                />
+              )}
+            />
+            {errors.phone && (
+              <p className="text-red-500 text-sm">{errors.phone.message}</p>
+            )}
+          </div>
+
+          {/* Champ Ville */}
+          <div className="space-y-2">
+            <Label htmlFor="city">Ville</Label>
+            <Controller
+              name="city"
+              control={control}
+              render={({ field }) => (
+                <Input
+                  {...field}
+                  id="city"
+                  placeholder="Paris"
+                />
+              )}
+            />
+          </div>
+
+          {/* Champ Code Postal */}
+          <div className="space-y-2">
+            <Label htmlFor="postal_code">Code postal</Label>
+            <Controller
+              name="postal_code"
+              control={control}
+              render={({ field }) => (
+                <Input
+                  {...field}
+                  id="postal_code"
+                  placeholder="75000"
+                />
+              )}
+            />
+          </div>
 
           <Button 
             type="submit" 
