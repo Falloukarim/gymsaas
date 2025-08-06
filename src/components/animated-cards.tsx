@@ -3,16 +3,18 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { useInView } from "react-intersection-observer";
 import { useEffect, useState } from "react";
-import { ArrowUpRight } from "lucide-react";
+import { ArrowUpRight, Ticket, Tickets } from "lucide-react";
 import { Users, CreditCard, Euro, Activity, Clock } from "lucide-react";
 import { Card } from "@/components/ui/card";
 
+// Dans animated-cards.tsx
 type Stat = {
   name: string;
   value: string;
-  iconName: "Users" | "CreditCard" | "Euro" | "Activity" | "Clock";
+  iconName: "Users" | "CreditCard" | "Euro" | "Activity" | "Clock" | "Ticket" | "Tickets";
   change: string;
   changeType: "positive" | "negative";
+  description?: string;
 };
 
 const iconMap = {
@@ -21,6 +23,8 @@ const iconMap = {
   Euro,
   Activity,
   Clock,
+  Ticket, // Ajouté
+  Tickets, // Ajouté
 };
 
 export function AnimatedCards({ stats }: { stats: Stat[] }) {

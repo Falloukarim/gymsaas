@@ -202,7 +202,6 @@ function MembersPage() {
                             </div>
                             {activeSubscription && (
                               <Badge variant="secondary" className="ml-2 text-xs sm:text-sm bg-green-100 text-green-800">
-                                {activeSubscription.subscriptions?.type}
                               </Badge>
                             )}
                           </CardContent>

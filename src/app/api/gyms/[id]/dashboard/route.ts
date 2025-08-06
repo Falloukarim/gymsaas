@@ -15,7 +15,12 @@ export async function GET(
 
   try {
     const currentDate = new Date().toISOString();
-    
+    const todayStart = new Date(new Date().setHours(0, 0, 0, 0)).toISOString();
+    const todayEnd = new Date(new Date().setHours(23, 59, 59, 999)).toISOString();
+    const weekStart = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+    const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString();
+    const monthEnd = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0, 23, 59, 59, 999).toISOString();
+
     const [
       { count: activeSubscriptions },
       { count: inactiveSubscriptions },
@@ -25,95 +30,111 @@ export async function GET(
       { data: recentSubscriptions },
       { data: recentEntries },
       { data: gym },
-      { data: weeklyPayments }
+      { data: weeklyPayments },
+      { data: todayTickets },
+      { data: weekTickets },
+      { data: monthlyTickets } // Nouvelle requête pour les tickets du mois
     ] = await Promise.all([
-      // Abonnements ACTIFS (end_date >= aujourd'hui)
-      (await
-            // Abonnements ACTIFS (end_date >= aujourd'hui)
-            supabase)
+      (await supabase)
         .from('member_subscriptions')
         .select('*', { count: 'exact' })
         .eq('gym_id', id)
         .gte('end_date', currentDate),
-      // Abonnements INACTIFS (end_date < aujourd'hui)
-      (await
-            // Abonnements INACTIFS (end_date < aujourd'hui)
-            supabase)
+      
+      (await supabase)
         .from('member_subscriptions')
         .select('*', { count: 'exact' })
         .eq('gym_id', id)
         .lt('end_date', currentDate),
-      // Paiements du jour
-      (await
-          // Paiements du jour
-          supabase)
+      
+      (await supabase)
         .from('payments')
         .select('amount, created_at')
         .eq('gym_id', id)
         .eq('status', 'paid')
-        .gte('created_at', new Date(new Date().setHours(0, 0, 0, 0)).toISOString())
-        .lte('created_at', new Date(new Date().setHours(23, 59, 59, 999)).toISOString()),
-      // Paiements du mois
-      (await
-          // Paiements du mois
-          supabase)
+        .gte('created_at', todayStart)
+        .lte('created_at', todayEnd),
+      
+      (await supabase)
         .from('payments')
         .select('amount, created_at')
         .eq('gym_id', id)
         .eq('status', 'paid')
-        .gte('created_at', new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString())
-        .lte('created_at', new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0, 23, 59, 59, 999).toISOString()),
-      // Entrées du jour
-      (await
-          // Entrées du jour
-          supabase)
+        .gte('created_at', monthStart)
+        .lte('created_at', monthEnd),
+      
+      (await supabase)
         .from('access_logs')
         .select('*', { count: 'exact' })
         .eq('gym_id', id)
-        .gte('timestamp', new Date(new Date().setHours(0, 0, 0, 0)).toISOString())
-        .lte('timestamp', new Date(new Date().setHours(23, 59, 59, 999)).toISOString()),
-      // 5 derniers abonnements
-      (await
-          // 5 derniers abonnements
-          supabase)
+        .gte('timestamp', todayStart)
+        .lte('timestamp', todayEnd),
+      
+      (await supabase)
         .from('member_subscriptions')
         .select(`*, members(full_name), subscriptions(name)`)
         .eq('gym_id', id)
         .order('start_date', { ascending: false })
         .limit(5),
-      // 5 dernières entrées
-      (await
-          // 5 dernières entrées
-          supabase)
+      
+      (await supabase)
         .from('access_logs')
         .select(`*, members(full_name)`)
         .eq('gym_id', id)
         .order('timestamp', { ascending: false })
         .limit(5),
-      // Infos de la salle
-      (await
-          // Infos de la salle
-          supabase)
+      
+      (await supabase)
         .from('gyms')
         .select('name, address')
         .eq('id', id)
         .single(),
-      // Paiements des 7 derniers jours pour le graphique
-      (await
-          // Paiements des 7 derniers jours pour le graphique
-          supabase)
+      
+      (await supabase)
         .from('payments')
         .select('amount, created_at')
         .eq('gym_id', id)
         .eq('status', 'paid')
-        .gte('created_at', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString())
-        .order('created_at', { ascending: true })
+        .gte('created_at', weekStart)
+        .order('created_at', { ascending: true }),
+      
+      (await supabase)
+        .from('tickets')
+        .select('price, printed_at')
+        .eq('gym_id', id)
+        .gte('printed_at', todayStart)
+        .lte('printed_at', todayEnd),
+      
+      (await supabase)
+        .from('tickets')
+        .select('price, printed_at')
+        .eq('gym_id', id)
+        .gte('printed_at', weekStart),
+      
+      // Nouvelle requête pour les tickets du mois
+      (await
+        // Nouvelle requête pour les tickets du mois
+        supabase)
+        .from('tickets')
+        .select('price')
+        .eq('gym_id', id)
+        .gte('printed_at', monthStart)
+        .lte('printed_at', monthEnd)
     ]);
 
-    // Calcul des totaux
-    const todayRevenueTotal = todayPayments?.reduce((sum, payment) => sum + (payment.amount || 0), 0) || 0;
-    const monthlyRevenueTotal = monthlyPayments?.reduce((sum, payment) => sum + (payment.amount || 0), 0) || 0;
-    
+    // Calcul des totaux combinés (paiements + tickets)
+    const todayRevenueTotal = (todayPayments?.reduce((sum, payment) => sum + (payment.amount || 0), 0) || 0) 
+                            + (todayTickets?.reduce((sum, ticket) => sum + (ticket.price || 0), 0) || 0);
+
+    const monthlyRevenueTotal = (monthlyPayments?.reduce((sum, payment) => sum + (payment.amount || 0), 0) || 0)
+                              + (monthlyTickets?.reduce((sum, ticket) => sum + (ticket.price || 0), 0) || 0);
+
+    // Statistiques spécifiques des tickets
+    const todayTicketCount = todayTickets?.length || 0;
+    const todayTicketTotal = todayTickets?.reduce((sum, ticket) => sum + (ticket.price || 0), 0) || 0;
+    const weekTicketCount = weekTickets?.length || 0;
+    const weekTicketTotal = weekTickets?.reduce((sum, ticket) => sum + (ticket.price || 0), 0) || 0;
+
     // Préparation des données pour le graphique
     const chartData = weeklyPayments?.map(payment => ({
       date: payment.created_at,
@@ -151,14 +172,16 @@ export async function GET(
         value: formatCurrency(todayRevenueTotal), 
         iconName: "Euro" as const,
         change: "+0%", 
-        changeType: "positive" as const 
+        changeType: "positive" as const,
+        description: `Dont ${formatCurrency(todayTicketTotal)} en tickets`
       },
       { 
         name: "Revenus mensuels", 
         value: formatCurrency(monthlyRevenueTotal), 
         iconName: "Activity" as const,
         change: "+0%", 
-        changeType: "positive" as const 
+        changeType: "positive" as const,
+        description: `Dont ${formatCurrency(monthlyTickets?.reduce((sum, ticket) => sum + (ticket.price || 0), 0) || 0)} en tickets`
       },
       { 
         name: "Entrées aujourd'hui", 
@@ -166,7 +189,7 @@ export async function GET(
         iconName: "Clock" as const,
         change: "+0%", 
         changeType: "positive" as const 
-      },
+      }
     ];
 
     return NextResponse.json({
@@ -175,7 +198,13 @@ export async function GET(
       recentSubscriptions,
       recentEntries,
       gym,
-      weeklyRevenueTotal: monthlyRevenueTotal // Vous pouvez ajuster selon vos besoins
+      weeklyRevenueTotal: monthlyRevenueTotal,
+      ticketStats: {
+        today_count: todayTicketCount,
+        today_total: todayTicketTotal,
+        week_count: weekTicketCount,
+        week_total: weekTicketTotal
+      }
     });
 
   } catch (error) {

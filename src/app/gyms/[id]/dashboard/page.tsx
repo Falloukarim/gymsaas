@@ -1,4 +1,3 @@
-// src/app/gyms/[id]/dashboard/page.tsx
 import { createClient } from '@/utils/supabase/server';
 import { redirect } from 'next/navigation';
 import DashboardContent from './DashboardContent';
