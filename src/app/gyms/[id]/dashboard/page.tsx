@@ -4,6 +4,30 @@ import DashboardContent from './DashboardContent';
 import { RevenueChart } from '@/components/revenue-chart';
 import { getGymIdForCurrentUser } from '@/lib/auth';
 
+// Définir les types pour nos données
+type Payment = {
+  amount: number;
+  created_at: string;
+  id: string;
+  gym_id: string;
+  status: string;
+  // autres champs pertinents
+};
+
+type Ticket = {
+  price: number;
+  printed_at: string;
+  id: string;
+  gym_id: string;
+  // autres champs pertinents
+};
+
+type CombinedDataItem = {
+  date: string;
+  amount: number;
+  type: 'payment' | 'ticket';
+};
+
 export default async function GymDashboardPage({ 
   params: resolvedParams 
 }: { 
@@ -55,7 +79,7 @@ export default async function GymDashboardPage({
     redirect('/subscription');
   }
 
-  // Récupération des données pour le graphique
+  // Récupération des données pour le graphique avec typage explicite
   const { data: paymentsData } = await (await supabase)
     .from('payments')
     .select('amount, created_at')
@@ -69,19 +93,28 @@ export default async function GymDashboardPage({
     .eq('gym_id', id)
     .order('printed_at', { ascending: true });
 
-  // Préparation des données combinées
-  const combinedData = [...paymentsData || [], ...ticketsData || []]
-    .map(item => ({
-      date: item.created_at || item.printed_at,
-      amount: item.amount || item.price,
-      type: item.created_at ? 'payment' : 'ticket'
-    }))
-    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+  // Conversion des données avec vérification de type
+  const payments: CombinedDataItem[] = (paymentsData || []).map((payment) => ({
+    date: payment.created_at,
+    amount: payment.amount,
+    type: 'payment' as const
+  }));
 
-  // Agrégation par jour
+  const tickets: CombinedDataItem[] = (ticketsData || []).map((ticket) => ({
+    date: ticket.printed_at,
+    amount: ticket.price,
+    type: 'ticket' as const
+  }));
+
+  // Combinaison et tri des données
+  const combinedData = [...payments, ...tickets].sort(
+    (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
+  );
+
+  // Agrégation par jour avec typage
   const dailyData: Record<string, {payments: number, tickets: number}> = {};
 
-  combinedData.forEach(item => {
+  combinedData.forEach((item) => {
     const date = new Date(item.date).toISOString().split('T')[0];
     if (!dailyData[date]) {
       dailyData[date] = { payments: 0, tickets: 0 };
@@ -105,26 +138,35 @@ export default async function GymDashboardPage({
   const totalAmount = chartData.reduce((sum, day) => sum + day.payments + day.tickets, 0);
   const ticketAmount = chartData.reduce((sum, day) => sum + day.tickets, 0);
 
-  // Calcul de l'évolution (simplifié)
+  // Calcul de l'évolution
   const lastPeriod = chartData.slice(-14); // 2 semaines
   const currentPeriodTotal = lastPeriod.slice(-7).reduce((sum, day) => sum + day.payments + day.tickets, 0);
   const previousPeriodTotal = lastPeriod.slice(0, 7).reduce((sum, day) => sum + day.payments + day.tickets, 0);
   const changePercentage = previousPeriodTotal > 0 
-    ? Math.round(((currentPeriodTotal - previousPeriodTotal) / previousPeriodTotal) * 100)
+    ? Math.round(((currentPeriodTotal - previousPeriodTotal) / previousPeriodTotal * 100))
     : 0;
 
   return (
     <div className="flex min-h-screen bg-[#0d1a23]">
       <div className="flex-1 flex flex-col">
-        <main className="flex-1 p-6 space-y-6">
-          <DashboardContent gymId={id} />
-          
-          <RevenueChart 
-            data={chartData}
-            totalAmount={totalAmount}
-            changePercentage={changePercentage}
-            ticketAmount={ticketAmount}
-          />
+        <main className="flex-1 p-4 md:p-6 space-y-4 md:space-y-6">
+          {/* Conteneur principal avec espacement responsive */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
+            {/* Section DashboardContent - prend toute la largeur sur mobile, moitié sur grand écran */}
+            <div className="lg:col-span-2">
+              <DashboardContent gymId={id} />
+            </div>
+            
+            {/* Section RevenueChart - prend toute la largeur */}
+            <div className="lg:col-span-2">
+              <RevenueChart 
+                data={chartData}
+                totalAmount={totalAmount}
+                changePercentage={changePercentage}
+                ticketAmount={ticketAmount}
+              />
+            </div>
+          </div>
         </main>
       </div>
     </div>
