@@ -6,7 +6,7 @@ export const connectAndPrint = async (gymName: string, ticket: any) => {
 
     const device = await navigator.bluetooth.requestDevice({
       acceptAllDevices: true,
-      optionalServices: ['000018f0-0000-1000-8000-00805f9b34fb'] // Service ESC/POS
+      optionalServices: ['000018f0-0000-1000-8000-00805f9b34fb'] 
     });
 
     const server = await device.gatt?.connect();

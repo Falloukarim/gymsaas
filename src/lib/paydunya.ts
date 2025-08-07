@@ -94,13 +94,8 @@ const paydunya = {
     callback_url: `${process.env.NEXT_PUBLIC_API_URL}/api/paydunya/webhook`
   },
   custom_data: metadata,
-  preferences: {
-    payment_methods: {
-      mobile: true,
-      card: false
-    },
-    hide_payment_methods: false
-  }
+    channels: ['WAVE', 'ORANGE_MONEY'],
+
 };
 
 

@@ -72,7 +72,6 @@ export default function DashboardContent({ gymId }: { gymId: string }) {
 
     await connectAndPrint(data.gym.name, ticket);
 
-    // Tu peux ensuite recharger les données
     const dashboardResponse = await fetch(`/api/gyms/${gymId}/dashboard`);
     if (dashboardResponse.ok) {
       setData(await dashboardResponse.json());
