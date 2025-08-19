@@ -64,11 +64,11 @@ async function handleGymsSubscriptions(supabase: any, today: Date, now: Date) {
 
   if (fetchError) throw fetchError;
 
-  const expiredTrials = gyms?.filter(g => 
+  const expiredTrials = gyms?.filter((g: { trial_used: any; trial_end_date: string | number | Date; }) => 
     g.trial_used && g.trial_end_date && new Date(g.trial_end_date) <= today
   ) || [];
 
-  const expiredPaid = gyms?.filter(g => 
+  const expiredPaid = gyms?.filter((g: { subscription_active: any; current_subscription_end: string | number | Date; }) => 
     g.subscription_active && g.current_subscription_end && new Date(g.current_subscription_end) <= today
   ) || [];
 
@@ -83,7 +83,7 @@ async function handleGymsSubscriptions(supabase: any, today: Date, now: Date) {
         current_subscription_start: null,
         current_subscription_end: null
       })
-      .in('id', expiredTrials.map(g => g.id));
+      .in('id', expiredTrials.map((g: { id: any; }) => g.id));
 
     if (error) throw error;
   }
@@ -98,7 +98,7 @@ async function handleGymsSubscriptions(supabase: any, today: Date, now: Date) {
         current_subscription_start: null,
         current_subscription_end: null
       })
-      .in('id', expiredPaid.map(g => g.id));
+      .in('id', expiredPaid.map((g: { id: any; }) => g.id));
 
     if (error) throw error;
   }
@@ -126,12 +126,12 @@ async function handleMembersSubscriptions(supabase: any, today: Date, now: Date)
         status: 'inactive',
         updated_at: now.toISOString()
       })
-      .in('id', expiredSubs.map(sub => sub.id));
+      .in('id', expiredSubs.map((sub: { id: any; }) => sub.id));
 
     if (updateError) throw updateError;
 
     // Mise à jour des membres
-    const memberIds = expiredSubs.map(sub => sub.member_id);
+    const memberIds = expiredSubs.map((sub: { member_id: any; }) => sub.member_id);
     const { error: memberError } = await (await (await supabase))
       .from('members')
     .update({ 

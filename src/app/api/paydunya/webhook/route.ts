@@ -6,10 +6,9 @@ export async function POST(request: Request) {
   const supabase = createClient();
 
   try {
-    // 1. Lire le body brut
+
     const rawPayload = await request.text();
 
-    // 2. Vérifier la signature (en production)
     const signature = request.headers.get('X-Paydunya-Signature');
     const isDev = process.env.NODE_ENV !== 'production' || process.env.DISABLE_SIGNATURE_CHECK === 'true';
 
@@ -52,14 +51,12 @@ export async function POST(request: Request) {
       );
     }
 
-    // 5. Extraire les données
     const { status, receipt_url, payment_method, custom_data } = payload.data;
     const paymentId = requiredData.token;
 
     const startDate = new Date();
     const endDate = calculateEndDate(requiredData.billing_cycle);
 
-    // 6. Mise à jour de la base
     if (status === 'completed') {
       const { error: paymentError } = await (await supabase)
         .from('gym_subscription_payments')

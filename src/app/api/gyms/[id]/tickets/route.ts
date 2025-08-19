@@ -15,34 +15,45 @@ export async function POST(
   const gymId = params.id;
   const { sessionType } = await request.json();
 
-  // Récupérer le prix de la session depuis la table subscriptions
-  const { data: subscription } = await (await supabase)
-    .from('subscriptions')
-    .select('id, session_price')
-    .eq('gym_id', gymId)
-    .eq('type', 'session')
-    .single();
+  try {
+    // Récupérer le prix de la session
+    const { data: subscription, error: subscriptionError } = await (await supabase)
+      .from('subscriptions')
+      .select('id, session_price')
+      .eq('gym_id', gymId)
+      .eq('type', 'session')
+      .single();
 
-  if (!subscription) {
-    return NextResponse.json({ error: 'Subscription not found' }, { status: 404 });
+    if (subscriptionError || !subscription) {
+      return NextResponse.json(
+        { error: subscriptionError?.message || 'Subscription not found' }, 
+        { status: 404 }
+      );
+    }
+
+    // Créer le ticket avec la date actuelle
+    const { data: ticket, error: ticketError } = await (await supabase)
+      .from('tickets')
+      .insert({
+        gym_id: gymId,
+        printed_by: user.id,
+        price: subscription.session_price,
+        session_type: sessionType,
+        subscription_id: subscription.id,
+        printed_at: new Date().toISOString()
+      })
+      .select()
+      .single();
+
+    if (ticketError) {
+      return NextResponse.json({ error: ticketError.message }, { status: 500 });
+    }
+
+    return NextResponse.json(ticket);
+  } catch (error) {
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    );
   }
-
-  // Créer le ticket
-  const { data: ticket, error } = await (await supabase)
-    .from('tickets')
-    .insert({
-      gym_id: gymId,
-      printed_by: user.id,
-      price: subscription.session_price,
-      session_type: sessionType,
-      subscription_id: subscription.id
-    })
-    .select()
-    .single();
-
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
-  }
-
-  return NextResponse.json(ticket);
 }

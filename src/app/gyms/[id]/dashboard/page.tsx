@@ -11,7 +11,6 @@ type Payment = {
   id: string;
   gym_id: string;
   status: string;
-  // autres champs pertinents
 };
 
 type Ticket = {
@@ -19,7 +18,6 @@ type Ticket = {
   printed_at: string;
   id: string;
   gym_id: string;
-  // autres champs pertinents
 };
 
 type CombinedDataItem = {

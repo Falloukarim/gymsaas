@@ -41,10 +41,10 @@ const PAYDUNYA_CONFIG: PaydunyaConfig = {
     website_url: process.env.NEXT_PUBLIC_SITE_URL!,
     logo_url: `${process.env.NEXT_PUBLIC_SITE_URL}/logo.png`,
     tagline: "Gestion de salle de sport",
-    postal_address: "Dakar, Sénégal", // Adresse complète requise
-    phone: "787311616" // Numéro valide requis
+    postal_address: "Dakar, Sénégal",
+    phone: "787311616" 
   },
-  mode: 'live', // Forcé en mode live
+  mode: 'live', 
 };
 
 const paydunya = {
@@ -94,7 +94,7 @@ const paydunya = {
     callback_url: `${process.env.NEXT_PUBLIC_API_URL}/api/paydunya/webhook`
   },
   custom_data: metadata,
-    channels: ['WAVE', 'ORANGE_MONEY'],
+    channels: ['WAVE', 'ORANGE_MONEY', 'FREE_MONEY'],
 
 };
 
