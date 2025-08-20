@@ -90,8 +90,8 @@ export const printTicket = async (
       0x1B, 0x61, 0x01, // Center align
       0x1B, 0x45, 0x01, // Bold
       ...encoder.encode(`${gymName}\n`),
-      0x1B, 0x45, 0x00, // Bold off
-      0x1B, 0x61, 0x00, // Left align
+      0x1B, 0x45, 0x00, 
+      0x1B, 0x61, 0x00, 
       ...encoder.encode('------------------------------\n'),
       ...encoder.encode('Ticket d\'entrée\n\n'),
       ...encoder.encode(`Réf: ${ticketData.id}\n`),
@@ -99,7 +99,7 @@ export const printTicket = async (
       ...encoder.encode('------------------------------\n'),
       ...(options?.additionalText ? encoder.encode(`${options.additionalText}\n`) : []),
       ...encoder.encode('Merci pour votre visite!\n'),
-      0x1D, 0x56, 0x41, 0x03 // Cut paper
+      0x1D, 0x56, 0x41, 0x03 
     ];
 
     await connectedCharacteristic.writeValueWithoutResponse(new Uint8Array(commands));
