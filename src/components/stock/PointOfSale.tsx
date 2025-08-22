@@ -30,6 +30,7 @@ export default function PointOfSale({ gymId }: PointOfSaleProps) {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [paymentMethod, setPaymentMethod] = useState('cash');
   const [loading, setLoading] = useState(true);
+  const [processingSale, setProcessingSale] = useState(false); // Nouvel état pour le chargement de la vente
 
   useEffect(() => {
     fetchProducts();
@@ -167,6 +168,8 @@ export default function PointOfSale({ gymId }: PointOfSaleProps) {
       return;
     }
 
+    setProcessingSale(true); // Activer l'état de chargement
+
     try {
       const response = await fetch(`/api/gyms/${gymId}/sales`, {
         method: 'POST',
@@ -188,6 +191,8 @@ export default function PointOfSale({ gymId }: PointOfSaleProps) {
       }
     } catch (error) {
       toast.error('Erreur lors de la vente');
+    } finally {
+      setProcessingSale(false); // Désactiver l'état de chargement
     }
   };
 
@@ -290,9 +295,19 @@ export default function PointOfSale({ gymId }: PointOfSaleProps) {
                 <Button 
                   className="w-full bg-[#00c9a7] text-[#00624f] hover:bg-[#00b496]"
                   onClick={processSale}
+                  disabled={processingSale} // Désactiver le bouton pendant le traitement
                 >
-                  <ShoppingCart className="w-4 h-4 mr-2" />
-                  Finaliser la vente
+                  {processingSale ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                      Traitement...
+                    </>
+                  ) : (
+                    <>
+                      <ShoppingCart className="w-4 h-4 mr-2" />
+                      Finaliser la vente
+                    </>
+                  )}
                 </Button>
               </>
             )}

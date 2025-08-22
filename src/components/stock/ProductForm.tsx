@@ -187,7 +187,7 @@ export default function ProductForm({ gymId, product }: ProductFormProps) {
         <CardTitle className="text-2xl font-bold text-gray-800">
           {product ? 'Modifier le produit' : 'Nouveau produit'}
         </CardTitle>
-        <CardDescription className="text-black">
+        <CardDescription className="text-gray-300">
           {product ? 'Modifiez les informations du produit' : 'Ajoutez un nouveau produit à votre inventaire'}
         </CardDescription>
       </CardHeader>
@@ -218,7 +218,7 @@ export default function ProductForm({ gymId, product }: ProductFormProps) {
                   name="category_id"
                   value={formData.category_id}
                   onChange={handleInputChange}
-                  className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:border-blue-500 focus:ring-blue-500"
+                  className="flex-1 px-3 py-2 border bg-black border-gray-300 rounded-md focus:border-blue-500 focus:ring-blue-500"
                   required
                 >
                   <option value="">Sélectionner une catégorie</option>
@@ -327,7 +327,7 @@ export default function ProductForm({ gymId, product }: ProductFormProps) {
                 name="unit"
                 value={formData.unit}
                 onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:border-blue-500 focus:ring-blue-500"
+                className="w-full px-3 py-2 bg-black border border-gray-300 rounded-md focus:border-blue-500 focus:ring-blue-500"
                 required
               >
                 <option value="pièce">Pièce</option>
@@ -364,7 +364,7 @@ export default function ProductForm({ gymId, product }: ProductFormProps) {
                   name="supplier_id"
                   value={formData.supplier_id}
                   onChange={handleInputChange}
-                  className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:border-blue-500 focus:ring-blue-500"
+                  className="flex-1 px-3 py-2 border bg-black border-gray-300 rounded-md focus:border-blue-500 focus:ring-blue-500"
                 >
                   <option value="">Sélectionner un fournisseur</option>
                   {suppliers.map((supplier) => (
