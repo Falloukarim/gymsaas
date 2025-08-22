@@ -12,16 +12,15 @@ export async function POST(
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const gymId = params.id;
-  const { sessionType } = await request.json();
+   const gymId = params.id;
+  const { sessionType, subscriptionId } = await request.json(); // Ajout de subscriptionId
 
   try {
-    // Récupérer le prix de la session
+    // Récupérer le prix de la session spécifique
     const { data: subscription, error: subscriptionError } = await (await supabase)
       .from('subscriptions')
-      .select('id, session_price')
-      .eq('gym_id', gymId)
-      .eq('type', 'session')
+      .select('id, session_price, type, description')
+      .eq('id', subscriptionId) 
       .single();
 
     if (subscriptionError || !subscription) {

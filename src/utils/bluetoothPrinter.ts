@@ -69,6 +69,11 @@ export const connectToPrinter = async (): Promise<void> => {
 export const printTicket = async (
   gymName: string,
   ticketData: { id: string },
+  sessionDetails?: {
+    type: string;
+    price: number;
+    description?: string;
+  },
   options?: {
     showDate?: boolean;
     additionalText?: string;
@@ -82,8 +87,7 @@ export const printTicket = async (
     throw new Error('Printer not properly connected');
   }
 
-  try {
-    // ESC/POS commands
+ try {
     const encoder = new TextEncoder();
     const commands = [
       0x1B, 0x40, // Init
@@ -95,6 +99,11 @@ export const printTicket = async (
       ...encoder.encode('------------------------------\n'),
       ...encoder.encode('Ticket d\'entrée\n\n'),
       ...encoder.encode(`Réf: ${ticketData.id}\n`),
+      
+      // Ajouter les détails de la session
+      ...(sessionDetails ? encoder.encode(`Type: ${sessionDetails.description || sessionDetails.type}\n`) : []),
+      ...(sessionDetails ? encoder.encode(`Prix: ${sessionDetails.price} XOF\n`) : []),
+      
       ...(options?.showDate !== false ? encoder.encode(`${new Date().toLocaleString()}\n`) : []),
       ...encoder.encode('------------------------------\n'),
       ...(options?.additionalText ? encoder.encode(`${options.additionalText}\n`) : []),

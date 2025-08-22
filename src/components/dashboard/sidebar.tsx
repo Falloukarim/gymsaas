@@ -2,7 +2,7 @@
 import { useParams, usePathname } from "next/navigation";
 import Link from "next/link";
 import { useSidebar } from "@/context/SidebarContext";
-import { Home, Users, CreditCard, DoorOpen, Activity, X } from "lucide-react";
+import { Home, Users, CreditCard, DoorOpen, Activity, X, Box, ShoppingCart, RefreshCcw  } from "lucide-react";
 import MotionSidebarButton from "@/components/ui/MotionSidebarButton";
 import { motion, AnimatePresence, Variants } from "framer-motion";
 import useIsMobile from "../../../hooks/useIsMobile";
@@ -39,15 +39,20 @@ export default function Sidebar() {
   }, [gymId, supabase]);
 
   const navItems = [
-    { href: `/gyms/${gymId}/dashboard`, icon: Home, label: "Dashboard" },
-    { href: `/gyms/${gymId}/members`, icon: Users, label: "Membres" },
-    { href: `/gyms/${gymId}/subscriptions`, icon: CreditCard, label: "Abonnements" },
-    { href: `/gyms/${gymId}/access-logs`, icon: DoorOpen, label: "Accès" },
-    { href: `/gyms/${gymId}/payments`, icon: Activity, label: "Paiements" },
-    ...(currentUserRole === USER_ROLES.OWNER
-      ? [{ href: `/gyms/${gymId}/roles`, icon: Users, label: "Rôles" }]
-      : []),
-  ];
+  { href: `/gyms/${gymId}/dashboard`, icon: Home, label: "Dashboard" },
+  { href: `/gyms/${gymId}/members`, icon: Users, label: "Membres" },
+  { href: `/gyms/${gymId}/subscriptions`, icon: CreditCard, label: "Abonnements" },
+  { href: `/gyms/${gymId}/access-logs`, icon: DoorOpen, label: "Accès" },
+  { href: `/gyms/${gymId}/payments`, icon: Activity, label: "Paiements" },
+  { href: `/gyms/${gymId}/stock/products`, icon: Box, label: "Produits" },
+  { href: `/gyms/${gymId}/stock/pos`, icon: ShoppingCart, label: "Point de Vente" },
+  { href: `/gyms/${gymId}/stock/movements`, icon: RefreshCcw, label: "Mouvements" },
+
+  ...(currentUserRole === USER_ROLES.OWNER
+    ? [{ href: `/gyms/${gymId}/roles`, icon: Users, label: "Rôles" }]
+    : []),
+];
+
 
   const containerVariants: Variants = {
     hidden: {},
