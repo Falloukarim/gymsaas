@@ -97,16 +97,11 @@ export const printTicket = async (
       0x1B, 0x45, 0x00, 
       0x1B, 0x61, 0x00, 
       ...encoder.encode('------------------------------\n'),
-      ...encoder.encode('Ticket d\'entrée\n\n'),
-      ...encoder.encode(`Réf: ${ticketData.id}\n`),
-      
+      ...encoder.encode('Ticket d\'entrée\n\n'),      
       // Ajouter les détails de la session
-      ...(sessionDetails ? encoder.encode(`Type: ${sessionDetails.description || sessionDetails.type}\n`) : []),
-      ...(sessionDetails ? encoder.encode(`Prix: ${sessionDetails.price} XOF\n`) : []),
-      
+      ...(sessionDetails ? encoder.encode(`Type: ${sessionDetails.description || sessionDetails.type}\n`) : []),      
       ...(options?.showDate !== false ? encoder.encode(`${new Date().toLocaleString()}\n`) : []),
       ...encoder.encode('------------------------------\n'),
-      ...(options?.additionalText ? encoder.encode(`${options.additionalText}\n`) : []),
       ...encoder.encode('Merci pour votre visite!\n'),
       0x1D, 0x56, 0x41, 0x03 
     ];
