@@ -30,23 +30,42 @@ export function LoginPage() {
 
       if (authError) throw authError
 
-      await new Promise((r) => setTimeout(r, 500))
+      // Attendre que la session soit bien établie
+      await new Promise((r) => setTimeout(r, 1000))
 
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
+      const { data: { user } } = await supabase.auth.getUser()
 
+      if (!user) {
+        throw new Error('Utilisateur non trouvé')
+      }
+
+      // VÉRIFIER SI L'UTILISATEUR A DÉJÀ UN GYM
+      const { data: gbus } = await supabase
+        .from('gbus')
+        .select('gym_id')
+        .eq('user_id', user.id)
+
+      if (gbus && gbus.length > 0) {
+        // Rediriger vers le dashboard du premier gym
+        router.push(`/gyms/${gbus[0].gym_id}/dashboard`)
+        return
+      }
+
+      // Vérifier les invitations
       const { data: invitations } = await supabase
         .from('invitations')
         .select('id')
-        .eq('email', user?.email)
+        .eq('email', user.email)
         .eq('accepted', false)
 
-      if (invitations?.length) {
-        window.location.href = '/gyms/join'
-      } else {
-        window.location.href = '/gyms/select'
+      if (invitations && invitations.length > 0) {
+        router.push('/gyms/join')
+        return
       }
+
+      // Si pas de gym et pas d'invitations
+      router.push('/gyms/select')
+
     } catch (err: any) {
       setError(err.message || 'Erreur de connexion')
     } finally {
