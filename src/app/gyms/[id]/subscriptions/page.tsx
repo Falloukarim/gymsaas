@@ -6,8 +6,9 @@ import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import InlineSubscriptionForm from '@/components/subscriptions/InlineSubscriptionForm';
 import SessionForm from '@/components/susbscriptions/SessionForm';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Edit } from 'lucide-react';
 import Link from 'next/link';
+import EditSessionModal from '@/components/EditSessionModal';
 
 export default function SubscriptionsPage({
   params,
@@ -18,6 +19,8 @@ export default function SubscriptionsPage({
   const supabase = createClientComponentClient();
   const [subscriptions, setSubscriptions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [editingSession, setEditingSession] = useState<any>(null);
 
   useEffect(() => {
     const resolveParams = async () => {
@@ -39,9 +42,11 @@ export default function SubscriptionsPage({
       if (error) throw error;
 
       setSubscriptions(data || []);
-    } catch (error) {
-      toast.error('Erreur de chargement des abonnements');
+    } catch (error: any) {
       console.error('Fetch error:', error);
+      toast.error('Erreur de chargement des abonnements', {
+        description: error.message || 'Veuillez réessayer'
+      });
     } finally {
       setLoading(false);
     }
@@ -55,7 +60,27 @@ export default function SubscriptionsPage({
 
   const handleDelete = async (id: string) => {
     try {
-      setLoading(true);
+      setDeletingId(id);
+      
+      // Vérifier si cette session est utilisée dans la table tickets
+      const { data: tickets, error: checkError } = await supabase
+        .from('tickets')
+        .select('id')
+        .eq('subscription_id', id)
+        .limit(1);
+        
+      if (checkError) {
+        console.error('Check error:', checkError);
+        // Continuer même en cas d'erreur de vérification
+      }
+      
+      if (tickets && tickets.length > 0) {
+        toast.error('Impossible de supprimer', {
+          description: 'Cette session est utilisée dans des tickets existants'
+        });
+        return;
+      }
+      
       const { error } = await supabase
         .from('subscriptions')
         .delete()
@@ -63,13 +88,23 @@ export default function SubscriptionsPage({
 
       if (error) throw error;
 
-      toast.success('Abonnement supprimé avec succès');
+      toast.success('Supprimé avec succès');
       if (gymId) await fetchSubscriptions(gymId);
-    } catch (error) {
-      toast.error('Erreur lors de la suppression');
+    } catch (error: any) {
       console.error('Delete error:', error);
+      
+      // Message d'erreur plus spécifique
+      if (error.code === '23503') { // Violation de contrainte de clé étrangère
+        toast.error('Impossible de supprimer', {
+          description: 'Cet élément est utilisé ailleurs dans le système'
+        });
+      } else {
+        toast.error('Erreur lors de la suppression', {
+          description: error.message || 'Veuillez réessayer'
+        });
+      }
     } finally {
-      setLoading(false);
+      setDeletingId(null);
     }
   };
 
@@ -86,17 +121,16 @@ export default function SubscriptionsPage({
         </Link>
         
         <div className="relative p-6 sm:p-8 rounded-2xl border bg-white shadow-md max-w-xl mx-auto sm:mx-0">
-  <div className="absolute -inset-0.5 rounded-2xl bg-gradient-to-r from-green-400 via-green-100 to-green-900 blur-sm opacity-50 pointer-events-none"></div>
+          <div className="absolute -inset-0.5 rounded-2xl bg-gradient-to-r from-green-400 via-green-100 to-green-900 blur-sm opacity-50 pointer-events-none"></div>
 
-  <div className="relative z-10 text-center sm:text-left">
-    <h1 className="text-xl sm:text-2xl font-bold text-gray-800 mb-1">Gestion des abonnements</h1>
-    <p className="text-xs sm:text-sm text-gray-600">
-      Créez et gérez les abonnements et sessions de votre salle
-    </p>
-  </div>
-</div>
-</div>
-
+          <div className="relative z-10 text-center sm:text-left">
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-800 mb-1">Gestion des abonnements</h1>
+            <p className="text-xs sm:text-sm text-gray-600">
+              Créez et gérez les abonnements et sessions de votre salle
+            </p>
+          </div>
+        </div>
+      </div>
 
       {/* Forms section */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 mb-6 sm:mb-8">
@@ -156,10 +190,17 @@ export default function SubscriptionsPage({
                         variant="destructive"
                         size="sm"
                         onClick={() => handleDelete(sub.id)}
-                        disabled={loading}
+                        disabled={deletingId === sub.id}
                         className="text-xs sm:text-sm"
                       >
-                        Supprimer
+                        {deletingId === sub.id ? (
+                          <>
+                            <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white mr-1"></div>
+                            Suppression...
+                          </>
+                        ) : (
+                          'Supprimer'
+                        )}
                       </Button>
                     </div>
                   </div>
@@ -179,7 +220,7 @@ export default function SubscriptionsPage({
                     className="border rounded-lg p-3 sm:p-4 flex flex-col shadow-sm hover:shadow-md transition"
                   >
                     <div className="flex-1">
-                      <h3 className="font-bold text-base sm:text-lg">Session</h3>
+                      <h3 className="font-bold text-base sm:text-lg">{session.type || 'Session'}</h3>
                       <p className="text-xl sm:text-2xl font-semibold my-1 sm:my-2">{session.price} FCFA</p>
                       <p className="text-xs sm:text-sm text-muted-foreground">Accès: 1 jour</p>
                       {session.description && (
@@ -188,15 +229,31 @@ export default function SubscriptionsPage({
                         </p>
                       )}
                     </div>
-                    <div className="mt-3 sm:mt-4 flex justify-end">
+                    <div className="mt-3 sm:mt-4 flex justify-end space-x-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setEditingSession(session)}
+                        className="text-xs sm:text-sm"
+                      >
+                        <Edit className="h-3 w-3 mr-1" />
+                        Modifier
+                      </Button>
                       <Button
                         variant="destructive"
                         size="sm"
                         onClick={() => handleDelete(session.id)}
-                        disabled={loading}
+                        disabled={deletingId === session.id}
                         className="text-xs sm:text-sm"
                       >
-                        Supprimer
+                        {deletingId === session.id ? (
+                          <>
+                            <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white mr-1"></div>
+                            Suppression...
+                          </>
+                        ) : (
+                          'Supprimer'
+                        )}
                       </Button>
                     </div>
                   </div>
@@ -204,6 +261,17 @@ export default function SubscriptionsPage({
             </div>
           </div>
         </div>
+      )}
+
+      {/* Modal d'édition */}
+      {editingSession && (
+        <EditSessionModal
+          session={editingSession}
+          onSuccess={() => {
+            if (gymId) fetchSubscriptions(gymId);
+          }}
+          onClose={() => setEditingSession(null)}
+        />
       )}
     </div>
   );

@@ -350,7 +350,7 @@ export default function DashboardContent({ gymId }: { gymId: string }) {
               ) : (
                 <Button
                   onClick={handleConnectPrinter}
-                  className="w-full sm:w-auto bg-gradient-to-r from-blue-500 to-green-500 
+                  className="w-full sm:w-auto bg-gradient-to-r from-blue-900 to-green-1000 
                             hover:from-blue-600 hover:to-green-600 
                             text-white font-medium h-9 px-4 rounded-lg shadow-md transition-all"
                   disabled={printerStatus.isPrinting}
@@ -391,7 +391,7 @@ export default function DashboardContent({ gymId }: { gymId: string }) {
               {/* Impression */}
               <Button
                 onClick={handlePrint}
-                className="w-full sm:w-auto bg-gradient-to-r from-blue-500 to-green-500 
+                className="w-full sm:w-auto bg-gradient-to-r from-blue-500 to-green-1000 
                           hover:from-blue-600 hover:to-green-600 
                           flex items-center justify-center gap-2 h-10 px-6
                           text-white font-semibold rounded-lg shadow-md transition-all"
