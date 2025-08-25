@@ -1,28 +1,43 @@
 "use client";
-import { useParams, usePathname } from "next/navigation";
+
+import { useParams, usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
 import { useSidebar } from "@/context/SidebarContext";
-import { Home, Users, CreditCard, DoorOpen, Activity, X, Box, ShoppingCart, RefreshCcw  } from "lucide-react";
+import {
+  Home,
+  Users,
+  CreditCard,
+  DoorOpen,
+  Activity,
+  X,
+  Box,
+  ShoppingCart,
+  RefreshCcw,
+} from "lucide-react";
 import MotionSidebarButton from "@/components/ui/MotionSidebarButton";
 import { motion, AnimatePresence, Variants } from "framer-motion";
-import useIsMobile from "../../../hooks/useIsMobile";
+import useIsMobile from "hooks/useIsMobile";
 import { createClient } from "@/lib/supabaseClient";
 import { useEffect, useState } from "react";
 import { USER_ROLES } from "@/lib/constants/role";
+import { useLoading } from "@/components/LoadingProvider";
 
 export default function Sidebar() {
   const pathname = usePathname();
   const params = useParams();
+  const router = useRouter();
   const gymId = params.id;
   const { isOpen, close } = useSidebar();
   const isMobile = useIsMobile();
   const [currentUserRole, setCurrentUserRole] = useState<string | null>(null);
   const supabase = createClient();
+  const { startLoading } = useLoading();
 
+  // ⚡ Récupération du rôle utilisateur
   useEffect(() => {
     const fetchUserRole = async () => {
       const { data: { user } } = await supabase.auth.getUser();
-      
+
       if (user && gymId) {
         const { data } = await supabase
           .from("gbus")
@@ -30,7 +45,7 @@ export default function Sidebar() {
           .eq("gym_id", gymId)
           .eq("user_id", user.id)
           .single();
-        
+
         setCurrentUserRole(data?.role || null);
       }
     };
@@ -39,50 +54,50 @@ export default function Sidebar() {
   }, [gymId, supabase]);
 
   const navItems = [
-  { href: `/gyms/${gymId}/dashboard`, icon: Home, label: "Dashboard" },
-  { href: `/gyms/${gymId}/members`, icon: Users, label: "Membres" },
-  { href: `/gyms/${gymId}/subscriptions`, icon: CreditCard, label: "Abonnements" },
-  { href: `/gyms/${gymId}/access-logs`, icon: DoorOpen, label: "Accès" },
-  { href: `/gyms/${gymId}/payments`, icon: Activity, label: "Paiements" },
-  { href: `/gyms/${gymId}/stock/products`, icon: Box, label: "Produits" },
-  { href: `/gyms/${gymId}/stock/pos`, icon: ShoppingCart, label: "Point de Vente" },
-  { href: `/gyms/${gymId}/stock/movements`, icon: RefreshCcw, label: "Mouvements" },
-
-  ...(currentUserRole === USER_ROLES.OWNER
-    ? [{ href: `/gyms/${gymId}/roles`, icon: Users, label: "Rôles" }]
-    : []),
-];
-
+    { href: `/gyms/${gymId}/dashboard`, icon: Home, label: "Dashboard" },
+    { href: `/gyms/${gymId}/members`, icon: Users, label: "Membres" },
+    { href: `/gyms/${gymId}/subscriptions`, icon: CreditCard, label: "Abonnements" },
+    { href: `/gyms/${gymId}/access-logs`, icon: DoorOpen, label: "Accès" },
+    { href: `/gyms/${gymId}/payments`, icon: Activity, label: "Paiements" },
+    { href: `/gyms/${gymId}/stock/products`, icon: Box, label: "Produits" },
+    { href: `/gyms/${gymId}/stock/pos`, icon: ShoppingCart, label: "Point de Vente" },
+    { href: `/gyms/${gymId}/stock/movements`, icon: RefreshCcw, label: "Mouvements" },
+    ...(currentUserRole === USER_ROLES.OWNER
+      ? [{ href: `/gyms/${gymId}/roles`, icon: Users, label: "Rôles" }]
+      : []),
+  ];
 
   const containerVariants: Variants = {
     hidden: {},
-    visible: {
-      transition: {
-        staggerChildren: 0.2,
-      },
-    },
+    visible: { transition: { staggerChildren: 0.2 } },
   };
 
   const itemVariants: Variants = {
     hidden: { opacity: 0, x: -20 },
-    visible: { 
-      opacity: 1, 
-      x: 0, 
-      transition: { 
-        duration: 0.3, 
-        ease: "easeOut" 
-      } 
-    },
+    visible: { opacity: 1, x: 0, transition: { duration: 0.3, ease: "easeOut" } },
   };
 
-  const handleLinkClick = () => {
-    if (isMobile) {
-      close();
-    }
+  // ⚡ Handler pour tous les liens avec spinner global
+  const handleLinkClick = (href: string) => async (e: React.MouseEvent) => {
+    e.preventDefault(); // Empêche la navigation immédiate
+    
+    await startLoading(async () => {
+      // Fermer la sidebar si on est en mobile
+      if (isMobile) {
+        close();
+      }
+      
+      // Simuler un petit délai pour montrer l'animation (optionnel)
+      await new Promise(resolve => setTimeout(resolve, 300));
+      
+      // Naviguer vers la page
+      router.push(href);
+    });
   };
 
   return (
     <>
+      {/* Overlay mobile */}
       <AnimatePresence>
         {isMobile && isOpen && (
           <motion.div
@@ -97,6 +112,7 @@ export default function Sidebar() {
         )}
       </AnimatePresence>
 
+      {/* Sidebar */}
       <AnimatePresence>
         {(isOpen || !isMobile) && (
           <motion.aside
@@ -127,12 +143,16 @@ export default function Sidebar() {
                   const isActive = pathname === href;
                   return (
                     <motion.div key={href} variants={itemVariants}>
-                      <Link href={href} onClick={handleLinkClick}>
+                      <a
+                        href={href}
+                        onClick={handleLinkClick(href)}
+                        className="block"
+                      >
                         <MotionSidebarButton isActive={isActive}>
                           <Icon className={`h-4 w-4 ${isActive ? "drop-shadow-[0_0_8px_#00c9a7]" : ""}`} />
                           <span className="truncate">{label}</span>
                         </MotionSidebarButton>
-                      </Link>
+                      </a>
                     </motion.div>
                   );
                 })}

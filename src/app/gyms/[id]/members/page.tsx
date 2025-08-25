@@ -180,32 +180,34 @@ function MembersPage() {
                         href={`/gyms/${gymId}/members/${member.id}`}
                         className="group"
                       >
-                        <Card className="transition-all hover:scale-[1.02] hover:shadow-lg border border-gray-200 bg-gray-50 hover:bg-gray-100">
-                          <CardContent className="p-3 sm:p-4 flex items-center gap-3 sm:gap-4">
-                            <Avatar className="h-10 w-10 sm:h-12 sm:w-12">
-                              <AvatarImage src={getImageUrl(member.avatar_url)} />
-                              <AvatarFallback className="bg-green-500 text-white">
-                                {member.full_name
-                                  .split(' ')
-                                  .map((n: string) => n[0])
-                                  .join('')}
-                              </AvatarFallback>
-                            </Avatar>
+                        <Card className="transition-all hover:scale-[1.02] hover:shadow-lg border border-white bg-green-1000 hover:bg-green-200">
+  <CardContent className="p-3 sm:p-4 flex items-center gap-3 sm:gap-4">
+    <Avatar className="h-10 w-10 sm:h-12 sm:w-12">
+      <AvatarImage src={getImageUrl(member.avatar_url)} />
+      <AvatarFallback className="bg-green-500 text-white">
+        {member.full_name
+          .split(' ')
+          .map((n: string) => n[0])
+          .join('')}
+      </AvatarFallback>
+    </Avatar>
 
-                            <div className="flex-1 min-w-0">
-                              <h3 className="font-semibold text-black sm:text-base truncate group-hover:text-green-600">
-                                {member.full_name}
-                              </h3>
-                              <p className="text-xs sm:text-sm text-gray-500 truncate">
-                                {member.email || 'Aucun email'}
-                              </p>
-                            </div>
-                            {activeSubscription && (
-                              <Badge variant="secondary" className="ml-2 text-xs sm:text-sm bg-green-100 text-green-800">
-                              </Badge>
-                            )}
-                          </CardContent>
-                        </Card>
+    <div className="flex-1 min-w-0">
+      <h3 className="font-semibold text-black sm:text-base truncate group-hover:text-green-600">
+        {member.full_name}
+      </h3>
+      <p className="text-xs sm:text-sm text-gray-500 truncate">
+        {member.email || 'Aucun email'}
+      </p>
+    </div>
+
+    {activeSubscription && (
+      <Badge variant="secondary" className="ml-2 text-xs sm:text-sm bg-green-200 text-green-800">
+      </Badge>
+    )}
+  </CardContent>
+</Card>
+
                       </Link>
                     );
                   })}

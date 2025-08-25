@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { ArrowLeft, Plus, Minus, Save, Package } from 'lucide-react';
 import { toast } from 'react-hot-toast';
+import { useLoading } from '@/components/LoadingProvider'; // Import du hook useLoading
 
 interface Product {
   id: string;
@@ -50,35 +51,39 @@ export default function ProductDetailPage() {
   const [restockQuantity, setRestockQuantity] = useState(1);
   const [restockReason, setRestockReason] = useState('Réapprovisionnement');
   const [showRestockForm, setShowRestockForm] = useState(false);
+  const { startLoading } = useLoading(); // Utilisation du hook useLoading
 
   useEffect(() => {
     fetchProductData();
   }, [gymId, productId]);
 
   const fetchProductData = async () => {
-    try {
-      setLoading(true);
-      
-      // Charger les détails du produit
-      const productResponse = await fetch(`/api/gyms/${gymId}/products/${productId}`);
-      if (productResponse.ok) {
-        const productData = await productResponse.json();
-        setProduct(productData);
-      } else {
-        toast.error('Erreur lors du chargement du produit');
-      }
+    // Utilisation de startLoading pour wrapper l'opération
+    await startLoading(async () => {
+      try {
+        setLoading(true);
+        
+        // Charger les détails du produit
+        const productResponse = await fetch(`/api/gyms/${gymId}/products/${productId}`);
+        if (productResponse.ok) {
+          const productData = await productResponse.json();
+          setProduct(productData);
+        } else {
+          toast.error('Erreur lors du chargement du produit');
+        }
 
-      // Charger les mouvements de stock
-      const movementsResponse = await fetch(`/api/gyms/${gymId}/stock-movements?product_id=${productId}&limit=20`);
-      if (movementsResponse.ok) {
-        const movementsData = await movementsResponse.json();
-        setMovements(movementsData);
+        // Charger les mouvements de stock
+        const movementsResponse = await fetch(`/api/gyms/${gymId}/stock-movements?product_id=${productId}&limit=20`);
+        if (movementsResponse.ok) {
+          const movementsData = await movementsResponse.json();
+          setMovements(movementsData);
+        }
+      } catch (error) {
+        toast.error('Erreur lors du chargement des données');
+      } finally {
+        setLoading(false);
       }
-    } catch (error) {
-      toast.error('Erreur lors du chargement des données');
-    } finally {
-      setLoading(false);
-    }
+    });
   };
 
   const handleRestock = async (e: React.FormEvent) => {
@@ -88,76 +93,82 @@ export default function ProductDetailPage() {
       return;
     }
 
-    setUpdating(true);
-    try {
-      const response = await fetch(`/api/gyms/${gymId}/stock-movements`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          product_id: productId,
-          type: 'in',
-          quantity: restockQuantity,
-          reason: restockReason,
-          note: `Réapprovisionnement manuel`
-        }),
-      });
+    // Utilisation de startLoading pour wrapper l'opération
+    await startLoading(async () => {
+      setUpdating(true);
+      try {
+        const response = await fetch(`/api/gyms/${gymId}/stock-movements`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            product_id: productId,
+            type: 'in',
+            quantity: restockQuantity,
+            reason: restockReason,
+            note: `Réapprovisionnement manuel`
+          }),
+        });
 
-      if (response.ok) {
-        toast.success('Stock mis à jour avec succès');
-        setRestockQuantity(1);
-        setShowRestockForm(false);
-        fetchProductData(); // Recharger les données
-      } else {
-        const error = await response.json();
-        toast.error(error.error || 'Erreur lors de la mise à jour du stock');
+        if (response.ok) {
+          toast.success('Stock mis à jour avec succès');
+          setRestockQuantity(1);
+          setShowRestockForm(false);
+          fetchProductData(); // Recharger les données
+        } else {
+          const error = await response.json();
+          toast.error(error.error || 'Erreur lors de la mise à jour du stock');
+        }
+      } catch (error) {
+        toast.error('Erreur lors de la mise à jour du stock');
+      } finally {
+        setUpdating(false);
       }
-    } catch (error) {
-      toast.error('Erreur lors de la mise à jour du stock');
-    } finally {
-      setUpdating(false);
-    }
+    });
   };
 
   const handleUpdateProduct = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!product) return;
 
-    setUpdating(true);
-    try {
-      const response = await fetch(`/api/gyms/${gymId}/products/${productId}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          name: product.name,
-          category_id: product.category_id,
-          description: product.description,
-          price: product.price,
-          cost_price: product.cost_price,
-          quantity: product.quantity,
-          unit: product.unit,
-          supplier_id: product.supplier_id,
-          min_stock_level: product.min_stock_level,
-          is_active: product.is_active
-        }),
-      });
+    // Utilisation de startLoading pour wrapper l'opération
+    await startLoading(async () => {
+      setUpdating(true);
+      try {
+        const response = await fetch(`/api/gyms/${gymId}/products/${productId}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            name: product.name,
+            category_id: product.category_id,
+            description: product.description,
+            price: product.price,
+            cost_price: product.cost_price,
+            quantity: product.quantity,
+            unit: product.unit,
+            supplier_id: product.supplier_id,
+            min_stock_level: product.min_stock_level,
+            is_active: product.is_active
+          }),
+        });
 
-      if (response.ok) {
-        toast.success('Produit mis à jour avec succès');
-        const updatedProduct = await response.json();
-        setProduct(updatedProduct);
-      } else {
-        const error = await response.json();
-        toast.error(error.error || 'Erreur lors de la mise à jour');
+        if (response.ok) {
+          toast.success('Produit mis à jour avec succès');
+          const updatedProduct = await response.json();
+          setProduct(updatedProduct);
+        } else {
+          const error = await response.json();
+          toast.error(error.error || 'Erreur lors de la mise à jour');
+        }
+      } catch (error) {
+        toast.error('Erreur lors de la mise à jour');
+      } finally {
+        setUpdating(false);
       }
-    } catch (error) {
-      toast.error('Erreur lors de la mise à jour');
-    } finally {
-      setUpdating(false);
-    }
+    });
   };
 
   if (loading) {
@@ -195,7 +206,7 @@ export default function ProductDetailPage() {
         <Button 
           variant="outline" 
           onClick={() => router.push(`/gyms/${gymId}/stock/products`)}
-          className="border-white/20 text-white hover:bg-white hover:text-[#00624f]"
+          className="border-white/20 text-white bg-green hover:text-[#00624f]"
         >
           <ArrowLeft className="w-4 h-4 mr-2" />
           Retour aux produits

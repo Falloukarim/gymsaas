@@ -12,7 +12,7 @@ import {
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { createClient } from '@/lib/supabaseClient';
@@ -24,6 +24,7 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { useSidebar } from '@/context/SidebarContext';
+import { useLoading } from '@/components/LoadingProvider'; // Import du hook useLoading
 
 type UserData = {
   email: string;
@@ -36,7 +37,9 @@ export default function Navbar() {
   const [userData, setUserData] = useState<UserData | null>(null);
   const [scannerOpen, setScannerOpen] = useState(false);
   const pathname = usePathname();
+  const router = useRouter();
   const { toggle } = useSidebar();
+  const { startLoading } = useLoading(); // Utilisation du hook useLoading
 
   const gymId = pathname?.split('/')[2] || '';
 
@@ -101,25 +104,28 @@ export default function Navbar() {
   }, [pathname]);
 
   const handleLogout = async () => {
-    try {
-      const response = await fetch('/api/auth/logout', {
-        method: 'POST',
-        credentials: 'include',
-      });
+    // Utilisation de startLoading pour wrapper l'opération de déconnexion
+    await startLoading(async () => {
+      try {
+        const response = await fetch('/api/auth/logout', {
+          method: 'POST',
+          credentials: 'include',
+        });
 
-      if (response.ok) {
-        window.location.assign('/login');
-      } else {
-        const errorData = await response.json();
-        console.error('Logout failed:', errorData.error);
-        alert('Échec de la déconnexion');
+        if (response.ok) {
+          window.location.assign('/login');
+        } else {
+          const errorData = await response.json();
+          console.error('Logout failed:', errorData.error);
+          alert('Échec de la déconnexion');
+        }
+      } catch (error) {
+        console.error('Network error:', error);
+        alert('Erreur réseau');
+      } finally {
+        setDropdownOpen(false);
       }
-    } catch (error) {
-      console.error('Network error:', error);
-      alert('Erreur réseau');
-    } finally {
-      setDropdownOpen(false);
-    }
+    });
   };
 
   const getInitials = () =>

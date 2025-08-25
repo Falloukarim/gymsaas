@@ -61,7 +61,7 @@ export default function StockMovementsPage({ params }: { params: { id: string } 
       </Card>
 
       {/* Carte principale */}
-      <Card className="rounded-2xl shadow-lg">
+      <Card className="rounded-2xl bg-green shadow-lg">
         <CardHeader className="bg-gradient-to-r from-blue-50 to-blue-100 rounded-t-2xl">
           <CardTitle className="text-2xl font-bold text-gray-800">
             Historique des mouvements

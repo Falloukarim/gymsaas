@@ -18,6 +18,7 @@ import {
 import LoadingSkeleton from './LoadingSkeleton';
 import { toast } from 'react-hot-toast';
 import { Loader2 } from 'lucide-react';
+import { LoadingButton } from '@/components/LoadingButton';
 
 type Member = { full_name: string };
 type Subscription = { name: string };
@@ -421,7 +422,7 @@ export default function DashboardContent({ gymId }: { gymId: string }) {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols gap-4">
                 <div className="bg-blue-900/20 p-4 rounded-lg">
                   <div className="flex items-center gap-2 mb-2">
                     <ShoppingCart className="h-4 w-4 text-blue-400" />
@@ -429,15 +430,7 @@ export default function DashboardContent({ gymId }: { gymId: string }) {
                   </div>
                   <p className="text-2xl font-bold text-white">{saleStats.today_sales}</p>
                   <p className="text-xs text-blue-300">{saleStats.today_revenue} XOF</p>
-                </div>
-                
-                <div className="bg-green-900/20 p-4 rounded-lg">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Package className="h-4 w-4 text-green-400" />
-                    <h3 className="text-sm font-medium text-green-300">Produit Populaire</h3>
-                  </div>
-                  <p className="text-lg font-bold text-white truncate">{saleStats.best_selling_product}</p>
-                </div>
+                </div>               
               </div>
               
               <div className="mt-4 flex justify-between">

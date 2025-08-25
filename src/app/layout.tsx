@@ -2,7 +2,8 @@ import type { Metadata, ResolvingMetadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "sonner";
-import { ThemeProvider } from 'next-themes';
+import { ThemeProvider } from "next-themes";
+import { LoadingProvider } from "@/components/LoadingProvider";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -18,7 +19,7 @@ export async function generateViewport(metadata: ResolvingMetadata) {
       width: "device-width",
       initialScale: 1,
       userScalable: true,
-      themeColor: "#00c9a7", 
+      themeColor: "#00c9a7",
     },
   };
 }
@@ -35,10 +36,12 @@ export default function RootLayout({
         <link rel="apple-touch-icon" href="/icons/icon-192.png" />
       </head>
       <body className={inter.className}>
-      <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-        {children}
-      </ThemeProvider>
-        <Toaster />
+        <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+          <LoadingProvider>
+            {children}
+            <Toaster />
+          </LoadingProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

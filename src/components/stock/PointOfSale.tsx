@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Plus, Minus, ShoppingCart, Trash2 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
+import { useLoading } from '@/components/LoadingProvider'; // Import du hook useLoading
 
 interface Product {
   id: string;
@@ -30,7 +31,8 @@ export default function PointOfSale({ gymId }: PointOfSaleProps) {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [paymentMethod, setPaymentMethod] = useState('cash');
   const [loading, setLoading] = useState(true);
-  const [processingSale, setProcessingSale] = useState(false); // Nouvel état pour le chargement de la vente
+  const [processingSale, setProcessingSale] = useState(false);
+  const { startLoading } = useLoading(); // Utilisation du hook useLoading
 
   useEffect(() => {
     fetchProducts();
@@ -53,68 +55,71 @@ export default function PointOfSale({ gymId }: PointOfSaleProps) {
   };
 
   const addToCart = async (product: Product) => {
-    try {
-      const response = await fetch('/api/check-stock', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          productId: product.id,
-          quantity: 1
-        }),
-      });
+    // Utilisation de startLoading pour wrapper l'opération
+    await startLoading(async () => {
+      try {
+        const response = await fetch('/api/check-stock', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            productId: product.id,
+            quantity: 1
+          }),
+        });
 
-      if (response.ok) {
-        const stockCheck = await response.json();
-        
-        if (!stockCheck.hasEnoughStock) {
-          toast.error(`Stock insuffisant. Il reste ${stockCheck.currentStock} unité(s)`);
-          return;
-        }
-
-        const existingItem = cart.find(item => item.product_id === product.id);
-        
-        if (existingItem) {
-          const newQuantity = existingItem.quantity + 1;
-          const stockResponse = await fetch('/api/check-stock', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              productId: product.id,
-              quantity: newQuantity
-            }),
-          });
+        if (response.ok) {
+          const stockCheck = await response.json();
           
-          if (stockResponse.ok) {
-            const stockCheck = await stockResponse.json();
-            
-            if (!stockCheck.hasEnoughStock) {
-              toast.error(`Stock insuffisant. Il reste ${stockCheck.currentStock} unité(s)`);
-              return;
-            }
-            
-            setCart(cart.map(item =>
-              item.product_id === product.id
-                ? { ...item, quantity: newQuantity, total_price: newQuantity * item.unit_price }
-                : item
-            ));
+          if (!stockCheck.hasEnoughStock) {
+            toast.error(`Stock insuffisant. Il reste ${stockCheck.currentStock} unité(s)`);
+            return;
           }
-        } else {
-          setCart([...cart, {
-            product_id: product.id,
-            name: product.name,
-            quantity: 1,
-            unit_price: product.price,
-            total_price: product.price
-          }]);
+
+          const existingItem = cart.find(item => item.product_id === product.id);
+          
+          if (existingItem) {
+            const newQuantity = existingItem.quantity + 1;
+            const stockResponse = await fetch('/api/check-stock', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                productId: product.id,
+                quantity: newQuantity
+              }),
+            });
+            
+            if (stockResponse.ok) {
+              const stockCheck = await stockResponse.json();
+              
+              if (!stockCheck.hasEnoughStock) {
+                toast.error(`Stock insuffisant. Il reste ${stockCheck.currentStock} unité(s)`);
+                return;
+              }
+              
+              setCart(cart.map(item =>
+                item.product_id === product.id
+                  ? { ...item, quantity: newQuantity, total_price: newQuantity * item.unit_price }
+                  : item
+              ));
+            }
+          } else {
+            setCart([...cart, {
+              product_id: product.id,
+              name: product.name,
+              quantity: 1,
+              unit_price: product.price,
+              total_price: product.price
+            }]);
+          }
         }
+      } catch (error) {
+        toast.error('Erreur de vérification du stock');
       }
-    } catch (error) {
-      toast.error('Erreur de vérification du stock');
-    }
+    });
   };
 
   const removeFromCart = (productId: string) => {
@@ -127,35 +132,38 @@ export default function PointOfSale({ gymId }: PointOfSaleProps) {
       return;
     }
 
-    try {
-      const response = await fetch('/api/check-stock', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          productId: productId,
-          quantity: newQuantity
-        }),
-      });
+    // Utilisation de startLoading pour wrapper l'opération
+    await startLoading(async () => {
+      try {
+        const response = await fetch('/api/check-stock', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            productId: productId,
+            quantity: newQuantity
+          }),
+        });
 
-      if (response.ok) {
-        const stockCheck = await response.json();
-        
-        if (!stockCheck.hasEnoughStock) {
-          toast.error(`Stock insuffisant. Il reste ${stockCheck.currentStock} unité(s)`);
-          return;
+        if (response.ok) {
+          const stockCheck = await response.json();
+          
+          if (!stockCheck.hasEnoughStock) {
+            toast.error(`Stock insuffisant. Il reste ${stockCheck.currentStock} unité(s)`);
+            return;
+          }
+
+          setCart(cart.map(item =>
+            item.product_id === productId
+              ? { ...item, quantity: newQuantity, total_price: newQuantity * item.unit_price }
+              : item
+          ));
         }
-
-        setCart(cart.map(item =>
-          item.product_id === productId
-            ? { ...item, quantity: newQuantity, total_price: newQuantity * item.unit_price }
-            : item
-        ));
+      } catch (error) {
+        toast.error('Erreur de vérification du stock');
       }
-    } catch (error) {
-      toast.error('Erreur de vérification du stock');
-    }
+    });
   };
 
   const getTotal = () => {
@@ -168,46 +176,49 @@ export default function PointOfSale({ gymId }: PointOfSaleProps) {
       return;
     }
 
-    setProcessingSale(true); // Activer l'état de chargement
+    // Utilisation de startLoading pour wrapper l'opération
+    await startLoading(async () => {
+      setProcessingSale(true);
 
-    try {
-      const response = await fetch(`/api/gyms/${gymId}/sales`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          items: cart,
-          payment_method: paymentMethod
-        }),
-      });
+      try {
+        const response = await fetch(`/api/gyms/${gymId}/sales`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            items: cart,
+            payment_method: paymentMethod
+          }),
+        });
 
-      if (response.ok) {
-        toast.success('Vente enregistrée avec succès');
-        setCart([]);
-        fetchProducts();
-      } else {
+        if (response.ok) {
+          toast.success('Vente enregistrée avec succès');
+          setCart([]);
+          fetchProducts();
+        } else {
+          toast.error('Erreur lors de la vente');
+        }
+      } catch (error) {
         toast.error('Erreur lors de la vente');
+      } finally {
+        setProcessingSale(false);
       }
-    } catch (error) {
-      toast.error('Erreur lors de la vente');
-    } finally {
-      setProcessingSale(false); // Désactiver l'état de chargement
-    }
+    });
   };
 
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="text-white text-xl">Chargement...</div>
+        <div className="text-foreground text-xl">Chargement...</div>
       </div>
     );
   }
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-      <Card className="lg:col-span-2 bg-[#005240] border-[#00c9a7] text-white">
-        <CardHeader className="border-b border-[#00c9a7]">
+      <Card className="lg:col-span-2 shadow-lg rounded-2xl border-0 bg-gradient-to-r from-[#00624f] to-[#004a3a] text-white">
+        <CardHeader className="border-b border-white/20 pb-4">
           <CardTitle className="text-white">Produits Disponibles</CardTitle>
         </CardHeader>
         <CardContent className="pt-4">
@@ -216,7 +227,7 @@ export default function PointOfSale({ gymId }: PointOfSaleProps) {
               <Button
                 key={product.id}
                 variant="outline"
-                className="h-auto flex flex-col items-center p-4 border-[#00c9a7] text-white"
+                className="h-auto flex flex-col bg-green items-center p-4 border-white/20 text-black hover:bg-white/10"
                 onClick={() => addToCart(product)}
               >
                 <span className="font-semibold">{product.name}</span>
@@ -228,23 +239,23 @@ export default function PointOfSale({ gymId }: PointOfSaleProps) {
         </CardContent>
       </Card>
 
-      <Card className="bg-[#005240] border-[#00c9a7] text-white">
-        <CardHeader className="border-b border-[#00c9a7]">
+      <Card className="shadow-lg rounded-2xl border-0 bg-gradient-to-r from-[#00624f] to-[#004a3a] text-white">
+        <CardHeader className="border-b border-white/20 pb-4">
           <CardTitle className="text-white">Panier</CardTitle>
         </CardHeader>
         <CardContent className="pt-4">
           <div className="space-y-4">
             {cart.map((item) => (
-              <div key={item.product_id} className="flex items-center justify-between p-3 border border-[#00c9a7] rounded-lg">
+              <div key={item.product_id} className="flex items-center justify-between p-3 border border-white/20 rounded-lg bg-white/5">
                 <div>
                   <p className="font-medium">{item.name}</p>
-                  <p className="text-sm">{item.unit_price} XOF</p>
+                  <p className="text-sm text-gray-300">{item.unit_price} XOF</p>
                 </div>
                 <div className="flex items-center gap-2">
                   <Button
                     size="sm"
                     variant="outline"
-                    className="border-[#00c9a7] text-white hover:bg-[#00c9a7] hover:text-[#00624f]"
+                    className="border-white/20 text-white bg-green hover:text-[#00624f]"
                     onClick={() => updateQuantity(item.product_id, item.quantity - 1)}
                   >
                     <Minus className="w-4 h-4" />
@@ -253,7 +264,7 @@ export default function PointOfSale({ gymId }: PointOfSaleProps) {
                   <Button
                     size="sm"
                     variant="outline"
-                    className="border-[#00c9a7] text-white hover:bg-[#00c9a7] hover:text-[#00624f]"
+                    className="border-white/20 text-white bg-green hover:text-[#00624f]"
                     onClick={() => updateQuantity(item.product_id, item.quantity + 1)}
                   >
                     <Plus className="w-4 h-4" />
@@ -261,7 +272,7 @@ export default function PointOfSale({ gymId }: PointOfSaleProps) {
                   <Button
                     size="sm"
                     variant="ghost"
-                    className="text-red-400 hover:text-red-600 hover:bg-red-900"
+                    className="text-red-300 hover:text-red-100 hover:bg-red-500/20"
                     onClick={() => removeFromCart(item.product_id)}
                   >
                     <Trash2 className="w-4 h-4" />
@@ -272,7 +283,7 @@ export default function PointOfSale({ gymId }: PointOfSaleProps) {
 
             {cart.length > 0 && (
               <>
-                <div className="border-t border-[#00c9a7] pt-4">
+                <div className="border-t border-white/20 pt-4">
                   <div className="flex justify-between font-semibold">
                     <span>Total:</span>
                     <span>{getTotal()} XOF</span>
@@ -284,7 +295,7 @@ export default function PointOfSale({ gymId }: PointOfSaleProps) {
                   <select
                     value={paymentMethod}
                     onChange={(e) => setPaymentMethod(e.target.value)}
-                    className="w-full p-2 border border-[#00c9a7] rounded-md bg-[#00624f] text-white"
+                    className="w-full p-2 border border-white/20 rounded-md bg-white/10 text-white"
                   >
                     <option value="cash">Espèces</option>
                     <option value="card">Carte</option>
@@ -293,13 +304,13 @@ export default function PointOfSale({ gymId }: PointOfSaleProps) {
                 </div>
 
                 <Button 
-                  className="w-full bg-[#00c9a7] text-[#00624f] hover:bg-[#00b496]"
+                  className="w-full bg-black text-[#00624f] hover:bg-gray-10 shadow"
                   onClick={processSale}
-                  disabled={processingSale} // Désactiver le bouton pendant le traitement
+                  disabled={processingSale}
                 >
                   {processingSale ? (
                     <>
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-[#00624f] mr-2"></div>
                       Traitement...
                     </>
                   ) : (
