@@ -1,4 +1,4 @@
-'use client';
+'use client'
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
@@ -182,48 +182,48 @@ export default function ProductForm({ gymId, product }: ProductFormProps) {
   };
 
   return (
-    <Card className="rounded-2xl shadow-lg">
-      <CardHeader className="bg-gradient-to-r from-blue-50 to-blue-100 rounded-t-2xl">
-        <CardTitle className="text-2xl font-bold text-gray-800">
+    <Card className="rounded-2xl shadow-lg border-0 bg-gradient-to-r from-[#00624f] to-[#004a3a] text-white">
+      <CardHeader className="bg-gradient-to-r from-green-600 to-green-700 rounded-t-2xl">
+        <CardTitle className="text-2xl font-bold text-white">
           {product ? 'Modifier le produit' : 'Nouveau produit'}
         </CardTitle>
-        <CardDescription className="text-gray-300">
+        <CardDescription className="text-white/80">
           {product ? 'Modifiez les informations du produit' : 'Ajoutez un nouveau produit à votre inventaire'}
         </CardDescription>
       </CardHeader>
       
-      <CardContent className="p-6">
+      <CardContent className="p-6 bg-white/5">
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Nom du produit */}
             <div className="space-y-2">
-              <Label htmlFor="name" className="text-gray-300">Nom du produit *</Label>
+              <Label htmlFor="name" className="text-white">Nom du produit *</Label>
               <Input
                 id="name"
                 name="name"
                 value={formData.name}
                 onChange={handleInputChange}
                 placeholder="Ex: Bouteille d'eau 1L"
-                className="border-gray-300 focus:border-blue-500"
+                className="border-white/20 bg-white/10 text-white placeholder:text-gray-300 focus:border-green-400"
                 required
               />
             </div>
 
             {/* Catégorie */}
             <div className="space-y-2">
-              <Label htmlFor="category_id" className="text-gray-300">Catégorie *</Label>
+              <Label htmlFor="category_id" className="text-white">Catégorie *</Label>
               <div className="flex gap-2">
                 <select
                   id="category_id"
                   name="category_id"
                   value={formData.category_id}
                   onChange={handleInputChange}
-                  className="flex-1 px-3 py-2 border bg-black border-gray-300 rounded-md focus:border-blue-500 focus:ring-blue-500"
+                  className="flex-1 px-3 py-2 border border-white/20 rounded-md bg-white/10 text-white focus:border-green-400 focus:ring-green-400"
                   required
                 >
-                  <option value="">Sélectionner une catégorie</option>
+                  <option value="" className="bg-[#00624f]">Sélectionner une catégorie</option>
                   {categories.map((category) => (
-                    <option key={category.id} value={category.id}>
+                    <option key={category.id} value={category.id} className="bg-[#00624f]">
                       {category.name}
                     </option>
                   ))}
@@ -233,21 +233,22 @@ export default function ProductForm({ gymId, product }: ProductFormProps) {
                   variant="outline"
                   size="icon"
                   onClick={() => setShowCategoryForm(!showCategoryForm)}
-                  className="border-gray-300 hover:bg-gray-50"
+                  className="border-white/20 bg-white/10 text-white hover:bg-white/20"
                 >
                   <Plus className="h-4 w-4" />
                 </Button>
               </div>
 
               {showCategoryForm && (
-                <div className="p-4 border border-gray-300 rounded-md bg-gray-50">
+                <div className="p-4 border border-white/20 rounded-md bg-white/10">
                   <div className="flex items-center justify-between mb-2">
-                    <h4 className="font-medium text-gray-800">Nouvelle catégorie</h4>
+                    <h4 className="font-medium text-white">Nouvelle catégorie</h4>
                     <Button
                       type="button"
                       variant="ghost"
                       size="icon"
                       onClick={() => setShowCategoryForm(false)}
+                      className="text-white hover:bg-white/20"
                     >
                       <X className="h-4 w-4" />
                     </Button>
@@ -257,15 +258,20 @@ export default function ProductForm({ gymId, product }: ProductFormProps) {
                       placeholder="Nom de la catégorie"
                       value={newCategory.name}
                       onChange={(e) => setNewCategory({...newCategory, name: e.target.value})}
-                      className="border-gray-300"
+                      className="border-white/20 bg-white/10 text-white placeholder:text-gray-300"
                     />
                     <Input
                       placeholder="Description (optionnel)"
                       value={newCategory.description}
                       onChange={(e) => setNewCategory({...newCategory, description: e.target.value})}
-                      className="border-gray-300"
+                      className="border-white/20 bg-white/10 text-white placeholder:text-gray-300"
                     />
-                    <Button type="button" onClick={handleAddCategory} size="sm" className="bg-blue-600 hover:bg-blue-700">
+                    <Button 
+                      type="button" 
+                      onClick={handleAddCategory} 
+                      size="sm" 
+                      className="bg-green-600 hover:bg-green-700 text-white"
+                    >
                       Ajouter
                     </Button>
                   </div>
@@ -275,7 +281,7 @@ export default function ProductForm({ gymId, product }: ProductFormProps) {
 
             {/* Prix */}
             <div className="space-y-2">
-              <Label htmlFor="price" className="text-gray-300">Prix de vente (XOF) *</Label>
+              <Label htmlFor="price" className="text-white">Prix de vente (XOF) *</Label>
               <Input
                 id="price"
                 name="price"
@@ -284,14 +290,14 @@ export default function ProductForm({ gymId, product }: ProductFormProps) {
                 min="0"
                 value={formData.price}
                 onChange={handleInputChange}
-                className="border-gray-300 focus:border-blue-500"
+                className="border-white/20 bg-white/10 text-white placeholder:text-gray-300 focus:border-green-400"
                 required
               />
             </div>
 
             {/* Prix de revient */}
             <div className="space-y-2">
-              <Label htmlFor="cost_price" className="text-gray-300">Prix de revient (XOF)</Label>
+              <Label htmlFor="cost_price" className="text-white">Prix de revient (XOF)</Label>
               <Input
                 id="cost_price"
                 name="cost_price"
@@ -300,13 +306,13 @@ export default function ProductForm({ gymId, product }: ProductFormProps) {
                 min="0"
                 value={formData.cost_price}
                 onChange={handleInputChange}
-                className="border-gray-300 focus:border-blue-500"
+                className="border-white/20 bg-white/10 text-white placeholder:text-gray-300 focus:border-green-400"
               />
             </div>
 
             {/* Quantité */}
             <div className="space-y-2">
-              <Label htmlFor="quantity" className="text-gray-300">Quantité initiale *</Label>
+              <Label htmlFor="quantity" className="text-white">Quantité initiale *</Label>
               <Input
                 id="quantity"
                 name="quantity"
@@ -314,35 +320,35 @@ export default function ProductForm({ gymId, product }: ProductFormProps) {
                 min="0"
                 value={formData.quantity}
                 onChange={handleInputChange}
-                className="border-gray-300 focus:border-blue-500"
+                className="border-white/20 bg-white/10 text-white placeholder:text-gray-300 focus:border-green-400"
                 required
               />
             </div>
 
             {/* Unité */}
             <div className="space-y-2">
-              <Label htmlFor="unit" className="text-gray-300">Unité de mesure *</Label>
+              <Label htmlFor="unit" className="text-white">Unité de mesure *</Label>
               <select
                 id="unit"
                 name="unit"
                 value={formData.unit}
                 onChange={handleInputChange}
-                className="w-full px-3 py-2 bg-black border border-gray-300 rounded-md focus:border-blue-500 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-white/20 rounded-md bg-white/10 text-white focus:border-green-400 focus:ring-green-400"
                 required
               >
-                <option value="pièce">Pièce</option>
-                <option value="paquet">Paquet</option>
-                <option value="carton">Carton</option>
-                <option value="kg">Kilogramme</option>
-                <option value="g">Gramme</option>
-                <option value="L">Litre</option>
-                <option value="mL">Millilitre</option>
+                <option value="pièce" className="bg-[#00624f]">Pièce</option>
+                <option value="paquet" className="bg-[#00624f]">Paquet</option>
+                <option value="carton" className="bg-[#00624f]">Carton</option>
+                <option value="kg" className="bg-[#00624f]">Kilogramme</option>
+                <option value="g" className="bg-[#00624f]">Gramme</option>
+                <option value="L" className="bg-[#00624f]">Litre</option>
+                <option value="mL" className="bg-[#00624f]">Millilitre</option>
               </select>
             </div>
 
             {/* Seuil minimum */}
             <div className="space-y-2">
-              <Label htmlFor="min_stock_level" className="text-gray-300">Seuil d'alerte stock *</Label>
+              <Label htmlFor="min_stock_level" className="text-white">Seuil d'alerte stock *</Label>
               <Input
                 id="min_stock_level"
                 name="min_stock_level"
@@ -350,25 +356,25 @@ export default function ProductForm({ gymId, product }: ProductFormProps) {
                 min="0"
                 value={formData.min_stock_level}
                 onChange={handleInputChange}
-                className="border-gray-300 focus:border-blue-500"
+                className="border-white/20 bg-white/10 text-white placeholder:text-gray-300 focus:border-green-400"
                 required
               />
             </div>
 
             {/* Fournisseur */}
             <div className="space-y-2">
-              <Label htmlFor="supplier_id" className="text-gray-300">Fournisseur</Label>
+              <Label htmlFor="supplier_id" className="text-white">Fournisseur</Label>
               <div className="flex gap-2">
                 <select
                   id="supplier_id"
                   name="supplier_id"
                   value={formData.supplier_id}
                   onChange={handleInputChange}
-                  className="flex-1 px-3 py-2 border bg-black border-gray-300 rounded-md focus:border-blue-500 focus:ring-blue-500"
+                  className="flex-1 px-3 py-2 border border-white/20 rounded-md bg-white/10 text-white focus:border-green-400 focus:ring-green-400"
                 >
-                  <option value="">Sélectionner un fournisseur</option>
+                  <option value="" className="bg-[#00624f]">Sélectionner un fournisseur</option>
                   {suppliers.map((supplier) => (
-                    <option key={supplier.id} value={supplier.id}>
+                    <option key={supplier.id} value={supplier.id} className="bg-[#00624f]">
                       {supplier.name}
                     </option>
                   ))}
@@ -378,21 +384,22 @@ export default function ProductForm({ gymId, product }: ProductFormProps) {
                   variant="outline"
                   size="icon"
                   onClick={() => setShowSupplierForm(!showSupplierForm)}
-                  className="border-gray-300 hover:bg-gray-50"
+                  className="border-white/20 bg-white/10 text-white hover:bg-white/20"
                 >
                   <Plus className="h-4 w-4" />
                 </Button>
               </div>
 
               {showSupplierForm && (
-                <div className="p-4 border border-gray-300 rounded-md bg-gray-50">
+                <div className="p-4 border border-white/20 rounded-md bg-white/10">
                   <div className="flex items-center justify-between mb-2">
-                    <h4 className="font-medium text-gray-800">Nouveau fournisseur</h4>
+                    <h4 className="font-medium text-white">Nouveau fournisseur</h4>
                     <Button
                       type="button"
                       variant="ghost"
                       size="icon"
                       onClick={() => setShowSupplierForm(false)}
+                      className="text-white hover:bg-white/20"
                     >
                       <X className="h-4 w-4" />
                     </Button>
@@ -402,28 +409,33 @@ export default function ProductForm({ gymId, product }: ProductFormProps) {
                       placeholder="Nom du fournisseur"
                       value={newSupplier.name}
                       onChange={(e) => setNewSupplier({...newSupplier, name: e.target.value})}
-                      className="border-gray-300"
+                      className="border-white/20 bg-white/10 text-white placeholder:text-gray-300"
                     />
                     <Input
                       placeholder="Email"
                       type="email"
                       value={newSupplier.contact_email}
                       onChange={(e) => setNewSupplier({...newSupplier, contact_email: e.target.value})}
-                      className="border-gray-300"
+                      className="border-white/20 bg-white/10 text-white placeholder:text-gray-300"
                     />
                     <Input
                       placeholder="Téléphone"
                       value={newSupplier.contact_phone}
                       onChange={(e) => setNewSupplier({...newSupplier, contact_phone: e.target.value})}
-                      className="border-gray-300"
+                      className="border-white/20 bg-white/10 text-white placeholder:text-gray-300"
                     />
                     <Input
                       placeholder="Adresse"
                       value={newSupplier.address}
                       onChange={(e) => setNewSupplier({...newSupplier, address: e.target.value})}
-                      className="border-gray-300"
+                      className="border-white/20 bg-white/10 text-white placeholder:text-gray-300"
                     />
-                    <Button type="button" onClick={handleAddSupplier} size="sm" className="bg-blue-600 hover:bg-blue-700">
+                    <Button 
+                      type="button" 
+                      onClick={handleAddSupplier} 
+                      size="sm" 
+                      className="bg-green-600 hover:bg-green-700 text-white"
+                    >
                       Ajouter
                     </Button>
                   </div>
@@ -434,40 +446,40 @@ export default function ProductForm({ gymId, product }: ProductFormProps) {
 
           {/* Description */}
           <div className="space-y-2">
-            <Label htmlFor="description" className="text-gray-300">Description</Label>
+            <Label htmlFor="description" className="text-white">Description</Label>
             <textarea
               id="description"
               name="description"
               value={formData.description}
               onChange={handleInputChange}
               rows={3}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:border-blue-500 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-white/20 rounded-md bg-white/10 text-white placeholder:text-gray-300 focus:border-green-400 focus:ring-green-400"
               placeholder="Description du produit..."
             />
           </div>
 
           {/* Statut */}
           <div className="space-y-2">
-            <Label htmlFor="is_active" className="text-gray-300">Statut</Label>
+            <Label htmlFor="is_active" className="text-white">Statut</Label>
             <select
               id="is_active"
               name="is_active"
               value={formData.is_active.toString()}
               onChange={handleInputChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:border-blue-500 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-white/20 rounded-md bg-white/10 text-white focus:border-green-400 focus:ring-green-400"
             >
-              <option value="true">Actif</option>
-              <option value="false">Inactif</option>
+              <option value="true" className="bg-[#00624f]">Actif</option>
+              <option value="false" className="bg-[#00624f]">Inactif</option>
             </select>
           </div>
 
           {/* Boutons d'action */}
-          <div className="flex gap-4 pt-6 border-t border-gray-200">
+          <div className="flex gap-4 pt-6 border-t border-white/20">
             <Button
               type="button"
               variant="outline"
               onClick={() => router.push(`/gyms/${gymId}/stock/products`)}
-              className="flex items-center gap-2 border-gray-300 hover:bg-gray-50"
+              className="flex items-center gap-2 border-white/20 bg-white/10 text-white hover:bg-white hover:text-[#00624f]"
             >
               <ArrowLeft className="h-4 w-4" />
               Retour
@@ -475,7 +487,7 @@ export default function ProductForm({ gymId, product }: ProductFormProps) {
             <Button 
               type="submit" 
               disabled={loading}
-              className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700"
+              className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white"
             >
               {loading ? (
                 <>
