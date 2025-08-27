@@ -284,33 +284,32 @@ export default function DashboardContent({ gymId }: { gymId: string }) {
   return (
     <div className="space-y-6">
       {/* Alertes de stock faible */}
-      {lowStockProducts.length > 0 && (
-        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-          <div className="flex items-center gap-2 mb-2">
-            <AlertTriangle className="w-5 h-5 text-yellow-600" />
-            <h3 className="font-semibold text-yellow-800">Alertes de Stock</h3>
-          </div>
-          <p className="text-yellow-700 text-sm mb-2">
-            {lowStockProducts.length} produit(s) ont un stock faible:
-          </p>
-          <ul className="text-yellow-700 text-sm list-disc list-inside">
-            {lowStockProducts.slice(0, 3).map(product => (
-              <li key={product.id}>
-                {product.name} ({product.quantity} restant(s))
-              </li>
-            ))}
-            {lowStockProducts.length > 3 && (
-              <li>...et {lowStockProducts.length - 3} autres</li>
-            )}
-          </ul>
-          <Link href={`/gyms/${gymId}/stock/products`}>
-            <Button variant="outline" size="sm" className="mt-2">
-              Voir tous les produits
-            </Button>
-          </Link>
-        </div>
+     {lowStockProducts.length > 0 && (
+  <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+    <div className="flex items-center gap-2 mb-2">
+      <AlertTriangle className="w-5 h-5 text-yellow-600" />
+      <h3 className="font-semibold text-yellow-800">Alertes de Stock</h3>
+    </div>
+    <p className="text-yellow-700 text-sm mb-2">
+      {lowStockProducts.length} produit(s) ont un stock faible:
+    </p>
+    <ul className="text-yellow-700 text-sm list-disc list-inside">
+      {lowStockProducts.slice(0, 3).map(product => (
+        <li key={product.id}>
+          {product.name} ({product.quantity} restant(s))
+        </li>
+      ))}
+      {lowStockProducts.length > 3 && (
+        <li>...et {lowStockProducts.length - 3} autres</li>
       )}
-
+    </ul>
+    <Link href={`/gyms/${gymId}/stock/products`}>
+      <Button variant="outline" size="sm" className="mt-2 text-black">
+        Voir tous les produits
+      </Button>
+    </Link>
+  </div>
+)}
       <Card className="border-0 bg-gradient-to-r from-[#1a2e3a] to-[#0d1a23] text-white">
         <CardHeader>
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
