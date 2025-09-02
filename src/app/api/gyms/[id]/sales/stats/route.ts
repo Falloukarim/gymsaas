@@ -1,4 +1,3 @@
-// src/app/api/gyms/[id]/sales/stats/route.ts
 import { createClient } from '@/utils/supabase/server';
 import { NextResponse } from 'next/server';
 
@@ -16,55 +15,97 @@ export async function GET(
   const gymId = params.id;
 
   try {
-    // Ventes d'aujourd'hui
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    
-    const { data: todaySales, error: salesError } = await (await supabase)
+    // Bénéfice total (depuis toutes les ventes)
+    const { data: totalProfitData, error: totalProfitError } = await (await supabase)
       .from('sales')
-      .select('total_amount')
-      .eq('gym_id', gymId)
-      .gte('created_at', today.toISOString());
+      .select('total_profit')
+      .eq('gym_id', gymId);
 
-    if (salesError) {
-      return NextResponse.json({ error: salesError.message }, { status: 500 });
+    if (totalProfitError) {
+      console.error('Total profit error:', totalProfitError);
+      return NextResponse.json({ error: totalProfitError.message }, { status: 500 });
     }
 
-    const today_revenue = todaySales?.reduce((sum, sale) => sum + sale.total_amount, 0) || 0;
-    const today_sales = todaySales?.length || 0;
+    const total_profit = totalProfitData?.reduce((sum, sale) => sum + (sale.total_profit || 0), 0) || 0;
 
-    // Produit le plus vendu aujourd'hui
-    const { data: bestSelling, error: bestSellingError } = await (await supabase)
-      .from('sale_items')
-      .select('products(name), quantity')
-      .eq('sales.gym_id', gymId)
-      .gte('sales.created_at', today.toISOString())
-      .order('quantity', { ascending: false })
-      .limit(1)
-      .single();
+    // Bénéfice du jour
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
 
-    const best_selling_product = bestSelling?.products?.name || 'Aucun';
-
-    // Produits en stock faible
-    const { data: lowStockProducts, error: lowStockError } = await (await supabase)
-      .from('products')
-      .select('id')
+    const { data: dailyProfitData, error: dailyProfitError } = await (await supabase)
+      .from('sales')
+      .select('total_profit')
       .eq('gym_id', gymId)
-      .lte('quantity', 'min_stock_level')
-      .gt('quantity', 0);
+      .gte('created_at', today.toISOString())
+      .lt('created_at', tomorrow.toISOString());
 
-    const low_stock_count = lowStockProducts?.length || 0;
+    if (dailyProfitError) {
+      console.error('Daily profit error:', dailyProfitError);
+      return NextResponse.json({ error: dailyProfitError.message }, { status: 500 });
+    }
+
+    const daily_profit = dailyProfitData?.reduce((sum, sale) => sum + (sale.total_profit || 0), 0) || 0;
+
+    // Bénéfices par produit (depuis les sale_items avec jointure correcte)
+    const { data: saleItemsData, error: saleItemsError } = await (await supabase)
+      .from('sale_items')
+      .select(`
+        product_id,
+        quantity,
+        unit_price,
+        products!inner(name, cost_price),
+        sales!inner(gym_id)
+      `)
+      .eq('sales.gym_id', gymId);
+
+    if (saleItemsError) {
+      console.error('Sale items error:', saleItemsError);
+      return NextResponse.json({ error: saleItemsError.message }, { status: 500 });
+    }
+
+    const productProfitsMap = new Map();
+    
+    saleItemsData?.forEach(item => {
+      const costPrice = item.products?.cost_price || 0;
+      const profitPerUnit = item.unit_price - costPrice;
+      const totalProfit = profitPerUnit * item.quantity;
+
+      if (productProfitsMap.has(item.product_id)) {
+        const existing = productProfitsMap.get(item.product_id);
+        productProfitsMap.set(item.product_id, {
+          profit: existing.profit + totalProfit,
+          quantity_sold: existing.quantity_sold + item.quantity,
+          product_name: item.products?.name || 'Produit inconnu'
+        });
+      } else {
+        productProfitsMap.set(item.product_id, {
+          profit: totalProfit,
+          quantity_sold: item.quantity,
+          product_name: item.products?.name || 'Produit inconnu'
+        });
+      }
+    });
+
+    const product_profits = Array.from(productProfitsMap.entries()).map(([product_id, data]) => ({
+      product_id,
+      product_name: data.product_name,
+      profit: data.profit,
+      quantity_sold: data.quantity_sold
+    })).sort((a, b) => b.profit - a.profit);
 
     return NextResponse.json({
-      today_sales,
-      today_revenue,
-      best_selling_product,
-      low_stock_count
+      daily_profit,
+      total_profit,
+      product_profits
     });
   } catch (error) {
+    console.error('Internal error:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
     );
   }
 }
+

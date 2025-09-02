@@ -6,7 +6,6 @@ export async function POST(request: Request) {
   const supabase = createClient();
 
   try {
-
     const rawPayload = await request.text();
 
     const signature = request.headers.get('X-Paydunya-Signature');
@@ -27,11 +26,11 @@ export async function POST(request: Request) {
       console.warn('⚠️ Vérification de la signature désactivée');
     }
 
-    // 3. Parser le payload
+    // Parser le payload
     const payload = parsePaydunyaPayload(rawPayload);
     console.log('✅ Payload reçu :', JSON.stringify(payload, null, 2));
 
-    // 4. Champs requis
+    // Champs requis
     const requiredData = {
       status: payload.data?.status,
       token: payload.data?.token || payload.data?.invoice?.token,
@@ -51,26 +50,76 @@ export async function POST(request: Request) {
       );
     }
 
-    const { status, receipt_url, payment_method, custom_data } = payload.data;
-    const paymentId = requiredData.token;
+    const { status, receipt_url, payment_method, custom_data, token, invoice } = payload.data;
+    
+    // Récupérer le payment_id de manière robuste
+    const paymentId = token || invoice?.token || custom_data?.payment_id || requiredData.token;
+    
+    if (!paymentId) {
+      console.error('❌ Payment ID manquant dans le payload:', {
+        token: payload.data?.token,
+        invoice_token: payload.data?.invoice?.token,
+        custom_data: payload.data?.custom_data
+      });
+      return NextResponse.json(
+        { error: 'Missing payment ID/token' },
+        { status: 400 }
+      );
+    }
 
     const startDate = new Date();
     const endDate = calculateEndDate(requiredData.billing_cycle);
 
     if (status === 'completed') {
-      const { error: paymentError } = await (await supabase)
+      // Vérifier d'abord si le paiement existe déjà
+      const { data: existingPayment, error: checkError } = await (await supabase)
         .from('gym_subscription_payments')
-        .update({
-          status: 'completed',
-          receipt_url,
-          payment_method,
-          start_date: startDate.toISOString(),
-          end_date: endDate.toISOString()
-        })
-        .eq('payment_id', paymentId);
+        .select('id')
+        .eq('payment_id', paymentId)
+        .single();
 
-      if (paymentError) throw paymentError;
+      if (checkError && checkError.code !== 'PGRST116') { // PGRST116 = no rows found
+        throw checkError;
+      }
 
+      if (existingPayment) {
+        // Mettre à jour le paiement existant
+        const { error: paymentError } = await (await supabase)
+          .from('gym_subscription_payments')
+          .update({
+            status: 'completed',
+            receipt_url,
+            payment_method,
+            start_date: startDate.toISOString(),
+            end_date: endDate.toISOString(),
+            updated_at: new Date().toISOString()
+          })
+          .eq('payment_id', paymentId);
+
+        if (paymentError) throw paymentError;
+      } else {
+        // Créer un nouveau paiement
+        const { error: paymentError } = await (await supabase)
+          .from('gym_subscription_payments')
+          .insert({
+            payment_id: paymentId,
+            gym_id: custom_data.gym_id,
+            subscription_id: custom_data.subscription_id,
+            amount: custom_data.amount || custom_data.total_amount,
+            currency: 'XOF',
+            status: 'completed',
+            payment_method,
+            receipt_url,
+            start_date: startDate.toISOString(),
+            end_date: endDate.toISOString(),
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          });
+
+        if (paymentError) throw paymentError;
+      }
+
+      // Mettre à jour l'abonnement
       const { error: subscriptionError } = await (await supabase)
         .from('gym_subscriptions')
         .update({
@@ -81,6 +130,7 @@ export async function POST(request: Request) {
 
       if (subscriptionError) throw subscriptionError;
 
+      // Mettre à jour le statut du gym
       const { error: gymError } = await (await supabase)
         .from('gyms')
         .update({
@@ -93,12 +143,24 @@ export async function POST(request: Request) {
         .eq('id', custom_data.gym_id);
 
       if (gymError) throw gymError;
+    } else if (status === 'failed') {
+      // Mettre à jour le statut en cas d'échec
+      const { error: paymentError } = await (await supabase)
+        .from('gym_subscription_payments')
+        .update({
+          status: 'failed',
+          updated_at: new Date().toISOString()
+        })
+        .eq('payment_id', paymentId);
+
+      if (paymentError) throw paymentError;
     }
 
     return NextResponse.json({
       success: true,
       paymentId,
       gymId: custom_data.gym_id,
+      status,
       startDate,
       endDate
     });

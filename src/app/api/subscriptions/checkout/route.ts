@@ -37,28 +37,55 @@ export async function POST(request: Request) {
       );
     }
 
-    // Création facture
-    const { url: checkout_url, token: payment_id } = await paydunya.createInvoice(
+    // Générer un ID de paiement unique AVANT d'appeler Paydunya
+    const paymentId = `pay_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+    console.log('Création de la facture Paydunya avec:', {
+      amount: subscription.price,
+      paymentId,
+      gym_id,
+      subscription_id: subscription.id
+    });
+
+    // Création facture avec le payment_id dans les metadata
+    const invoiceResponse = await paydunya.createInvoice(
       subscription.price,
       {
-        email: user.email,
-        name: user.user_metadata.full_name || '',
-        phone: user.user_metadata.phone || ''
+        email: user.email || '',
+        name: user.user_metadata?.full_name || '',
+        phone: user.user_metadata?.phone || ''
       },
       {
         gym_id,
         subscription_id: subscription.id,
-        billing_cycle: subscription.billing_cycle
+        billing_cycle: subscription.billing_cycle,
+        payment_id: paymentId
       }
     );
 
-    // Insertion sécurisée
+    console.log('Réponse Paydunya:', invoiceResponse);
+
+    // Vérifier que la réponse de Paydunya contient bien les données nécessaires
+    if (!invoiceResponse) {
+      throw new Error('Aucune réponse de Paydunya');
+    }
+
+    // La réponse Paydunya peut avoir différentes structures selon l'API
+    const checkoutUrl = invoiceResponse.url || invoiceResponse.checkout_url;
+    const paydunyaToken = invoiceResponse.token || invoiceResponse.invoice_token;
+
+    if (!checkoutUrl) {
+      console.error('Réponse Paydunya incomplète:', invoiceResponse);
+      throw new Error('URL de checkout manquante dans la réponse Paydunya');
+    }
+
+    // Insertion sécurisée avec le paymentId généré
     const { error: paymentError } = await (await supabase)
       .from('gym_subscription_payments')
       .insert({
         gym_id,
         subscription_id: subscription.id,
-        payment_id, // Garanti non-null
+        payment_id: paymentId,
         amount: subscription.price,
         currency: 'XOF',
         status: 'pending',
@@ -66,14 +93,28 @@ export async function POST(request: Request) {
         end_date: calculateEndDate(subscription.billing_cycle)
       });
 
-    if (paymentError) throw paymentError;
+    if (paymentError) {
+      console.error('Erreur insertion paiement:', paymentError);
+      throw paymentError;
+    }
 
-    return NextResponse.json({ checkout_url });
+    console.log('Paiement créé avec succès, paymentId:', paymentId);
+
+    return NextResponse.json({ 
+      checkout_url: checkoutUrl,
+      payment_id: paymentId
+    });
 
   } catch (error) {
-    console.error('Checkout error:', error);
+    console.error('Checkout error détaillé:', error);
+    
+    let errorMessage = 'Erreur de paiement';
+    if (error instanceof Error) {
+      errorMessage = error.message;
+    }
+    
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Erreur de paiement' },
+      { error: errorMessage },
       { status: 500 }
     );
   }

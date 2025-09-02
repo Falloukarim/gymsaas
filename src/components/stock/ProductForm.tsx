@@ -1,4 +1,4 @@
-'use client'
+'use client';
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
@@ -43,13 +43,19 @@ export default function ProductForm({ gymId, product }: ProductFormProps) {
     name: product?.name || '',
     category_id: product?.category_id || '',
     description: product?.description || '',
-    price: product?.price || '',
-    cost_price: product?.cost_price || '',
-    quantity: product?.quantity || 0,
+    price: product?.price?.toString() || '',
+    cost_price: product?.cost_price?.toString() || '',
+    quantity: product?.quantity?.toString() || '0',
     unit: product?.unit || 'pièce',
     supplier_id: product?.supplier_id || '',
-    min_stock_level: product?.min_stock_level || 5,
-    is_active: product?.is_active !== undefined ? product.is_active : true
+    min_stock_level: product?.min_stock_level?.toString() || '5',
+    is_active: product?.is_active !== undefined ? product.is_active : true,
+    package_type: product?.package_type || 'single',
+    items_per_package: product?.items_per_package?.toString() || '1',
+    package_price: product?.package_price?.toString() || '',
+    package_cost_price: product?.package_cost_price?.toString() || '',
+    unit_price: product?.unit_price?.toString() || '',
+    unit_cost_price: product?.unit_cost_price?.toString() || ''
   });
 
   useEffect(() => {
@@ -81,6 +87,32 @@ export default function ProductForm({ gymId, product }: ProductFormProps) {
     }
   };
 
+  const calculateUnitPrices = () => {
+    if (formData.package_type === 'single') {
+      setFormData(prev => ({
+        ...prev,
+        unit_price: prev.price,
+        unit_cost_price: prev.cost_price
+      }));
+    } else {
+      const itemsPerPackage = parseInt(formData.items_per_package) || 1;
+      const packagePrice = parseFloat(formData.package_price) || 0;
+      const packageCost = parseFloat(formData.package_cost_price) || 0;
+      
+      setFormData(prev => ({
+        ...prev,
+        unit_price: itemsPerPackage > 0 ? (packagePrice / itemsPerPackage).toFixed(2) : '0',
+        unit_cost_price: itemsPerPackage > 0 ? (packageCost / itemsPerPackage).toFixed(2) : '0',
+        price: packagePrice.toString(),
+        cost_price: packageCost.toString()
+      }));
+    }
+  };
+
+  useEffect(() => {
+    calculateUnitPrices();
+  }, [formData.package_type, formData.items_per_package, formData.package_price, formData.package_cost_price]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -99,10 +131,14 @@ export default function ProductForm({ gymId, product }: ProductFormProps) {
         },
         body: JSON.stringify({
           ...formData,
-          price: parseFloat(formData.price as string),
-          cost_price: formData.cost_price ? parseFloat(formData.cost_price as string) : null,
-          quantity: parseInt(formData.quantity as string),
-          min_stock_level: parseInt(formData.min_stock_level as string)
+          // Conversion des champs numériques
+          price: parseFloat(formData.price),
+          cost_price: formData.cost_price ? parseFloat(formData.cost_price) : null,
+          package_price: formData.package_price ? parseFloat(formData.package_price) : null,
+          package_cost_price: formData.package_cost_price ? parseFloat(formData.package_cost_price) : null,
+          items_per_package: parseInt(formData.items_per_package),
+          quantity: parseInt(formData.quantity),
+          min_stock_level: parseInt(formData.min_stock_level)
         }),
       });
 
@@ -209,6 +245,123 @@ export default function ProductForm({ gymId, product }: ProductFormProps) {
               />
             </div>
 
+            {/* Type d'emballage */}
+            <div className="space-y-2">
+              <Label htmlFor="package_type" className="text-white">Type d'emballage *</Label>
+              <select
+                id="package_type"
+                name="package_type"
+                value={formData.package_type}
+                onChange={handleInputChange}
+                className="w-full px-3 py-2 border border-white/20 rounded-md bg-white/10 text-white focus:border-green-400 focus:ring-green-400"
+                required
+              >
+                <option value="single" className="bg-[#00624f]">Produit unitaire</option>
+                <option value="package" className="bg-[#00624f]">Paquet</option>
+                <option value="carton" className="bg-[#00624f]">Carton</option>
+              </select>
+            </div>
+
+            {formData.package_type !== 'single' && (
+              <>
+                <div className="space-y-2">
+                  <Label htmlFor="items_per_package" className="text-white">
+                    Nombre de pièces par {formData.package_type === 'package' ? 'paquet' : 'carton'} *
+                  </Label>
+                  <Input
+                    id="items_per_package"
+                    name="items_per_package"
+                    type="number"
+                    min="1"
+                    value={formData.items_per_package}
+                    onChange={handleInputChange}
+                    className="border-white/20 bg-white/10 text-white placeholder:text-gray-300 focus:border-green-400"
+                    required
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="package_price" className="text-white">
+                    Prix du {formData.package_type === 'package' ? 'paquet' : 'carton'} (XOF) *
+                  </Label>
+                  <Input
+                    id="package_price"
+                    name="package_price"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={formData.package_price}
+                    onChange={handleInputChange}
+                    className="border-white/20 bg-white/10 text-white placeholder:text-gray-300 focus:border-green-400"
+                    required
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="package_cost_price" className="text-white">
+                    Prix de revient du {formData.package_type === 'package' ? 'paquet' : 'carton'} (XOF)
+                  </Label>
+                  <Input
+                    id="package_cost_price"
+                    name="package_cost_price"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={formData.package_cost_price}
+                    onChange={handleInputChange}
+                    className="border-white/20 bg-white/10 text-white placeholder:text-gray-300 focus:border-green-400"
+                  />
+                </div>
+
+                <div className="p-4 border border-white/20 rounded-md bg-white/10 col-span-2">
+                  <h4 className="font-medium text-white mb-2">Prix unitaire calculé</h4>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label className="text-white">Prix de vente unitaire:</Label>
+                      <p className="text-green-300 font-semibold">{formData.unit_price} XOF</p>
+                    </div>
+                    <div>
+                      <Label className="text-white">Prix de revient unitaire:</Label>
+                      <p className="text-green-300 font-semibold">{formData.unit_cost_price} XOF</p>
+                    </div>
+                  </div>
+                </div>
+              </>
+            )}
+
+            {formData.package_type === 'single' && (
+              <>
+                <div className="space-y-2">
+                  <Label htmlFor="price" className="text-white">Prix de vente unitaire (XOF) *</Label>
+                  <Input
+                    id="price"
+                    name="price"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={formData.price}
+                    onChange={handleInputChange}
+                    className="border-white/20 bg-white/10 text-white placeholder:text-gray-300 focus:border-green-400"
+                    required
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="cost_price" className="text-white">Prix de revient unitaire (XOF)</Label>
+                  <Input
+                    id="cost_price"
+                    name="cost_price"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={formData.cost_price}
+                    onChange={handleInputChange}
+                    className="border-white/20 bg-white/10 text-white placeholder:text-gray-300 focus:border-green-400"
+                  />
+                </div>
+              </>
+            )}
+
             {/* Catégorie */}
             <div className="space-y-2">
               <Label htmlFor="category_id" className="text-white">Catégorie *</Label>
@@ -277,37 +430,6 @@ export default function ProductForm({ gymId, product }: ProductFormProps) {
                   </div>
                 </div>
               )}
-            </div>
-
-            {/* Prix */}
-            <div className="space-y-2">
-              <Label htmlFor="price" className="text-white">Prix de vente (XOF) *</Label>
-              <Input
-                id="price"
-                name="price"
-                type="number"
-                step="0.01"
-                min="0"
-                value={formData.price}
-                onChange={handleInputChange}
-                className="border-white/20 bg-white/10 text-white placeholder:text-gray-300 focus:border-green-400"
-                required
-              />
-            </div>
-
-            {/* Prix de revient */}
-            <div className="space-y-2">
-              <Label htmlFor="cost_price" className="text-white">Prix de revient (XOF)</Label>
-              <Input
-                id="cost_price"
-                name="cost_price"
-                type="number"
-                step="0.01"
-                min="0"
-                value={formData.cost_price}
-                onChange={handleInputChange}
-                className="border-white/20 bg-white/10 text-white placeholder:text-gray-300 focus:border-green-400"
-              />
             </div>
 
             {/* Quantité */}

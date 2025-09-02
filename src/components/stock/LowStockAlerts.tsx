@@ -7,8 +7,7 @@ import { toast } from 'react-hot-toast';
 interface Product {
   id: string;
   name: string;
-  quantity: number;
-  min_stock_level: number;
+  stock_in_pieces: number;
 }
 
 interface LowStockAlertsProps {
@@ -21,7 +20,6 @@ export default function LowStockAlerts({ gymId }: LowStockAlertsProps) {
 
   useEffect(() => {
     checkLowStock();
-    // Vérifier le stock toutes les 5 minutes
     const interval = setInterval(checkLowStock, 5 * 60 * 1000);
     return () => clearInterval(interval);
   }, [gymId]);
@@ -31,16 +29,16 @@ export default function LowStockAlerts({ gymId }: LowStockAlertsProps) {
       const response = await fetch(`/api/gyms/${gymId}/products`);
       if (response.ok) {
         const products: Product[] = await response.json();
-        const lowStock = products.filter(
-          p => p.quantity <= p.min_stock_level && p.quantity > 0
+        
+        const lowStock = products.filter(product => 
+          product.stock_in_pieces <= 10 && product.stock_in_pieces > 0
         );
         
         setLowStockProducts(lowStock);
 
-        // Notifier uniquement si de nouveaux produits sont en stock faible
         if (lowStock.length > 0 && !hasNotified) {
           toast.error(
-            `${lowStock.length} produit(s) en stock faible. Pensez à réapprovisionner!`,
+            `${lowStock.length} produit(s) en stock faible (<= 10 pièces). Pensez à réapprovisionner!`,
             { duration: 6000 }
           );
           setHasNotified(true);
@@ -62,12 +60,12 @@ export default function LowStockAlerts({ gymId }: LowStockAlertsProps) {
         <h3 className="font-semibold text-yellow-800">Alertes de Stock</h3>
       </div>
       <p className="text-yellow-700 text-sm mb-2">
-        {lowStockProducts.length} produit(s) ont un stock faible:
+        {lowStockProducts.length} produit(s) ont un stock faible (≤ 10 pièces) :
       </p>
       <ul className="text-yellow-700 text-sm list-disc list-inside">
         {lowStockProducts.map(product => (
           <li key={product.id}>
-            {product.name} ({product.quantity} restant(s))
+            {product.name} ({product.stock_in_pieces} pièces restantes)
           </li>
         ))}
       </ul>

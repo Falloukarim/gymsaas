@@ -16,9 +16,13 @@ interface Product {
   product_categories: { name: string };
   price: number;
   quantity: number;
+  stock_in_pieces: number;
   unit: string;
   min_stock_level: number;
   suppliers?: { name: string };
+  package_type: string;
+  items_per_package: number;
+  unit_price: number | null;
 }
 
 interface ProductListProps {
@@ -51,9 +55,25 @@ export default function ProductList({ gymId }: ProductListProps) {
     }
   };
 
+  // Fonction pour calculer le stock en pièces
+  const getStockInPieces = (product: Product): number => {
+    if (product.package_type === 'single') {
+      return product.quantity;
+    }
+    return product.stock_in_pieces || (product.quantity * (product.items_per_package || 1));
+  };
+
+  // Seuil d'alerte fixé à 10 pièces
+  const getMinStockInPieces = (): number => {
+    return 10;
+  };
+
   const filteredProducts = products.filter((product) => {
+    const stockInPieces = getStockInPieces(product);
+    const minStockInPieces = getMinStockInPieces();
+    
     const matchesFilter =
-      filter === 'lowStock' ? product.quantity <= product.min_stock_level : true;
+      filter === 'lowStock' ? stockInPieces <= minStockInPieces : true;
     const matchesSearch = product.name
       .toLowerCase()
       .includes(search.toLowerCase());
@@ -84,7 +104,7 @@ export default function ProductList({ gymId }: ProductListProps) {
             className="px-3 py-2 border border-white/20 rounded-md bg-white/10 text-white"
           >
             <option value="all" className="bg-[#00624f]">Tous les produits</option>
-            <option value="lowStock" className="bg-[#00624f]">Stock faible</option>
+            <option value="lowStock" className="bg-[#00624f]">Stock faible (&lt;= 10 pièces)</option>
           </select>
           <Link href={`/gyms/${gymId}/stock/products/new`}>
             <Button className="flex items-center gap-2 shadow bg-white text-[#00624f] hover:bg-gray-100">
@@ -102,40 +122,55 @@ export default function ProductList({ gymId }: ProductListProps) {
           </div>
         ) : (
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {filteredProducts.map((product) => (
-              <div
-                key={product.id}
-                className="p-5 border border-white/20 rounded-xl bg-gradient-to-br from-[#00624f]/90 to-[#004a3a]/90 text-white shadow-sm hover:shadow-md transition-all hover:from-[#00624f] hover:to-[#004a3a]"
-              >
-                <div>
-                  <h3 className="font-semibold text-lg flex items-center gap-2 mb-2">
-                    {product.name}
-                    {product.quantity <= product.min_stock_level && (
-                      <Badge variant="destructive" className="text-xs flex items-center gap-1 bg-amber-500">
-                        <AlertTriangle className="w-3 h-3" />
-                        Stock faible
-                      </Badge>
+            {filteredProducts.map((product) => {
+              const stockInPieces = getStockInPieces(product);
+              const minStockInPieces = getMinStockInPieces();
+              const displayPrice = product.unit_price || product.price;
+              const isLowStock = stockInPieces <= minStockInPieces;
+              
+              return (
+                <div
+                  key={product.id}
+                  className="p-5 border border-white/20 rounded-xl bg-gradient-to-br from-[#00624f]/90 to-[#004a3a]/90 text-white shadow-sm hover:shadow-md transition-all hover:from-[#00624f] hover:to-[#004a3a]"
+                >
+                  <div>
+                    <h3 className="font-semibold text-lg flex items-center gap-2 mb-2">
+                      {product.name}
+                      {isLowStock && (
+                        <Badge variant="destructive" className="text-xs flex items-center gap-1 bg-amber-500">
+                          <AlertTriangle className="w-3 h-3" />
+                          Stock faible
+                        </Badge>
+                      )}
+                    </h3>
+                    <p className="text-sm text-gray-200 mb-1">
+                      {product.product_categories.name} • {stockInPieces} pièces
+                      {product.package_type !== 'single' && (
+                        <span className="text-xs"> ({product.quantity} {product.unit})</span>
+                      )}
+                    </p>
+                    <p className="text-sm text-gray-300 mb-3">
+                      {product.suppliers?.name ? `Fournisseur : ${product.suppliers.name}` : ''}
+                    </p>
+                    <p className="text-base font-medium text-white bg-white/10 p-2 rounded-lg text-center">
+                      {displayPrice.toLocaleString()} XOF/pièce
+                    </p>
+                    {isLowStock && (
+                      <p className="text-xs text-amber-300 mt-2">
+                        ⚠️ Seuil d'alerte: {minStockInPieces} pièces
+                      </p>
                     )}
-                  </h3>
-                  <p className="text-sm text-gray-200 mb-1">
-                    {product.product_categories.name} • {product.quantity} {product.unit}
-                  </p>
-                  <p className="text-sm text-gray-300 mb-3">
-                    {product.suppliers?.name ? `Fournisseur : ${product.suppliers.name}` : ''}
-                  </p>
-                  <p className="text-base font-medium text-white bg-white/10 p-2 rounded-lg text-center">
-                    {product.price.toLocaleString()} XOF
-                  </p>
+                  </div>
+                  <div className="mt-4 flex justify-end">
+                    <Link href={`/gyms/${gymId}/stock/products/${product.id}`}>
+                      <Button variant="outline" className="shadow-sm bg-white/10 text-white border-white/20 hover:bg-white hover:text-[#00624f]">
+                        Détails
+                      </Button>
+                    </Link>
+                  </div>
                 </div>
-                <div className="mt-4 flex justify-end">
-                  <Link href={`/gyms/${gymId}/stock/products/${product.id}`}>
-                    <Button variant="outline" className="shadow-sm bg-white/10 text-white border-white/20 hover:bg-white hover:text-[#00624f]">
-                      Détails
-                    </Button>
-                  </Link>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </CardContent>

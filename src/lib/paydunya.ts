@@ -60,76 +60,80 @@ const paydunya = {
     'Content-Type': 'application/json',
   },
 
-  async createInvoice(
-    amount: number,
-    customer: CustomerData,
-    metadata: Record<string, any>
-  ): Promise<{
-    url: string;
-    token: string;
-    checkout_url?: string;
-    invoice_token?: string;
-  }> {
-    try {
+
+async createInvoice(
+  amount: number,
+  customer: CustomerData,
+  metadata: Record<string, any>
+): Promise<{
+  url: string;
+  token: string;
+  checkout_url?: string;
+  invoice_token?: string;
+}> {
+  try {
     const payload = {
-  invoice: {
-    items: [{
-      name: `Abonnement ${metadata.billing_cycle || 'mensuel'}`,
-      quantity: 1,
-      unit_price: amount,
-      total_price: amount,
-      description: `Abonnement GymManager`
-    }],
-    total_amount: amount,
-    description: "Paiement d'abonnement",
-    currency: 'XOF'
-  },
-  store: {
-    ...PAYDUNYA_CONFIG.store,
-    phone_number: customer.phone || PAYDUNYA_CONFIG.store.phone
-  },
-  actions: {
-    cancel_url: `${process.env.NEXT_PUBLIC_SITE_URL}/payment/error`,
-    return_url: `${process.env.NEXT_PUBLIC_SITE_URL}/payment/success`,
-    callback_url: `${process.env.NEXT_PUBLIC_API_URL}/api/paydunya/webhook`
-  },
-  custom_data: metadata,
-    channels: ['WAVE', 'ORANGE_MONEY', 'FREE_MONEY'],
+      invoice: {
+        items: [{
+          name: `Abonnement ${metadata.billing_cycle || 'mensuel'}`,
+          quantity: 1,
+          unit_price: amount,
+          total_price: amount,
+          description: `Abonnement GymManager`
+        }],
+        total_amount: amount,
+        description: "Paiement d'abonnement",
+        currency: 'XOF'
+      },
+      store: {
+        ...PAYDUNYA_CONFIG.store,
+        phone_number: customer.phone || PAYDUNYA_CONFIG.store.phone
+      },
+      actions: {
+        cancel_url: `${process.env.NEXT_PUBLIC_SITE_URL}/payment/error`,
+        return_url: `${process.env.NEXT_PUBLIC_SITE_URL}/payment/success`,
+        callback_url: `${process.env.NEXT_PUBLIC_API_URL}/api/paydunya/webhook`
+      },
+      custom_data: metadata, // Doit inclure payment_id
+      channels: ['WAVE', 'ORANGE_MONEY', 'FREE_MONEY'],
+    };
 
-};
+    console.log('Payload envoyé à Paydunya:', payload);
 
-
-      const response = await axios.post(
-        `${this.baseUrl}/checkout-invoice/create`,
-        payload,
-        { 
-          headers: this.headers, 
-          timeout: 15000 
-        }
-      );
-
-      if (!response.data?.response_text) {
-        throw new Error('Réponse Paydunya invalide');
+    const response = await axios.post(
+      `${this.baseUrl}/checkout-invoice/create`,
+      payload,
+      { 
+        headers: this.headers, 
+        timeout: 15000 
       }
+    );
 
-      return {
-        url: response.data.response_text,
-        token: response.data.token,
-        checkout_url: response.data.response_text,
-        invoice_token: response.data.token
-      };
-    } catch (error) {
-      console.error('Erreur création facture:', error);
-      if (error instanceof AxiosError && error.response) {
-        console.error('Détails erreur PayDunya:', error.response.data);
-      }
-      throw new Error(
-        error instanceof AxiosError 
-          ? error.response?.data?.message || 'Échec de la création du paiement'
-          : 'Échec de la création du paiement'
-      );
+    console.log('Réponse brute de Paydunya:', response.data);
+
+    if (!response.data) {
+      throw new Error('Réponse Paydunya vide');
     }
-  },
+
+    // Différentes structures possibles selon l'API Paydunya
+    const responseData = response.data;
+    
+    return {
+      url: responseData.response_text || responseData.url,
+      token: responseData.token || responseData.invoice_token,
+      checkout_url: responseData.response_text || responseData.checkout_url,
+      invoice_token: responseData.token || responseData.invoice_token
+    };
+
+  } catch (error) {
+    console.error('Erreur détaillée création facture:', error);
+    if (error instanceof AxiosError && error.response) {
+      console.error('Détails erreur PayDunya:', error.response.data);
+      throw new Error(error.response.data?.message || 'Échec de la création du paiement');
+    }
+    throw new Error('Échec de la création du paiement');
+  }
+},
 
   async verifyPayment(token: string): Promise<{
     success: boolean;

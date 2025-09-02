@@ -3,15 +3,21 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Plus, Minus, ShoppingCart, Trash2 } from 'lucide-react';
+import { Plus, Minus, ShoppingCart, Trash2, TrendingUp, BarChart3, Calendar, DollarSign, RefreshCw } from 'lucide-react';
 import { toast } from 'react-hot-toast';
-import { useLoading } from '@/components/LoadingProvider'; // Import du hook useLoading
+import { useLoading } from '@/components/LoadingProvider';
 
 interface Product {
   id: string;
   name: string;
   price: number;
+  cost_price: number | null;
   quantity: number;
+  stock_in_pieces: number;
+  package_type: string;
+  items_per_package: number;
+  unit_price: number | null;
+  unit_cost_price: number | null;
 }
 
 interface CartItem {
@@ -19,7 +25,21 @@ interface CartItem {
   name: string;
   quantity: number;
   unit_price: number;
+  cost_price: number | null;
   total_price: number;
+  total_cost: number | null;
+  profit: number | null;
+}
+
+interface SalesStats {
+  daily_profit: number;
+  total_profit: number;
+  product_profits: Array<{
+    product_id: string;
+    product_name: string;
+    profit: number;
+    quantity_sold: number;
+  }>;
 }
 
 interface PointOfSaleProps {
@@ -32,10 +52,17 @@ export default function PointOfSale({ gymId }: PointOfSaleProps) {
   const [paymentMethod, setPaymentMethod] = useState('cash');
   const [loading, setLoading] = useState(true);
   const [processingSale, setProcessingSale] = useState(false);
-  const { startLoading } = useLoading(); // Utilisation du hook useLoading
+  const [salesStats, setSalesStats] = useState<SalesStats>({
+    daily_profit: 0,
+    total_profit: 0,
+    product_profits: []
+  });
+  const [statsLoading, setStatsLoading] = useState(false);
+  const { startLoading } = useLoading();
 
   useEffect(() => {
     fetchProducts();
+    fetchSalesStats();
   }, [gymId]);
 
   const fetchProducts = async () => {
@@ -43,7 +70,12 @@ export default function PointOfSale({ gymId }: PointOfSaleProps) {
       const response = await fetch(`/api/gyms/${gymId}/products`);
       if (response.ok) {
         const data = await response.json();
-        setProducts(data.filter((p: Product) => p.quantity > 0));
+        // Filtrer les produits avec au moins 1 pièce en stock
+        const availableProducts = data.filter((p: Product) => {
+          const stockInPieces = getStockInPieces(p);
+          return stockInPieces > 0;
+        });
+        setProducts(availableProducts);
       } else {
         toast.error('Erreur lors du chargement des produits');
       }
@@ -54,70 +86,83 @@ export default function PointOfSale({ gymId }: PointOfSaleProps) {
     }
   };
 
+  const fetchSalesStats = async () => {
+    setStatsLoading(true);
+    try {
+      const response = await fetch(`/api/gyms/${gymId}/sales/stats`);
+      if (response.ok) {
+        const data = await response.json();
+        setSalesStats(data);
+      } else {
+        console.error('Erreur lors du chargement des statistiques');
+      }
+    } catch (error) {
+      console.error('Erreur lors du chargement des statistiques de vente:', error);
+    } finally {
+      setStatsLoading(false);
+    }
+  };
+
+  const getUnitPrice = (product: Product): number => {
+    return product.unit_price || product.price;
+  };
+
+  const getUnitCost = (product: Product): number | null => {
+    return product.unit_cost_price || product.cost_price;
+  };
+
+  const getStockInPieces = (product: Product): number => {
+    return product.stock_in_pieces || 0;
+  };
+
   const addToCart = async (product: Product) => {
-    // Utilisation de startLoading pour wrapper l'opération
     await startLoading(async () => {
       try {
-        const response = await fetch('/api/check-stock', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            productId: product.id,
-            quantity: 1
-          }),
-        });
+        const unitPrice = getUnitPrice(product);
+        const unitCost = getUnitCost(product);
+        const stockInPieces = getStockInPieces(product);
+        
+        if (stockInPieces < 1) {
+          toast.error(`Stock insuffisant pour ${product.name}`);
+          return;
+        }
 
-        if (response.ok) {
-          const stockCheck = await response.json();
+        const existingItem = cart.find(item => item.product_id === product.id);
+        
+        if (existingItem) {
+          const newQuantity = existingItem.quantity + 1;
           
-          if (!stockCheck.hasEnoughStock) {
-            toast.error(`Stock insuffisant. Il reste ${stockCheck.currentStock} unité(s)`);
+          if (stockInPieces < newQuantity) {
+            toast.error(`Stock insuffisant. Il reste ${stockInPieces} pièce(s)`);
             return;
           }
-
-          const existingItem = cart.find(item => item.product_id === product.id);
           
-          if (existingItem) {
-            const newQuantity = existingItem.quantity + 1;
-            const stockResponse = await fetch('/api/check-stock', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({
-                productId: product.id,
-                quantity: newQuantity
-              }),
-            });
-            
-            if (stockResponse.ok) {
-              const stockCheck = await stockResponse.json();
-              
-              if (!stockCheck.hasEnoughStock) {
-                toast.error(`Stock insuffisant. Il reste ${stockCheck.currentStock} unité(s)`);
-                return;
-              }
-              
-              setCart(cart.map(item =>
-                item.product_id === product.id
-                  ? { ...item, quantity: newQuantity, total_price: newQuantity * item.unit_price }
-                  : item
-              ));
-            }
-          } else {
-            setCart([...cart, {
-              product_id: product.id,
-              name: product.name,
-              quantity: 1,
-              unit_price: product.price,
-              total_price: product.price
-            }]);
-          }
+          setCart(cart.map(item =>
+            item.product_id === product.id
+              ? { 
+                  ...item, 
+                  quantity: newQuantity, 
+                  total_price: newQuantity * item.unit_price,
+                  total_cost: item.cost_price ? newQuantity * item.cost_price : null,
+                  profit: item.cost_price ? (newQuantity * item.unit_price) - (newQuantity * item.cost_price) : null
+                }
+              : item
+          ));
+        } else {
+          const newItem = {
+            product_id: product.id,
+            name: product.name,
+            quantity: 1,
+            unit_price: unitPrice,
+            cost_price: unitCost,
+            total_price: unitPrice,
+            total_cost: unitCost,
+            profit: unitCost ? unitPrice - unitCost : null
+          };
+          setCart([...cart, newItem]);
         }
       } catch (error) {
-        toast.error('Erreur de vérification du stock');
+        toast.error('Erreur lors de l\'ajout au panier');
       }
     });
   };
@@ -132,36 +177,31 @@ export default function PointOfSale({ gymId }: PointOfSaleProps) {
       return;
     }
 
-    // Utilisation de startLoading pour wrapper l'opération
     await startLoading(async () => {
       try {
-        const response = await fetch('/api/check-stock', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            productId: productId,
-            quantity: newQuantity
-          }),
-        });
+        const product = products.find(p => p.id === productId);
+        if (!product) return;
 
-        if (response.ok) {
-          const stockCheck = await response.json();
-          
-          if (!stockCheck.hasEnoughStock) {
-            toast.error(`Stock insuffisant. Il reste ${stockCheck.currentStock} unité(s)`);
-            return;
-          }
-
-          setCart(cart.map(item =>
-            item.product_id === productId
-              ? { ...item, quantity: newQuantity, total_price: newQuantity * item.unit_price }
-              : item
-          ));
+        const stockInPieces = getStockInPieces(product);
+        
+        if (stockInPieces < newQuantity) {
+          toast.error(`Stock insuffisant. Il reste ${stockInPieces} pièce(s)`);
+          return;
         }
+
+        setCart(cart.map(item =>
+          item.product_id === productId
+            ? { 
+                ...item, 
+                quantity: newQuantity, 
+                total_price: newQuantity * item.unit_price,
+                total_cost: item.cost_price ? newQuantity * item.cost_price : null,
+                profit: item.cost_price ? (newQuantity * item.unit_price) - (newQuantity * item.cost_price) : null
+              }
+            : item
+        ));
       } catch (error) {
-        toast.error('Erreur de vérification du stock');
+        toast.error('Erreur de mise à jour de la quantité');
       }
     });
   };
@@ -170,13 +210,29 @@ export default function PointOfSale({ gymId }: PointOfSaleProps) {
     return cart.reduce((total, item) => total + item.total_price, 0);
   };
 
+  const getTotalCost = () => {
+    return cart.reduce((total, item) => total + (item.total_cost || 0), 0);
+  };
+
+  const getTotalProfit = () => {
+    return cart.reduce((total, item) => total + (item.profit || 0), 0);
+  };
+
+  const getCartProductProfits = () => {
+    return cart.map(item => ({
+      product_id: item.product_id,
+      product_name: item.name,
+      profit: item.profit || 0,
+      quantity_sold: item.quantity
+    }));
+  };
+
   const processSale = async () => {
     if (cart.length === 0) {
       toast.error('Le panier est vide');
       return;
     }
 
-    // Utilisation de startLoading pour wrapper l'opération
     await startLoading(async () => {
       setProcessingSale(true);
 
@@ -188,7 +244,9 @@ export default function PointOfSale({ gymId }: PointOfSaleProps) {
           },
           body: JSON.stringify({
             items: cart,
-            payment_method: paymentMethod
+            payment_method: paymentMethod,
+            total_amount: getTotal(),
+            total_profit: getTotalProfit()
           }),
         });
 
@@ -196,8 +254,10 @@ export default function PointOfSale({ gymId }: PointOfSaleProps) {
           toast.success('Vente enregistrée avec succès');
           setCart([]);
           fetchProducts();
+          fetchSalesStats(); // Rafraîchir les statistiques après la vente
         } else {
-          toast.error('Erreur lors de la vente');
+          const error = await response.json();
+          toast.error(error.error || 'Erreur lors de la vente');
         }
       } catch (error) {
         toast.error('Erreur lors de la vente');
@@ -216,29 +276,149 @@ export default function PointOfSale({ gymId }: PointOfSaleProps) {
   }
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+      {/* Carte des bénéfices */}
+      <Card className="lg:col-span-1 shadow-lg rounded-2xl border-0 bg-gradient-to-r from-blue-600 to-blue-800 text-white">
+        <CardHeader className="border-b border-white/20 pb-4">
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-white flex items-center gap-2">
+              <BarChart3 className="w-5 h-5" />
+              Statistiques des Bénéfices
+            </CardTitle>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={fetchSalesStats}
+              disabled={statsLoading}
+              className="text-white hover:bg-white/20"
+              title="Rafraîchir les statistiques"
+            >
+              <RefreshCw className={`w-4 h-4 ${statsLoading ? 'animate-spin' : ''}`} />
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent className="pt-4 space-y-4">
+          {/* Bénéfice du panier actuel */}
+          <div className="bg-white/10 p-3 rounded-lg">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm">Bénéfice panier actuel</span>
+              <DollarSign className="w-4 h-4" />
+            </div>
+            <p className="text-2xl font-bold text-green-300">
+              {getTotalProfit().toLocaleString()} XOF
+            </p>
+          </div>
+
+          {/* Bénéfice journalier */}
+          <div className="bg-white/10 p-3 rounded-lg">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm">Bénéfice aujourd'hui</span>
+              <Calendar className="w-4 h-4" />
+            </div>
+            <p className="text-2xl font-bold text-yellow-300">
+              {salesStats.daily_profit.toLocaleString()} XOF
+            </p>
+          </div>
+
+          {/* Bénéfice total */}
+          <div className="bg-white/10 p-3 rounded-lg">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm">Bénéfice total</span>
+              <TrendingUp className="w-4 h-4" />
+            </div>
+            <p className="text-2xl font-bold text-blue-300">
+              {salesStats.total_profit.toLocaleString()} XOF
+            </p>
+          </div>
+
+          {/* Bénéfices par produit (dans le panier) */}
+          {cart.length > 0 && (
+            <div className="bg-white/10 p-3 rounded-lg">
+              <h4 className="text-sm font-semibold mb-2">Bénéfice par produit</h4>
+              <div className="space-y-2 max-h-40 overflow-y-auto">
+                {getCartProductProfits().map((product, index) => (
+                  <div key={index} className="flex justify-between text-xs">
+                    <span className="truncate max-w-[100px]">{product.product_name}</span>
+                    <span className="text-green-300 font-medium">
+                      +{product.profit.toLocaleString()} XOF
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Top produits rentables (historique) */}
+          {salesStats.product_profits.length > 0 && (
+            <div className="bg-white/10 p-3 rounded-lg">
+              <h4 className="text-sm font-semibold mb-2">Top produits rentables</h4>
+              <div className="space-y-2 max-h-40 overflow-y-auto">
+                {salesStats.product_profits.slice(0, 5).map((product, index) => (
+                  <div key={product.product_id} className="flex justify-between text-xs">
+                    <span className="truncate max-w-[80px]">{product.product_name}</span>
+                    <span className="text-green-300 font-medium">
+                      +{product.profit.toLocaleString()} XOF
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {salesStats.product_profits.length === 0 && cart.length === 0 && (
+            <p className="text-center text-gray-300 text-sm py-4">
+              {statsLoading ? 'Chargement des statistiques...' : 'Aucune donnée de vente disponible'}
+            </p>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Produits disponibles */}
       <Card className="lg:col-span-2 shadow-lg rounded-2xl border-0 bg-gradient-to-r from-[#00624f] to-[#004a3a] text-white">
         <CardHeader className="border-b border-white/20 pb-4">
           <CardTitle className="text-white">Produits Disponibles</CardTitle>
         </CardHeader>
         <CardContent className="pt-4">
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-            {products.map((product) => (
-              <Button
-                key={product.id}
-                variant="outline"
-                className="h-auto flex flex-col bg-green items-center p-4 border-white/20 text-black hover:bg-white/10"
-                onClick={() => addToCart(product)}
-              >
-                <span className="font-semibold">{product.name}</span>
-                <span className="text-sm">{product.price} XOF</span>
-                <span className="text-xs text-gray-300">Stock: {product.quantity}</span>
-              </Button>
-            ))}
+            {products.map((product) => {
+              const unitPrice = getUnitPrice(product);
+              const unitCost = getUnitCost(product);
+              const unitProfit = unitCost ? unitPrice - unitCost : null;
+              const stockInPieces = getStockInPieces(product);
+              
+              return (
+                <Button
+                  key={product.id}
+                  variant="outline"
+                  className="h-auto flex flex-col bg-green items-center p-4 border-white/20 text-black hover:bg-white/10 transition-all duration-200"
+                  onClick={() => addToCart(product)}
+                  disabled={stockInPieces === 0}
+                >
+                  <span className="font-semibold text-base mb-1">{product.name}</span>
+                  <span className="text-sm font-medium">{unitPrice} XOF/pièce</span>
+                  {unitProfit !== null && (
+                    <span className="text-xs text-gray-300 mt-1">
+                      Bénéfice: {unitProfit} XOF/pièce
+                    </span>
+                  )}
+                  {product.package_type !== 'single' && (
+                    <span className="text-xs text-gray-300 mt-1">
+                      {product.items_per_package} pièces/paquet
+                    </span>
+                  )}
+                  <span className={`text-xs font-medium mt-2 ${
+                    stockInPieces === 0 ? 'text-red-300' : 'text-gray-300'
+                  }`}>
+                    Stock: {stockInPieces} pièces
+                  </span>
+                </Button>
+              );
+            })}
           </div>
         </CardContent>
       </Card>
 
+      {/* Panier */}
       <Card className="shadow-lg rounded-2xl border-0 bg-gradient-to-r from-[#00624f] to-[#004a3a] text-white">
         <CardHeader className="border-b border-white/20 pb-4">
           <CardTitle className="text-white">Panier</CardTitle>
@@ -247,9 +427,20 @@ export default function PointOfSale({ gymId }: PointOfSaleProps) {
           <div className="space-y-4">
             {cart.map((item) => (
               <div key={item.product_id} className="flex items-center justify-between p-3 border border-white/20 rounded-lg bg-white/5">
-                <div>
+                <div className="flex-1">
                   <p className="font-medium">{item.name}</p>
-                  <p className="text-sm text-gray-300">{item.unit_price} XOF</p>
+                  <div className="text-sm text-gray-300 space-y-1">
+                    <p>{item.unit_price} XOF × {item.quantity} pièces</p>
+                    {item.cost_price && (
+                      <>
+                        <p>Coût: {item.total_cost?.toLocaleString()} XOF</p>
+                        <p className="text-green-300">
+                          <TrendingUp className="w-3 h-3 inline mr-1" />
+                          Bénéfice: {item.profit?.toLocaleString()} XOF
+                        </p>
+                      </>
+                    )}
+                  </div>
                 </div>
                 <div className="flex items-center gap-2">
                   <Button
@@ -260,7 +451,7 @@ export default function PointOfSale({ gymId }: PointOfSaleProps) {
                   >
                     <Minus className="w-4 h-4" />
                   </Button>
-                  <span className="min-w-[2rem] text-center">{item.quantity}</span>
+                  <span className="min-w-[2rem] text-center font-medium">{item.quantity}</span>
                   <Button
                     size="sm"
                     variant="outline"
@@ -283,11 +474,26 @@ export default function PointOfSale({ gymId }: PointOfSaleProps) {
 
             {cart.length > 0 && (
               <>
-                <div className="border-t border-white/20 pt-4">
-                  <div className="flex justify-between font-semibold">
-                    <span>Total:</span>
-                    <span>{getTotal()} XOF</span>
+                <div className="border-t border-white/20 pt-4 space-y-2">
+                  <div className="flex justify-between">
+                    <span>Total vente:</span>
+                    <span className="font-semibold">{getTotal().toLocaleString()} XOF</span>
                   </div>
+                  
+                  <div className="flex justify-between text-green-300">
+                    <span>Bénéfice total:</span>
+                    <span className="font-semibold">
+                      <TrendingUp className="w-4 h-4 inline mr-1" />
+                      {getTotalProfit().toLocaleString()} XOF
+                    </span>
+                  </div>
+
+                  {getTotalCost() > 0 && (
+                    <div className="flex justify-between text-gray-300 text-sm">
+                      <span>Coût total:</span>
+                      <span>{getTotalCost().toLocaleString()} XOF</span>
+                    </div>
+                  )}
                 </div>
 
                 <div className="space-y-2">
@@ -295,7 +501,7 @@ export default function PointOfSale({ gymId }: PointOfSaleProps) {
                   <select
                     value={paymentMethod}
                     onChange={(e) => setPaymentMethod(e.target.value)}
-                    className="w-full p-2 border border-white/20 rounded-md bg-white/10 text-white"
+                    className="w-full p-2 border border-white/20 rounded-md bg-white/10 text-white focus:border-green-400 focus:ring-green-400"
                   >
                     <option value="cash">Espèces</option>
                     <option value="card">Carte</option>
@@ -304,7 +510,7 @@ export default function PointOfSale({ gymId }: PointOfSaleProps) {
                 </div>
 
                 <Button 
-                  className="w-full bg-black text-[#00624f] hover:bg-gray-10 shadow"
+                  className="w-full bg-white text-[#00624f] hover:bg-gray-100 shadow font-semibold py-3"
                   onClick={processSale}
                   disabled={processingSale}
                 >
@@ -315,7 +521,7 @@ export default function PointOfSale({ gymId }: PointOfSaleProps) {
                     </>
                   ) : (
                     <>
-                      <ShoppingCart className="w-4 h-4 mr-2" />
+                      <ShoppingCart className="w-5 h-5 mr-2" />
                       Finaliser la vente
                     </>
                   )}
@@ -324,7 +530,7 @@ export default function PointOfSale({ gymId }: PointOfSaleProps) {
             )}
 
             {cart.length === 0 && (
-              <p className="text-center text-gray-300 py-4">Le panier est vide</p>
+              <p className="text-center text-gray-300 py-6">Le panier est vide</p>
             )}
           </div>
         </CardContent>

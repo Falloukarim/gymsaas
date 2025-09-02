@@ -1,8 +1,7 @@
 import { createClient } from '@/utils/supabase/server';
 import { NextResponse } from 'next/server';
 
-
-  export async function GET(
+export async function GET(
   request: Request,
   { params }: { params: { id: string; productId: string } }
 ) {
@@ -57,26 +56,47 @@ export async function PUT(
   const body = await request.json();
 
   try {
-    // Récupérer l'ancienne quantité pour calculer la différence
-    const { data: oldProduct, error: fetchError } = await (await supabase)
-      .from('products')
-      .select('quantity')
-      .eq('id', productId)
-      .single();
+    // Calculer les prix unitaires si nécessaire
+    let unit_price = parseFloat(body.price) || 0;
+    let unit_cost_price = body.cost_price ? parseFloat(body.cost_price) : null;
 
-    if (fetchError) {
-      return NextResponse.json({ error: fetchError.message }, { status: 500 });
+    if (body.package_type !== 'single') {
+      const itemsPerPackage = parseInt(body.items_per_package) || 1;
+      const packagePrice = parseFloat(body.package_price) || 0;
+      const packageCostPrice = body.package_cost_price ? parseFloat(body.package_cost_price) : null;
+      
+      unit_price = itemsPerPackage > 0 ? (packagePrice / itemsPerPackage) : 0;
+      unit_cost_price = itemsPerPackage > 0 && packageCostPrice ? (packageCostPrice / itemsPerPackage) : null;
     }
 
-    const oldQuantity = oldProduct.quantity;
-    const newQuantity = parseInt(body.quantity);
-    const quantityDifference = newQuantity - oldQuantity;
+    // Calculer le stock en pièces
+    const quantity = parseInt(body.quantity) || 0;
+    const itemsPerPackage = parseInt(body.items_per_package) || 1;
+    const stock_in_pieces = body.package_type === 'single' 
+      ? quantity 
+      : quantity * itemsPerPackage;
 
     // Mettre à jour le produit
     const { data: product, error } = await (await supabase)
       .from('products')
       .update({
-        ...body,
+        name: body.name,
+        category_id: body.category_id,
+        description: body.description,
+        price: parseFloat(body.price),
+        cost_price: body.cost_price ? parseFloat(body.cost_price) : null,
+        quantity: quantity,
+        stock_in_pieces: stock_in_pieces,
+        unit: body.unit,
+        supplier_id: body.supplier_id || null,
+        min_stock_level: 10, // Seuil fixe à 10 pièces
+        is_active: body.is_active !== undefined ? body.is_active : true,
+        package_type: body.package_type || 'single',
+        items_per_package: itemsPerPackage,
+        package_price: body.package_price ? parseFloat(body.package_price) : null,
+        package_cost_price: body.package_cost_price ? parseFloat(body.package_cost_price) : null,
+        unit_price: unit_price,
+        unit_cost_price: unit_cost_price,
         updated_at: new Date().toISOString()
       })
       .eq('id', productId)
@@ -85,34 +105,13 @@ export async function PUT(
       .single();
 
     if (error) {
+      console.error('Supabase error:', error);
       return NextResponse.json({ error: error.message }, { status: 500 });
-    }
-
-    // Si la quantité a changé, créer un mouvement de stock
-    if (quantityDifference !== 0) {
-      const stockType = quantityDifference > 0 ? 'in' : 'out';
-      const absoluteDifference = Math.abs(quantityDifference);
-      
-      // Mettre à jour le mouvement de stock
-      const { error: movementError } = await (await supabase)
-        .from('stock_movements')
-        .insert({
-          product_id: productId,
-          gym_id: gymId,
-          user_id: user.id,
-          type: stockType,
-          quantity: absoluteDifference,
-          reason: 'Ajustement manuel',
-          note: `Quantité ajustée de ${oldQuantity} à ${newQuantity}`
-        });
-
-      if (movementError) {
-        console.error('Error creating stock movement:', movementError);
-      }
     }
 
     return NextResponse.json(product);
   } catch (error) {
+    console.error('Internal error:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
