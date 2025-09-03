@@ -6,9 +6,20 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { ArrowLeft, Plus, Minus, Save, Package } from 'lucide-react';
+import { ArrowLeft, Plus, Minus, Save, Package, Trash2 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { useLoading } from '@/components/LoadingProvider';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 
 interface Product {
   id: string;
@@ -83,6 +94,26 @@ export default function ProductDetailPage() {
         toast.error('Erreur lors du chargement des données');
       } finally {
         setLoading(false);
+      }
+    });
+  };
+
+   const handleDeleteProduct = async () => {
+    await startLoading(async () => {
+      try {
+        const response = await fetch(`/api/gyms/${gymId}/products/${productId}`, {
+          method: 'DELETE',
+        });
+
+        if (response.ok) {
+          toast.success('Produit supprimé avec succès');
+          router.push(`/gyms/${gymId}/stock/products`);
+        } else {
+          const error = await response.json();
+          toast.error(error.error || 'Erreur lors de la suppression');
+        }
+      } catch (error) {
+        toast.error('Erreur lors de la suppression');
       }
     });
   };
@@ -260,7 +291,32 @@ export default function ProductDetailPage() {
         </Button>
         <h1 className="text-2xl font-bold text-gray-900">{product.name}</h1>
       </div>
-
+              <AlertDialog>
+          <AlertDialogTrigger asChild>
+            <Button variant="destructive" className="gap-2">
+              <Trash2 className="w-4 h-4" />
+              Supprimer
+            </Button>
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Êtes-vous sûr ?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Cette action supprimera définitivement le produit "{product.name}". 
+                Cette action ne peut pas être annulée.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Annuler</AlertDialogCancel>
+              <AlertDialogAction 
+                onClick={handleDeleteProduct}
+                className="bg-red-600 hover:bg-red-700"
+              >
+                Supprimer définitivement
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card className="border border-gray-200 shadow-lg">
           <CardHeader>
@@ -268,7 +324,6 @@ export default function ProductDetailPage() {
             <CardDescription className="text-gray-600">Détails et statistiques du produit</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            {/* ... (le reste du formulaire reste inchangé) ... */}
 
             <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
               <h3 className="font-semibold text-gray-900 mb-2">Stock détaillé</h3>

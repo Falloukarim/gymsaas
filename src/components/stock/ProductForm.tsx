@@ -48,7 +48,6 @@ export default function ProductForm({ gymId, product }: ProductFormProps) {
     quantity: product?.quantity?.toString() || '0',
     unit: product?.unit || 'pièce',
     supplier_id: product?.supplier_id || '',
-    min_stock_level: product?.min_stock_level?.toString() || '5',
     is_active: product?.is_active !== undefined ? product.is_active : true,
     package_type: product?.package_type || 'single',
     items_per_package: product?.items_per_package?.toString() || '1',
@@ -138,7 +137,6 @@ export default function ProductForm({ gymId, product }: ProductFormProps) {
           package_cost_price: formData.package_cost_price ? parseFloat(formData.package_cost_price) : null,
           items_per_package: parseInt(formData.items_per_package),
           quantity: parseInt(formData.quantity),
-          min_stock_level: parseInt(formData.min_stock_level)
         }),
       });
 
@@ -466,21 +464,6 @@ export default function ProductForm({ gymId, product }: ProductFormProps) {
                 <option value="L" className="bg-[#00624f]">Litre</option>
                 <option value="mL" className="bg-[#00624f]">Millilitre</option>
               </select>
-            </div>
-
-            {/* Seuil minimum */}
-            <div className="space-y-2">
-              <Label htmlFor="min_stock_level" className="text-white">Seuil d'alerte stock *</Label>
-              <Input
-                id="min_stock_level"
-                name="min_stock_level"
-                type="number"
-                min="0"
-                value={formData.min_stock_level}
-                onChange={handleInputChange}
-                className="border-white/20 bg-white/10 text-white placeholder:text-gray-300 focus:border-green-400"
-                required
-              />
             </div>
 
             {/* Fournisseur */}
