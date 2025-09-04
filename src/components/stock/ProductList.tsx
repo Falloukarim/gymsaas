@@ -213,15 +213,15 @@ export default function ProductList({ gymId }: ProductListProps) {
               )}
             </div>
 
-            <div className="flex gap-2">
-              {selectedProducts.length > 0 && (
-                <AlertDialog>
-                  <AlertDialogTrigger asChild>
-                    <Button variant="destructive" size="sm" className="gap-2">
-                      <Trash2 className="w-4 h-4" />
-                      Supprimer la sélection
-                    </Button>
-                  </AlertDialogTrigger>
+            <div className="flex flex-wrap gap-2 justify-end">
+  {selectedProducts.length > 0 && (
+    <AlertDialog>
+      <AlertDialogTrigger asChild>
+        <Button variant="destructive" size="sm" className="gap-2 w-full sm:w-auto">
+          <Trash2 className="w-4 h-4" />
+          Supprimer la sélection
+        </Button>
+      </AlertDialogTrigger>
                   <AlertDialogContent>
                     <AlertDialogHeader>
                       <AlertDialogTitle>Confirmation de suppression</AlertDialogTitle>
@@ -243,14 +243,19 @@ export default function ProductList({ gymId }: ProductListProps) {
                 </AlertDialog>
               )}
 
-              {products.length > 0 && (
-                <AlertDialog>
-                  <AlertDialogTrigger asChild>
-                    <Button variant="destructive" size="sm" className="gap-2">
-                      <Trash2 className="w-4 h-4" />
-                      Tout supprimer
-                    </Button>
-                  </AlertDialogTrigger>
+               {products.length > 0 && (
+    <AlertDialog>
+  <AlertDialogTrigger asChild>
+    <Button
+      variant="destructive"
+      size="sm"
+      className="gap-2 w-full sm:w-auto"
+    >
+      <Trash2 className="w-4 h-4" />
+      {/* Texte masqué sur mobile, visible à partir de sm */}
+      <span className="hidden sm:inline">Tout supprimer</span>
+    </Button>
+  </AlertDialogTrigger>
                   <AlertDialogContent>
                     <AlertDialogHeader>
                       <AlertDialogTitle>Confirmation de suppression</AlertDialogTitle>
@@ -335,7 +340,7 @@ export default function ProductList({ gymId }: ProductListProps) {
                           </AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>
-                          <AlertDialogCancel>Annuler</AlertDialogCancel>
+                          <AlertDialogCancel className="text-black bg-white hover:bg-gray-200">Annuler</AlertDialogCancel>
                           <AlertDialogAction 
                             onClick={(e: { stopPropagation: () => void; }) => {
                               e.stopPropagation();

@@ -8,17 +8,19 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { ArrowLeft, Plus } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { LoadingButton } from '@/components/LoadingButton';
 
 function MembersPage() {
   const params = useParams();
+  const router = useRouter();
   const gymId = params.id as string;
   const [members, setMembers] = useState<any[]>([]);
   const [initialLoading, setInitialLoading] = useState(true);
   const [searchLoading, setSearchLoading] = useState(false);
   const [isAddingMember, setIsAddingMember] = useState(false);
   const [search, setSearch] = useState('');
+  const [navigatingMemberId, setNavigatingMemberId] = useState<string | null>(null);
   const supabase = createClient();
 
   if (!gymId) {
@@ -73,7 +75,11 @@ function MembersPage() {
     const formData = new FormData(e.currentTarget as HTMLFormElement);
     setSearch(formData.get('q') as string);
   };
-
+     const handleMemberClick = (memberId: string, e: React.MouseEvent) => {
+    e.preventDefault();
+    setNavigatingMemberId(memberId);
+    router.push(`/gyms/${gymId}/members/${memberId}`);
+  };
   const getImageUrl = (url: string | null) => {
     if (!url) return '';
     
@@ -179,35 +185,44 @@ function MembersPage() {
                         key={member.id}
                         href={`/gyms/${gymId}/members/${member.id}`}
                         className="group"
+                        onClick={(e) => handleMemberClick(member.id, e)}
                       >
-                        <Card className="transition-all hover:scale-[1.02] hover:shadow-lg border border-white bg-green-1000 hover:bg-green-200">
-  <CardContent className="p-3 sm:p-4 flex items-center gap-3 sm:gap-4">
-    <Avatar className="h-10 w-10 sm:h-12 sm:w-12">
-      <AvatarImage src={getImageUrl(member.avatar_url)} />
-      <AvatarFallback className="bg-green-500 text-white">
-        {member.full_name
-          .split(' ')
-          .map((n: string) => n[0])
-          .join('')}
-      </AvatarFallback>
-    </Avatar>
+                        <Card className={`transition-all hover:scale-[1.02] hover:shadow-lg border border-white bg-green-1000 hover:bg-green-200 ${
+                          navigatingMemberId === member.id ? 'opacity-70 pointer-events-none' : ''
+                        }`}>
+                          <CardContent className="p-3 sm:p-4 flex items-center gap-3 sm:gap-4">
+                            {navigatingMemberId === member.id ? (
+                              <div className="flex items-center justify-center w-12 h-12">
+                                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-green-600"></div>
+                              </div>
+                            ) : (
+                              <Avatar className="h-10 w-10 sm:h-12 sm:w-12">
+                                <AvatarImage src={getImageUrl(member.avatar_url)} />
+                                <AvatarFallback className="bg-green-500 text-white">
+                                  {member.full_name
+                                    .split(' ')
+                                    .map((n: string) => n[0])
+                                    .join('')}
+                                </AvatarFallback>
+                              </Avatar>
+                            )}
 
-    <div className="flex-1 min-w-0">
-      <h3 className="font-semibold text-black sm:text-base truncate group-hover:text-green-600">
-        {member.full_name}
-      </h3>
-      <p className="text-xs sm:text-sm text-gray-500 truncate">
-        {member.email || 'Aucun email'}
-      </p>
-    </div>
+                            <div className="flex-1 min-w-0">
+                              <h3 className="font-semibold text-black sm:text-base truncate group-hover:text-green-600">
+                                {member.full_name}
+                              </h3>
+                              <p className="text-xs sm:text-sm text-gray-500 truncate">
+                                {member.email || 'Aucun email'}
+                              </p>
+                            </div>
 
-    {activeSubscription && (
-      <Badge variant="secondary" className="ml-2 text-xs sm:text-sm bg-green-200 text-green-800">
-      </Badge>
-    )}
-  </CardContent>
-</Card>
-
+                            {activeSubscription && !navigatingMemberId && (
+                              <Badge variant="secondary" className="ml-2 text-xs sm:text-sm bg-green-200 text-green-800">
+                                Actif
+                              </Badge>
+                            )}
+                          </CardContent>
+                        </Card>
                       </Link>
                     );
                   })}

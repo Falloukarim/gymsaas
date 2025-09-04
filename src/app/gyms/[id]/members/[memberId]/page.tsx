@@ -23,6 +23,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { MemberActionButtons } from '@/components/members/MemberActionButtons';
 
 interface Payment {
   id: string;
@@ -110,10 +111,10 @@ export default async function MemberDetailPage({
     .select('*')
     .eq('member_id', memberId)
     .order('timestamp', { ascending: false });
-
+   
   const subscriptions = member.member_subscriptions || [];
   const activeSubscription = subscriptions.find(
-    (    sub: MemberSubscription) => sub.status === 'active' && new Date(sub.end_date) > new Date() && isSubscription(sub)
+    (sub: MemberSubscription) => sub.status === 'active' && new Date(sub.end_date) > new Date() && isSubscription(sub)
   );
   const hasActiveSubscription = !!activeSubscription;
   const lastSubscription = subscriptions
@@ -127,21 +128,21 @@ export default async function MemberDetailPage({
     .join('')
     .toUpperCase();
 
-     const getImageUrl = (url: string | null) => {
-  if (!url) return '';
-  
-  // Vérifie si l'URL est déjà une URL complète
-  if (url.startsWith('http')) {
-    return `/api/image-proxy?url=${encodeURIComponent(url)}`;
-  }
-  
-  // Si c'est un chemin relatif, construisez l'URL complète
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const fullUrl = `${supabaseUrl}/storage/v1/object/public/avatars/${url}`;
-  return `/api/image-proxy?url=${encodeURIComponent(fullUrl)}`;
-};
+  const getImageUrl = (url: string | null) => {
+    if (!url) return '';
+    
+    // Vérifie si l'URL est déjà une URL complète
+    if (url.startsWith('http')) {
+      return `/api/image-proxy?url=${encodeURIComponent(url)}`;
+    }
+    
+    // Si c'est un chemin relatif, construisez l'URL complète
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const fullUrl = `${supabaseUrl}/storage/v1/object/public/avatars/${url}`;
+    return `/api/image-proxy?url=${encodeURIComponent(fullUrl)}`;
+  };
 
- return (
+  return (
     <div className="w-full px-4 py-6 sm:px-6 lg:px-8">
       {/* Header avec bouton retour et infos membre */}
       <div className="flex items-center justify-between mb-6">
@@ -213,76 +214,62 @@ export default async function MemberDetailPage({
                 <span>Abonnement</span>
               </CardTitle>
             </CardHeader>
-           <CardContent>
-  {hasActiveSubscription ? (
-    <div className="space-y-4">
-      <div className="flex justify-between items-center">
-        <div>
-          <p className="font-medium">{activeSubscription.subscriptions?.type}</p>
-          <p className="text-sm text-muted-foreground">
-            {activeSubscription.subscriptions?.description}
-          </p>
-        </div>
-        <SubscriptionStatusBadge status="active" />
-      </div>
-      
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <p className="text-sm text-muted-foreground">Début</p>
-          <p className="text-sm">{new Date(activeSubscription.start_date).toLocaleDateString()}</p>
-        </div>
-        <div>
-          <p className="text-sm text-muted-foreground">Fin</p>
-          <p className="text-sm">{new Date(activeSubscription.end_date).toLocaleDateString()}</p>
-        </div>
-      </div>
-    </div>
-  ) : lastSubscription ? (
-    <div className="space-y-4">
-      <div className="flex justify-between items-center">
-        <div>
-          <p className="font-medium">{lastSubscription.subscriptions?.type}</p>
-          <p className="text-sm text-muted-foreground">
-            {lastSubscription.subscriptions?.description}
-          </p>
-        </div>
-        <SubscriptionStatusBadge status="expired" />
-      </div>
-      
-      <div>
-        <p className="text-sm text-muted-foreground">Expiré le</p>
-        <p>{new Date(lastSubscription.end_date).toLocaleDateString()}</p>
-      </div>
-    </div>
-  ) : (
-    <div className="flex flex-col items-center text-center space-y-3 py-4">
-      <Activity className="h-8 w-8 text-muted-foreground" />
-      <p className="text-muted-foreground">Aucun abonnement actif</p>
-    </div>
-  )}
+            <CardContent>
+              {hasActiveSubscription ? (
+                <div className="space-y-4">
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <p className="font-medium">{activeSubscription.subscriptions?.type}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {activeSubscription.subscriptions?.description}
+                      </p>
+                    </div>
+                    <SubscriptionStatusBadge status="active" />
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <p className="text-sm text-muted-foreground">Début</p>
+                      <p className="text-sm">{new Date(activeSubscription.start_date).toLocaleDateString()}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">Fin</p>
+                      <p className="text-sm">{new Date(activeSubscription.end_date).toLocaleDateString()}</p>
+                    </div>
+                  </div>
+                </div>
+              ) : lastSubscription ? (
+                <div className="space-y-4">
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <p className="font-medium">{lastSubscription.subscriptions?.type}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {lastSubscription.subscriptions?.description}
+                      </p>
+                    </div>
+                    <SubscriptionStatusBadge status="expired" />
+                  </div>
+                  
+                  <div>
+                    <p className="text-sm text-muted-foreground">Expiré le</p>
+                    <p>{new Date(lastSubscription.end_date).toLocaleDateString()}</p>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex flex-col items-center text-center space-y-3 py-4">
+                  <Activity className="h-8 w-8 text-muted-foreground" />
+                  <p className="text-muted-foreground">Aucun abonnement actif</p>
+                </div>
+              )}
 
-  {/* Bouton Nouvelle Session - Toujours visible */}
-  <div className="flex flex-col xs:flex-row gap-2 pt-4">
-    {hasActiveSubscription || lastSubscription ? (
-      <Button asChild size="sm" className="w-full">
-        <Link href={`/gyms/${gymId}/members/${memberId}/renew`}>
-          Renouveler
-        </Link>
-      </Button>
-    ) : (
-      <Button asChild size="sm" className="w-full">
-        <Link href={`/gyms/${gymId}/members/${memberId}/renew`}>
-          Ajouter un abonnement
-        </Link>
-      </Button>
-    )}
-    <Button variant="outline" size="sm" asChild className="w-full">
-      <Link href={`/gyms/${gymId}/members/${memberId}/new-session`}>
-        Nouvelle session
-      </Link>
-    </Button>
-  </div>
-</CardContent>
+              {/* Utilisation du composant client pour les boutons */}
+              <MemberActionButtons
+                gymId={gymId}
+                memberId={memberId}
+                hasActiveSubscription={hasActiveSubscription}
+                hasLastSubscription={!!lastSubscription}
+              />
+            </CardContent>
           </Card>
 
           {/* QR Code Section */}
