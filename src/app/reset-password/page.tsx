@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabaseClient";
+export const dynamic = 'force-dynamic';
 
 const resetSchema = z.object({
   password: z.string().min(6, { message: "Le mot de passe doit contenir au moins 6 caractères" }),
