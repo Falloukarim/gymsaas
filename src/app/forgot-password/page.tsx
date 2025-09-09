@@ -1,6 +1,6 @@
 "use client";
 
-import { useForm } from "react-hook-form";
+import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { supabase } from "@/lib/supabaseClient";
@@ -9,26 +9,31 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 
+// ✅ Validation Zod
 const forgotSchema = z.object({
-  email: z.string().email({ message: "Email invalide" }),
+  email: z.string()
+    .min(1, { message: "L'email est obligatoire" })
+    .email({ message: "Email invalide" }),
 });
 
 type ForgotSchema = z.infer<typeof forgotSchema>;
 
 export default function ForgotPasswordPage() {
   const [message, setMessage] = useState("");
+
   const {
-    register,
+    control,
     handleSubmit,
     formState: { errors, isSubmitting },
   } = useForm<ForgotSchema>({
     resolver: zodResolver(forgotSchema),
   });
 
-  const onSubmit = async (data: ForgotSchema) => {
+const onSubmit = async (data: ForgotSchema) => {
   setMessage("");
   try {
     const { error } = await supabase.auth.resetPasswordForEmail(data.email, {
+      // ✅ URL simple et directe
       redirectTo: `${window.location.origin}/reset-password`,
     });
 
@@ -45,7 +50,6 @@ export default function ForgotPasswordPage() {
     }
   }
 };
-
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#01012b] to-[#02125e]">
       <form
@@ -60,16 +64,23 @@ export default function ForgotPasswordPage() {
           </p>
         )}
 
+        {/* ✅ Champ email avec Controller */}
         <div className="mb-4">
           <label htmlFor="email" className="block text-sm font-medium mb-1">
             Email
           </label>
-          <Input
-            id="email"
-            type="email"
-            placeholder="votre@email.com"
-            {...register("email")}
-            className="w-full"
+          <Controller
+            name="email"
+            control={control}
+            render={({ field }) => (
+              <Input
+                {...field}
+                id="email"
+                type="email"
+                placeholder="votre@email.com"
+                className="w-full"
+              />
+            )}
           />
           {errors.email && (
             <p className="text-red-500 text-sm mt-1">

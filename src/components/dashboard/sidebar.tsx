@@ -77,21 +77,16 @@ export default function Sidebar() {
     visible: { opacity: 1, x: 0, transition: { duration: 0.3, ease: "easeOut" } },
   };
 
-  // ⚡ Handler pour tous les liens avec spinner global
   const handleLinkClick = (href: string) => async (e: React.MouseEvent) => {
-    e.preventDefault(); // Empêche la navigation immédiate
+    e.preventDefault(); 
     
     await startLoading(async () => {
-      // Fermer la sidebar si on est en mobile
+      // 
       if (isMobile) {
         close();
       }
-      
-      // Simuler un petit délai pour montrer l'animation (optionnel)
       await new Promise(resolve => setTimeout(resolve, 300));
-      
-      // Naviguer vers la page
-      router.push(href);
+            router.push(href);
     });
   };
 

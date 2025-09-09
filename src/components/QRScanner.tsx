@@ -281,10 +281,6 @@ export function QRScanner() {
 
         {/* Instructions */}
         <div className="absolute bottom-4 left-0 right-0 text-center text-white text-sm bg-black bg-opacity-50 p-2">
-          {isCaptured 
-            ? 'Traitement en cours...' 
-            : 'Placez le QR code n\'importe où dans le cadre'
-          }
         </div>
 
         {/* Progression */}
