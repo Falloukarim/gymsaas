@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
-import { Check, X, RotateCw, Camera, ZoomIn, ZoomOut, Scan } from 'lucide-react'
+import { Check, X, RotateCw, Camera } from 'lucide-react'
 import { toast } from 'sonner'
 
 type Html5QrcodeError = Error & {
@@ -15,15 +15,11 @@ export function QRScanner() {
   const router = useRouter()
   const scannerRef = useRef<any>(null)
   const isProcessing = useRef(false)
-  const [scanResult, setScanResult] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [availableCameras, setAvailableCameras] = useState<Array<{ id: string, label: string }>>([])
   const [activeCameraId, setActiveCameraId] = useState<string | null>(null)
   const [isScanning, setIsScanning] = useState(false)
-  const [zoomLevel, setZoomLevel] = useState(1)
   const [isCaptured, setIsCaptured] = useState(false)
-  const [scanProgress, setScanProgress] = useState(0)
-  const [captureStage, setCaptureStage] = useState(0)
 
   // Initialisation du scanner
   const initScanner = async () => {
@@ -41,56 +37,34 @@ export function QRScanner() {
     }
   }
 
-  // Démarrer le scanner avec une zone de scan plus grande
+  // Démarrer le scanner
   const startScanner = async (cameraId: string) => {
     try {
       const { Html5Qrcode } = await import('html5-qrcode')
       
-      // Créer une nouvelle instance à chaque démarrage
       scannerRef.current = new Html5Qrcode('qr-scanner-container')
       
       await scannerRef.current.start(
         cameraId,
         { 
           fps: 15,
-          // Zone de scan beaucoup plus grande - presque toute la vue
           qrbox: (viewfinderWidth: number, viewfinderHeight: number) => {
-            // Utiliser 95% de la largeur et 80% de la hauteur
             return { 
-              width: viewfinderWidth * 0.95, 
-              height: viewfinderHeight * 0.80 
+              width: Math.min(viewfinderWidth, viewfinderHeight) * 0.7, 
+              height: Math.min(viewfinderWidth, viewfinderHeight) * 0.7 
             }
           },
           aspectRatio: 1.0,
           disableFlip: false,
-          experimentalFeatures: {
-            useBarCodeDetectorIfSupported: true
-          }
         },
         async (decodedText: string) => {
           if (!isProcessing.current) {
             isProcessing.current = true
-            
-            // Simulation de capture complète
-            for (let stage = 1; stage <= 5; stage++) {
-              setCaptureStage(stage)
-              await new Promise(resolve => setTimeout(resolve, 150))
-            }
-            
-            // Progression animée
-            for (let i = 0; i <= 100; i += 20) {
-              setScanProgress(i)
-              await new Promise(resolve => setTimeout(resolve, 50))
-            }
-            
             setIsCaptured(true)
             await handleScanSuccess(decodedText)
           }
         },
-        () => {
-          setScanProgress(0)
-          setCaptureStage(0)
-        }
+        () => {}
       )
       
       setIsScanning(true)
@@ -99,27 +73,6 @@ export function QRScanner() {
       const error = err as Html5QrcodeError
       setError(error.message || 'Échec du démarrage du scanner')
       setIsScanning(false)
-    }
-  }
-
-  // Zoom in/out
-  const zoomIn = () => {
-    if (scannerRef.current && zoomLevel < 3) {
-      const newZoom = Math.min(zoomLevel + 0.2, 3)
-      setZoomLevel(newZoom)
-      scannerRef.current.applyVideoConstraints({
-        advanced: [{ zoom: newZoom }]
-      }).catch(() => console.log("Zoom non supporté"))
-    }
-  }
-
-  const zoomOut = () => {
-    if (scannerRef.current && zoomLevel > 1) {
-      const newZoom = Math.max(zoomLevel - 0.2, 1)
-      setZoomLevel(newZoom)
-      scannerRef.current.applyVideoConstraints({
-        advanced: [{ zoom: newZoom }]
-      }).catch(() => console.log("Zoom non supporté"))
     }
   }
 
@@ -136,17 +89,13 @@ export function QRScanner() {
       scannerRef.current = null
       setIsScanning(false)
       setIsCaptured(false)
-      setScanProgress(0)
-      setCaptureStage(0)
     }
   }
 
   const resetScanner = async () => {
     await stopScanner()
     isProcessing.current = false
-    setScanResult(null)
     setError(null)
-    setZoomLevel(1)
     
     if (activeCameraId) {
       await startScanner(activeCameraId)
@@ -167,10 +116,7 @@ export function QRScanner() {
   // Scan réussi
   const handleScanSuccess = async (decodedText: string) => {
     try {
-      setScanResult(decodedText)
       const gymId = window.location.pathname.split('/')[2]
-      
-      await new Promise(resolve => setTimeout(resolve, 1000))
       
       const response = await fetch('/api/validate', {
         method: 'POST',
@@ -226,53 +172,19 @@ export function QRScanner() {
 
   return (
     <div className="space-y-4">
-      {/* Scanner container avec cadre plus grand */}
-      <div className="relative w-full aspect-video rounded-lg overflow-hidden border bg-black">
+      {/* Scanner container */}
+      <div className="relative w-full aspect-square rounded-lg overflow-hidden border-2 border-border bg-black">
         <div id="qr-scanner-container" className="w-full h-full" />
 
-        {/* Cadre de guidage - beaucoup plus grand */}
+        {/* Cadre de guidage minimaliste */}
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-          <div className={`border-2 ${isCaptured ? 'border-green-500' : 'border-blue-400'} rounded-lg w-11/12 h-5/6 relative transition-all duration-300`}>
+          <div className={`border-2 ${isCaptured ? 'border-green-500' : 'border-white/50'} rounded-lg w-64 h-64 relative transition-all duration-300`}>
             
-            {/* Ligne de balayage horizontale */}
-            <div 
-              className="absolute left-0 right-0 h-1 bg-green-400 rounded-full"
-              style={{ 
-                top: `${scanProgress}%`,
-                opacity: 0.8,
-                boxShadow: '0 0 10px 2px rgba(72, 187, 120, 0.7)',
-                transition: 'top 0.1s ease'
-              }}
-            ></div>
-            
-            {/* Ligne de balayage verticale */}
-            <div 
-              className="absolute top-0 bottom-0 w-1 bg-green-400 rounded-full"
-              style={{ 
-                left: `${scanProgress}%`,
-                opacity: 0.8,
-                boxShadow: '0 0 10px 2px rgba(72, 187, 120, 0.7)',
-                transition: 'left 0.1s ease'
-              }}
-            ></div>
-            
-            {/* Points de repère aux coins */}
-            <div className={`absolute -top-2 -left-2 h-5 w-5 border-t-2 border-l-2 ${isCaptured ? 'border-green-500' : 'border-white'} rounded-tl transition-colors duration-300`}></div>
-            <div className={`absolute -top-2 -right-2 h-5 w-5 border-t-2 border-r-2 ${isCaptured ? 'border-green-500' : 'border-white'} rounded-tr transition-colors duration-300`}></div>
-            <div className={`absolute -bottom-2 -left-2 h-5 w-5 border-b-2 border-l-2 ${isCaptured ? 'border-green-500' : 'border-white'} rounded-bl transition-colors duration-300`}></div>
-            <div className={`absolute -bottom-2 -right-2 h-5 w-5 border-b-2 border-r-2 ${isCaptured ? 'border-green-500' : 'border-white'} rounded-br transition-colors duration-300`}></div>
-            
-            {/* Effet de capture complète */}
+            {/* Animation de capture */}
             {isCaptured && (
-              <div className="absolute inset-0 bg-green-500 bg-opacity-20 flex items-center justify-center rounded-lg">
-                <div className="absolute inset-0 border-4 border-green-400 rounded-lg animate-pulse"></div>
-                <div className="relative z-10 flex flex-col items-center">
-                  <div className="bg-green-500 rounded-full p-3 mb-2">
-                    <Check className="h-8 w-8 text-white" />
-                  </div>
-                  <span className="text-white text-sm font-medium bg-black bg-opacity-50 px-3 py-1 rounded">
-                    QR Code capturé avec succès!
-                  </span>
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className="bg-green-500 rounded-full p-2 animate-pulse">
+                  <Check className="h-6 w-6 text-white" />
                 </div>
               </div>
             )}
@@ -280,61 +192,52 @@ export function QRScanner() {
         </div>
 
         {/* Instructions */}
-        <div className="absolute bottom-4 left-0 right-0 text-center text-white text-sm bg-black bg-opacity-50 p-2">
+        <div className="absolute bottom-4 left-0 right-0 text-center text-white text-sm bg-black/70 p-2">
+          Centrez le QR code dans le cadre
         </div>
-
-        {/* Progression */}
-        {scanProgress > 0 && scanProgress < 100 && (
-          <div className="absolute top-4 left-0 right-0 flex justify-center">
-            <div className="bg-black bg-opacity-70 text-white px-3 py-1 rounded-full text-xs flex items-center">
-              <Scan className="h-3 w-3 mr-1 animate-pulse" />
-              Analyse: {scanProgress}%
-            </div>
-          </div>
-        )}
       </div>
 
-      {/* Boutons */}
-      <div className="flex flex-col gap-2">
-        <div className="flex gap-2">
-          <Button onClick={resetScanner} className="flex-1 gap-2" disabled={isProcessing.current}>
+      {/* Boutons de contrôle */}
+      <div className="flex flex-col gap-3">
+        <div className="flex gap-3">
+          <Button 
+            onClick={resetScanner} 
+            variant="default" 
+            className="flex-1 gap-2 bg-black text-white hover:bg-gray-800" 
+            disabled={isProcessing.current}
+            size="sm"
+          >
             <RotateCw className={`h-4 w-4 ${isProcessing.current ? 'animate-spin' : ''}`} />
-            {isScanning ? 'Redémarrer' : 'Activer le scanner'}
+            Redémarrer
           </Button>
 
           {availableCameras.length > 1 && (
-            <Button onClick={switchCamera} className="flex-1 gap-2" disabled={isProcessing.current}>
+            <Button 
+              onClick={switchCamera} 
+              variant="default" 
+              className="flex-1 gap-2 bg-black text-white hover:bg-gray-800" 
+              disabled={isProcessing.current}
+              size="sm"
+            >
               <Camera className="h-4 w-4" />
-              Caméra
+              Changer
             </Button>
           )}
         </div>
-
-        {/* Zoom */}
-        <div className="flex gap-2">
-          <Button onClick={zoomOut} className="flex-1 gap-2" disabled={!isScanning || zoomLevel <= 1}>
-            <ZoomOut className="h-4 w-4" />
-            Zoom -
-          </Button>
-          <Button onClick={zoomIn} className="flex-1 gap-2" disabled={!isScanning || zoomLevel >= 3}>
-            <ZoomIn className="h-4 w-4" />
-            Zoom +
-          </Button>
-        </div>
       </div>
 
-      {/* États */}
+      {/* Messages d'état */}
       {error && (
-        <div className="p-4 bg-red-50 rounded-lg flex items-center gap-3">
-          <X className="h-5 w-5 text-red-600" />
-          <p>{error}</p>
+        <div className="p-3 bg-destructive/10 text-destructive rounded-lg text-sm flex items-center gap-2">
+          <X className="h-4 w-4" />
+          {error}
         </div>
       )}
 
-      {scanResult && (
-        <div className="p-4 bg-green-50 rounded-lg flex items-center gap-3">
-          <Check className="h-5 w-5 text-green-600" />
-          <p className="truncate">QR Code détecté: {scanResult}</p>
+      {isCaptured && !error && (
+        <div className="p-3 bg-green-50 text-green-700 rounded-lg text-sm flex items-center gap-2">
+          <Check className="h-4 w-4" />
+          QR code détecté
         </div>
       )}
     </div>

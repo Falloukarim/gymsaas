@@ -5,6 +5,7 @@ const PUBLIC_PATHS = ['/login', '/register', '/forgot-password', '/redirect']
 const POST_LOGIN_PATHS = ['/gyms/join', '/gyms/select', '/gyms/new']
 const ALLOWED_WITHOUT_GBUS = ['/gyms/new', '/gyms/select', '/gyms/join']
 const ALLOWED_WITHOUT_SUBSCRIPTION = ['/subscription', '/payment-callback']
+const ADMIN_PATHS = ['/admin']
 
 export async function middleware(request: NextRequest) {
   let response = NextResponse.next({
@@ -62,12 +63,25 @@ export async function middleware(request: NextRequest) {
   // 1. Vérification de la session
   const { data: { user }, error: authError } = await supabase.auth.getUser()
 
-  // 2. Si pas authentifié
-  if (authError || !user) {
-    if (!PUBLIC_PATHS.some(path => request.nextUrl.pathname.startsWith(path))) {
+  // 2. Vérification spéciale pour les routes admin
+  if (ADMIN_PATHS.some(path => request.nextUrl.pathname.startsWith(path))) {
+    if (authError || !user) {
       return NextResponse.redirect(new URL('/login', request.url))
     }
-    return response
+
+    // Vérifier si l'utilisateur a le rôle superadmin
+    const { data: userData } = await supabase
+      .from('users')
+      .select('role')
+      .eq('id', user.id)
+      .single();
+
+    // Seul le superadmin peut accéder à la page d'administration
+    if (!userData || userData.role !== 'superadmin') {
+      return NextResponse.redirect(new URL('/', request.url))
+    }
+
+    return response;
   }
 
   // 3. Récupérer les gyms de l'utilisateur

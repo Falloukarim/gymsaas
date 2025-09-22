@@ -3,28 +3,7 @@ import { redirect } from 'next/navigation';
 import DashboardContent from './DashboardContent';
 import { RevenueChart } from '@/components/revenue-chart';
 import { getGymIdForCurrentUser } from '@/lib/auth';
-
-// Définir les types pour nos données
-type Payment = {
-  amount: number;
-  created_at: string;
-  id: string;
-  gym_id: string;
-  status: string;
-};
-
-type Ticket = {
-  price: number;
-  printed_at: string;
-  id: string;
-  gym_id: string;
-};
-
-type CombinedDataItem = {
-  date: string;
-  amount: number;
-  type: 'payment' | 'ticket';
-};
+import SubscriptionAlert from '@/components/SubscriptionAlert';
 
 export default async function GymDashboardPage({ 
   params: resolvedParams 
@@ -62,22 +41,26 @@ export default async function GymDashboardPage({
     redirect('/gyms/new');
   }
 
-  // Vérification de l'abonnement
-  const { data: gym } = await (await supabase)
-    .from('gyms')
-    .select('subscription_active, trial_end_date, trial_used')
-    .eq('id', params.id)
-    .single();
+  // Vérification de l'abonnement - MODIFIÉ
+const { data: gym } = await (await supabase)
+  .from('gyms')
+  .select('subscription_active, trial_end_date, trial_used, name, current_subscription_end')
+  .eq('id', params.id)
+  .single();
 
-  const isTrialActive = gym?.trial_end_date 
-    && new Date(gym.trial_end_date) > new Date() 
-    && gym.trial_used === false;
+const now = new Date();
+const isTrialActive = gym?.trial_end_date 
+  && new Date(gym.trial_end_date) > now 
+  && gym.trial_used === false;
 
-  if (!gym?.subscription_active && !isTrialActive) {
-    redirect('/subscription');
-  }
+const isTrialExpired = gym?.trial_used && gym.trial_end_date && new Date(gym.trial_end_date) <= now;
+const isPaidSubscriptionExpired = gym?.subscription_active === false && gym?.current_subscription_end && new Date(gym.current_subscription_end) <= now;
 
-  // Récupération des données pour le graphique avec typage explicite
+// Afficher l'alerte si essai expiré OU abonnement payant expiré
+const shouldShowAlert = isTrialExpired || isPaidSubscriptionExpired;
+
+
+  // Récupération des données pour le graphique
   const { data: paymentsData } = await (await supabase)
     .from('payments')
     .select('amount, created_at')
@@ -91,14 +74,14 @@ export default async function GymDashboardPage({
     .eq('gym_id', id)
     .order('printed_at', { ascending: true });
 
-  // Conversion des données avec vérification de type
-  const payments: CombinedDataItem[] = (paymentsData || []).map((payment) => ({
+  // Conversion des données
+  const payments = (paymentsData || []).map((payment) => ({
     date: payment.created_at,
     amount: payment.amount,
     type: 'payment' as const
   }));
 
-  const tickets: CombinedDataItem[] = (ticketsData || []).map((ticket) => ({
+  const tickets = (ticketsData || []).map((ticket) => ({
     date: ticket.printed_at,
     amount: ticket.price,
     type: 'ticket' as const
@@ -109,7 +92,7 @@ export default async function GymDashboardPage({
     (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
   );
 
-  // Agrégation par jour avec typage
+  // Agrégation par jour
   const dailyData: Record<string, {payments: number, tickets: number}> = {};
 
   combinedData.forEach((item) => {
@@ -137,7 +120,7 @@ export default async function GymDashboardPage({
   const ticketAmount = chartData.reduce((sum, day) => sum + day.tickets, 0);
 
   // Calcul de l'évolution
-  const lastPeriod = chartData.slice(-14); // 2 semaines
+  const lastPeriod = chartData.slice(-14);
   const currentPeriodTotal = lastPeriod.slice(-7).reduce((sum, day) => sum + day.payments + day.tickets, 0);
   const previousPeriodTotal = lastPeriod.slice(0, 7).reduce((sum, day) => sum + day.payments + day.tickets, 0);
   const changePercentage = previousPeriodTotal > 0 
@@ -148,14 +131,20 @@ export default async function GymDashboardPage({
     <div className="flex min-h-screen bg-[#0d1a23]">
       <div className="flex-1 flex flex-col">
         <main className="flex-1 p-4 md:p-6 space-y-4 md:space-y-6">
-          {/* Conteneur principal avec espacement responsive */}
+          {/* Alerte d'abonnement expiré */}
+  {shouldShowAlert && (
+  <SubscriptionAlert 
+    gymId={id}
+    gymName={gym?.name || ''}
+    isTrialExpired={isTrialExpired} 
+  />
+)}
+          
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
-            {/* Section DashboardContent - prend toute la largeur sur mobile, moitié sur grand écran */}
             <div className="lg:col-span-2">
               <DashboardContent gymId={id} />
             </div>
             
-            {/* Section RevenueChart - prend toute la largeur */}
             <div className="lg:col-span-2">
               <RevenueChart 
                 data={chartData}

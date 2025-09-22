@@ -1,18 +1,31 @@
 // TypeScript type for user roles
 export const USER_ROLES = {
+  SUPERADMIN: 'superadmin',
   OWNER: 'owner',
   ADMIN: 'admin',
   STAFF: 'staff'
 } as const;
-export const UserRoleValue = ['owner', 'admin', 'staff'] as const;
-export type UserRoleValue = (typeof UserRoleValue)[number];
-// Type for the role string values: "owner", "admin", "staff"
-export type Role = typeof USER_ROLES[keyof typeof USER_ROLES]; // <-- Type 'Role' exporté ici
 
-// Optional: if you also want to use the keys like 'OWNER', 'ADMIN', 'STAFF'
+export const UserRoleValue = ['superadmin', 'owner', 'admin', 'staff'] as const;
+export type UserRoleValue = (typeof UserRoleValue)[number];
+
+// Type for the role string values
+export type Role = typeof USER_ROLES[keyof typeof USER_ROLES]; 
+
+// Optional: if you also want to use the keys like 'SUPERADMIN', 'OWNER', 'ADMIN', 'STAFF'
 export type UserRoleKey = keyof typeof USER_ROLES;
 
+// Permissions pour chaque rôle
 export const ROLE_PERMISSIONS = {
+  [USER_ROLES.SUPERADMIN]: {
+    canManageGyms: true,
+    canManageMembers: true,
+    canManageSubscriptions: true,
+    canManagePayments: true,
+    canManageStaff: true,
+    inviteUsers: true,
+    changeRoles: true
+  },
   [USER_ROLES.OWNER]: {
     canManageGyms: true,
     canManageMembers: true,
@@ -36,7 +49,9 @@ export const ROLE_PERMISSIONS = {
   }
 };
 
+// Hiérarchie des rôles
 export const ROLE_HIERARCHY: Record<Role, number> = {
+  superadmin: 4,
   owner: 3,
   admin: 2,
   staff: 1

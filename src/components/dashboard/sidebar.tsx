@@ -1,7 +1,6 @@
-"use client";
+'use client';
 
 import { useParams, usePathname, useRouter } from "next/navigation";
-import Link from "next/link";
 import { useSidebar } from "@/context/SidebarContext";
 import {
   Home,
@@ -34,11 +33,23 @@ export default function Sidebar() {
   const { startLoading } = useLoading();
 
   // ⚡ Récupération du rôle utilisateur
-  useEffect(() => {
-    const fetchUserRole = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
+ useEffect(() => {
+  const fetchUserRole = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
 
-      if (user && gymId) {
+    if (user) {
+      const { data: userData } = await supabase
+        .from("users")
+        .select("role")
+        .eq("id", user.id)
+        .single();
+
+      if (userData?.role === 'superadmin') {
+        setCurrentUserRole(USER_ROLES.SUPERADMIN);
+        return;
+      }
+
+      if (gymId) {
         const { data } = await supabase
           .from("gbus")
           .select("role")
@@ -48,24 +59,32 @@ export default function Sidebar() {
 
         setCurrentUserRole(data?.role || null);
       }
-    };
+    }
+  };
 
-    fetchUserRole();
-  }, [gymId, supabase]);
+  fetchUserRole();
+}, [gymId, supabase]);
 
   const navItems = [
-    { href: `/gyms/${gymId}/dashboard`, icon: Home, label: "Dashboard" },
-    { href: `/gyms/${gymId}/members`, icon: Users, label: "Membres" },
-    { href: `/gyms/${gymId}/subscriptions`, icon: CreditCard, label: "Abonnements" },
-    { href: `/gyms/${gymId}/access-logs`, icon: DoorOpen, label: "Accès" },
-    { href: `/gyms/${gymId}/payments`, icon: Activity, label: "Paiements" },
-    { href: `/gyms/${gymId}/stock/products`, icon: Box, label: "Produits" },
-    { href: `/gyms/${gymId}/stock/pos`, icon: ShoppingCart, label: "Point de Vente" },
-    { href: `/gyms/${gymId}/stock/movements`, icon: RefreshCcw, label: "Mouvements" },
-    ...(currentUserRole === USER_ROLES.OWNER
-      ? [{ href: `/gyms/${gymId}/roles`, icon: Users, label: "Rôles" }]
-      : []),
-  ];
+  { href: `/gyms/${gymId}/dashboard`, icon: Home, label: "Dashboard" },
+  { href: `/gyms/${gymId}/members`, icon: Users, label: "Membres" },
+  { href: `/gyms/${gymId}/subscriptions`, icon: CreditCard, label: "Abonnements" },
+  { href: `/gyms/${gymId}/access-logs`, icon: DoorOpen, label: "Accès" },
+  { href: `/gyms/${gymId}/payments`, icon: Activity, label: "Paiements" },
+  { href: `/gyms/${gymId}/stock/products`, icon: Box, label: "Produits" },
+  { href: `/gyms/${gymId}/stock/pos`, icon: ShoppingCart, label: "Point de Vente" },
+  { href: `/gyms/${gymId}/stock/movements`, icon: RefreshCcw, label: "Mouvements" },
+  
+  // Lien visible pour OWNER - CORRIGÉ
+  ...(currentUserRole === USER_ROLES.OWNER
+    ? [{ href: `/gyms/${gymId}/roles`, icon: Users, label: "Rôles" }]
+    : []),
+  
+  // Lien visible pour SUPERADMIN - CORRIGÉ
+  ...(currentUserRole === USER_ROLES.SUPERADMIN
+    ? [{ href: `/gyms/${gymId}/admin`, icon: Users, label: "SuperAdmin" }]
+    : [])
+];
 
   const containerVariants: Variants = {
     hidden: {},
@@ -79,14 +98,10 @@ export default function Sidebar() {
 
   const handleLinkClick = (href: string) => async (e: React.MouseEvent) => {
     e.preventDefault(); 
-    
     await startLoading(async () => {
-      // 
-      if (isMobile) {
-        close();
-      }
+      if (isMobile) close();
       await new Promise(resolve => setTimeout(resolve, 300));
-            router.push(href);
+      router.push(href);
     });
   };
 
