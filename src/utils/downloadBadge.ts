@@ -268,40 +268,44 @@ headerGradient.addColorStop(1, BADGE_CONFIG.colors.primaryDark);  // extérieur 
     }
   }
 
-  // Nom du gym
-  if (member.gyms?.name) {
-    const gymName = member.gyms.name.length > 24 
-      ? member.gyms.name.substring(0, 21) + '...' 
-      : member.gyms.name;
+ // Nom du gym
+if (member.gyms?.name) {
+  const gymName = member.gyms.name.length > 24 
+    ? member.gyms.name.substring(0, 21) + '...' 
+    : member.gyms.name;
 
-    const gymNameWidth = ctx.measureText(gymName).width + 40;
-    const gymNameX = card.x + card.width - gymNameWidth - 30;
-    const gymNameY = card.y + headerHeight / 2 - 20;
+  // Calculer la largeur du texte
+  ctx.font = BADGE_CONFIG.fonts.subtitle;
+  const gymNameWidth = ctx.measureText(gymName).width + 40;
+  
+  // Centrer horizontalement
+  const gymNameX = card.x + (card.width - gymNameWidth) / 2;
+  const gymNameY = card.y + headerHeight / 2 - 20;
 
-    const gymNameGradient = ctx.createLinearGradient(
-      gymNameX,
-      gymNameY,
-      gymNameX + gymNameWidth,
-      gymNameY + 40
-    );
-    gymNameGradient.addColorStop(0, BADGE_CONFIG.colors.secondary);
-    gymNameGradient.addColorStop(1, BADGE_CONFIG.colors.accent);
+  const gymNameGradient = ctx.createLinearGradient(
+    gymNameX,
+    gymNameY,
+    gymNameX + gymNameWidth,
+    gymNameY + 40
+  );
+  gymNameGradient.addColorStop(0, BADGE_CONFIG.colors.secondary);
+  gymNameGradient.addColorStop(1, BADGE_CONFIG.colors.accent);
 
-    ctx.beginPath();
-    ctx.roundRect(gymNameX, gymNameY, gymNameWidth, 40, 20);
-    ctx.fillStyle = gymNameGradient;
-    ctx.fill();
+  ctx.beginPath();
+  ctx.roundRect(gymNameX, gymNameY, gymNameWidth, 40, 20);
+  ctx.fillStyle = gymNameGradient;
+  ctx.fill();
 
-    ctx.fillStyle = BADGE_CONFIG.colors.white;
-    ctx.font = BADGE_CONFIG.fonts.subtitle;
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(
-      gymName.toUpperCase(),
-      gymNameX + gymNameWidth / 2,
-      gymNameY + 20
-    );
-  }
+  ctx.fillStyle = BADGE_CONFIG.colors.white;
+  ctx.font = BADGE_CONFIG.fonts.subtitle;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(
+    gymName.toUpperCase(),
+    gymNameX + gymNameWidth / 2,
+    gymNameY + 20
+  );
+}
 
   // ID du membre
   ctx.fillStyle = BADGE_CONFIG.colors.white;

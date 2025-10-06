@@ -30,11 +30,6 @@ interface MemberSubscription {
   };
 }
 
-interface UpdateResult {
-  updated: number;
-  error: string | null;
-}
-
 interface GymResult {
   trials: number;
   paid: number;
@@ -50,19 +45,25 @@ interface MemberResult {
 }
 
 export async function GET(request: Request) {
-  // Authentification stricte en production
-  const authHeader = request.headers.get('authorization');
-  const expectedToken = `Bearer ${process.env.CRON_SECRET}`;
+  // Vérifier le paramètre dry-run
+  const url = new URL(request.url);
+  const dryRun = url.searchParams.get('dry-run') === 'true';
 
-  if (!authHeader || authHeader !== expectedToken) {
-    console.error('🚨 Tentative d\'accès non autorisée au cron');
-    return NextResponse.json(
-      { error: 'Unauthorized' },
-      { status: 401 }
-    );
+  // Authentification (sauf pour dry-run)
+  if (!dryRun) {
+    const authHeader = request.headers.get('authorization');
+    const expectedToken = `Bearer ${process.env.CRON_SECRET}`;
+
+    if (!authHeader || authHeader !== expectedToken) {
+      console.error('🚨 Tentative d\'accès non autorisée au cron');
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
   }
 
-  const supabase = createClient();
+  const supabase = createClient(); // Pas de await ici
   const now = new Date();
   const today = new Date(now);
   today.setHours(0, 0, 0, 0);
@@ -70,11 +71,12 @@ export async function GET(request: Request) {
   // Log de début
   console.log('=== DÉBUT CRON ABONNEMENTS ===', {
     timestamp: now.toISOString(),
-    environment: process.env.NODE_ENV
+    environment: process.env.NODE_ENV,
+    dry_run: dryRun
   });
 
   try {
-    // Vérification connexion
+    // Vérification connexion - CORRECTION : pas de await supplémentaire
     const { error: testError } = await (await supabase)
       .from('gyms')
       .select('id')
@@ -86,26 +88,49 @@ export async function GET(request: Request) {
       throw new Error(`Connexion Base de données: ${testError.message}`);
     }
 
-    // Traitement des abonnements
-    const gymsResult = await handleGymsSubscriptions(supabase, today, now);
-    const membersResult = await handleMembersSubscriptions(supabase, today, now);
+    if (dryRun) {
+      console.log('=== MODE DRY-RUN ACTIVÉ ===');
+      console.log('AUCUNE modification ne sera effectuée');
+      
+      // Simulation seulement - pas de modifications
+      const gymsStats = await simulateGymsSubscriptions(supabase, today, now);
+      const membersStats = await simulateMembersSubscriptions(supabase, today, now);
 
-    // Log de succès
-    console.log('✅ Cron exécuté avec succès:', {
-      gyms: gymsResult,
-      members: membersResult,
-      durée: `${Date.now() - now.getTime()}ms`
-    });
+      return NextResponse.json({
+        success: true,
+        dry_run: true,
+        stats: { 
+          gyms: gymsStats, 
+          members: membersStats,
+          message: 'AUCUNE modification effectuée - Mode dry-run'
+        },
+        timestamp: now.toISOString()
+      });
+    } else {
+      // Exécution normale
+      console.log('=== EXÉCUTION RÉELLE DU CRON ===');
+      
+      const gymsResult = await handleGymsSubscriptions(supabase, today, now);
+      const membersResult = await handleMembersSubscriptions(supabase, today, now);
 
-    return NextResponse.json({
-      success: true,
-      stats: { 
-        gyms: gymsResult, 
-        members: membersResult 
-      },
-      timestamp: now.toISOString(),
-      environment: process.env.NODE_ENV
-    });
+      // Log de succès
+      console.log('✅ Cron exécuté avec succès:', {
+        gyms: gymsResult,
+        members: membersResult,
+        durée: `${Date.now() - now.getTime()}ms`
+      });
+
+      return NextResponse.json({
+        success: true,
+        dry_run: false,
+        stats: { 
+          gyms: gymsResult, 
+          members: membersResult 
+        },
+        timestamp: now.toISOString(),
+        environment: process.env.NODE_ENV
+      });
+    }
 
   } catch (error: unknown) {
     // Log d'erreur détaillé
@@ -115,17 +140,115 @@ export async function GET(request: Request) {
     console.error('❌ Erreur critique du cron:', {
       error: errorMessage,
       stack: errorStack,
-      timestamp: now.toISOString()
+      timestamp: now.toISOString(),
+      dry_run: dryRun
     });
 
     return NextResponse.json(
       { 
         success: false, 
         error: errorMessage,
+        dry_run: dryRun,
         timestamp: now.toISOString()
       },
       { status: 500 }
     );
+  }
+}
+
+// Fonctions de simulation pour dry-run
+async function simulateGymsSubscriptions(supabase: any, today: Date, now: Date): Promise<GymResult> {
+  try {
+    const { data: gyms, error: fetchError } = await supabase
+      .from('gyms')
+      .select(`
+        id,
+        name,
+        email,
+        current_subscription_id,
+        subscription_active,
+        current_subscription_end,
+        trial_used,
+        trial_end_date
+      `)
+      .or('trial_used.is.true,subscription_active.is.true');
+
+    if (fetchError) throw fetchError;
+
+    const expiredTrials = (gyms || []).filter((g: Gym) => 
+      g.trial_used && g.trial_end_date && new Date(g.trial_end_date) <= today
+    );
+
+    const expiredPaid = (gyms || []).filter((g: Gym) => 
+      g.subscription_active && g.current_subscription_end && new Date(g.current_subscription_end) <= today
+    );
+
+    console.log(`DRY-RUN: ${expiredTrials.length} gyms avec essai expiré seraient désactivés`);
+    console.log(`DRY-RUN: ${expiredPaid.length} gyms avec abonnement expiré seraient désactivés`);
+    
+    expiredTrials.forEach((gym: Gym) => {
+      console.log(` - Essai expiré: ${gym.name} (${gym.id}): ${gym.trial_end_date}`);
+    });
+    
+    expiredPaid.forEach((gym: Gym) => {
+      console.log(` - Abonnement expiré: ${gym.name} (${gym.id}): ${gym.current_subscription_end}`);
+    });
+
+    return { 
+      trials: expiredTrials.length, 
+      paid: expiredPaid.length,
+      updated: 0, // Aucune mise à jour en dry-run
+      total_processed: gyms?.length || 0
+    };
+
+  } catch (error) {
+    console.error('❌ Erreur simulation gyms:', error);
+    throw error;
+  }
+}
+
+async function simulateMembersSubscriptions(supabase: any, today: Date, now: Date): Promise<MemberResult> {
+  try {
+    // Récupération des abonnements expirés
+    const { data: expiredSubs, error: subsError } = await supabase
+      .from('member_subscriptions')
+      .select(`
+        id, 
+        member_id,
+        end_date,
+        members(full_name, email, gym_id, gyms(name))
+      `)
+      .lte('end_date', today.toISOString())
+      .eq('status', 'active');
+
+    if (subsError) throw subsError;
+
+    const results: MemberResult = { 
+      subscriptions: 0, 
+      members: 0, 
+      subscriptions_updated: 0,
+      members_updated: 0 
+    };
+    
+    if (expiredSubs && expiredSubs.length > 0) {
+      console.log(`DRY-RUN: ${expiredSubs.length} abonnements membres seraient désactivés`);
+      
+      expiredSubs.forEach((sub: MemberSubscription) => {
+        console.log(` - Abonnement expiré: Membre ${sub.members?.full_name} (${sub.member_id}): ${sub.end_date}`);
+      });
+
+      const memberIds = expiredSubs.map((sub: MemberSubscription) => sub.member_id);
+      results.subscriptions = expiredSubs.length;
+      results.members = new Set(memberIds).size;
+    } else {
+      console.log('DRY-RUN: Aucun abonnement membre à expirer');
+    }
+
+    return results;
+
+  } catch (error) {
+    console.error('❌ Erreur simulation membres:', error);
+    throw error;
   }
 }
 
