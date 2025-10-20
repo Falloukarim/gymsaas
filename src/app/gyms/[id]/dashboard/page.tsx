@@ -3,7 +3,6 @@ import { redirect } from 'next/navigation';
 import DashboardContent from './DashboardContent';
 import { RevenueChart } from '@/components/revenue-chart';
 import { getGymIdForCurrentUser } from '@/lib/auth';
-import SubscriptionAlert from '@/components/SubscriptionAlert';
 
 export default async function GymDashboardPage({ 
   params: resolvedParams 
@@ -132,13 +131,6 @@ const shouldShowAlert = isTrialExpired || isPaidSubscriptionExpired;
       <div className="flex-1 flex flex-col">
         <main className="flex-1 p-4 md:p-6 space-y-4 md:space-y-6">
           {/* Alerte d'abonnement expiré */}
-  {shouldShowAlert && (
-  <SubscriptionAlert 
-    gymId={id}
-    gymName={gym?.name || ''}
-    isTrialExpired={isTrialExpired} 
-  />
-)}
           
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
             <div className="lg:col-span-2">

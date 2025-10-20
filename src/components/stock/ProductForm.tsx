@@ -293,6 +293,21 @@ export default function ProductForm({ gymId, product }: ProductFormProps) {
                   </div>
 
                   <div className="space-y-2">
+                    <Label htmlFor="package_cost_price" className="text-white text-sm sm:text-base">
+                      Cout du {formData.package_type === 'package' ? 'paquet' : 'carton'} (XOF)
+                    </Label>
+                    <Input
+                      id="package_cost_price"
+                      name="package_cost_price"
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      value={formData.package_cost_price}
+                      onChange={handleInputChange}
+                      className="border-white/20 bg-white/10 text-white placeholder:text-gray-300 focus:border-green-400 text-sm sm:text-base"
+                    />
+                  </div>
+                   <div className="space-y-2">
                     <Label htmlFor="package_price" className="text-white text-sm sm:text-base">
                       Prix du {formData.package_type === 'package' ? 'paquet' : 'carton'} (XOF) *
                     </Label>
@@ -306,22 +321,6 @@ export default function ProductForm({ gymId, product }: ProductFormProps) {
                       onChange={handleInputChange}
                       className="border-white/20 bg-white/10 text-white placeholder:text-gray-300 focus:border-green-400 text-sm sm:text-base"
                       required
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="package_cost_price" className="text-white text-sm sm:text-base">
-                      Prix de revient du {formData.package_type === 'package' ? 'paquet' : 'carton'} (XOF)
-                    </Label>
-                    <Input
-                      id="package_cost_price"
-                      name="package_cost_price"
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      value={formData.package_cost_price}
-                      onChange={handleInputChange}
-                      className="border-white/20 bg-white/10 text-white placeholder:text-gray-300 focus:border-green-400 text-sm sm:text-base"
                     />
                   </div>
 
@@ -343,6 +342,21 @@ export default function ProductForm({ gymId, product }: ProductFormProps) {
 
               {formData.package_type === 'single' && (
                 <>
+                
+                  <div className="space-y-2">
+                    <Label htmlFor="cost_price" className="text-white text-sm sm:text-base">Cout unitaire (XOF)</Label>
+                    <Input
+                      id="cost_price"
+                      name="cost_price"
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      value={formData.cost_price}
+                      onChange={handleInputChange}
+                      className="border-white/20 bg-white/10 text-white placeholder:text-gray-300 focus:border-green-400 text-sm sm:text-base"
+                    />
+                  </div>
+
                   <div className="space-y-2">
                     <Label htmlFor="price" className="text-white text-sm sm:text-base">Prix de vente unitaire (XOF) *</Label>
                     <Input
@@ -358,19 +372,6 @@ export default function ProductForm({ gymId, product }: ProductFormProps) {
                     />
                   </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="cost_price" className="text-white text-sm sm:text-base">Prix de revient unitaire (XOF)</Label>
-                    <Input
-                      id="cost_price"
-                      name="cost_price"
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      value={formData.cost_price}
-                      onChange={handleInputChange}
-                      className="border-white/20 bg-white/10 text-white placeholder:text-gray-300 focus:border-green-400 text-sm sm:text-base"
-                    />
-                  </div>
                 </>
               )}
 
