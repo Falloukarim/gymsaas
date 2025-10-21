@@ -282,16 +282,21 @@ export default async function MemberDetailPage({
                     <SubscriptionStatusBadge status={subscriptionStatus} />
                   </div>
                   
-                  <div className="grid grid-cols-2 gap-4 p-3 bg-green-50 rounded-lg border border-green-100">
-                    <div>
-                      <p className="text-sm text-muted-foreground">Début</p>
-                      <p className="text-sm font-semibold">{new Date(activeSubscription!.start_date).toLocaleDateString()}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-muted-foreground">Fin</p>
-                      <p className="text-sm font-semibold">{new Date(activeSubscription!.end_date).toLocaleDateString()}</p>
-                    </div>
-                  </div>
+             <div className="grid grid-cols-2 gap-4 p-4 bg-green-100 rounded-lg border border-green-300 shadow-sm">
+  <div>
+    <p className="text-sm font-medium text-green-800">Début</p>
+    <p className="text-base font-semibold text-green-900">
+      {new Date(activeSubscription!.start_date).toLocaleDateString()}
+    </p>
+  </div>
+  <div>
+    <p className="text-sm font-medium text-green-800">Fin</p>
+    <p className="text-base font-semibold text-green-900">
+      {new Date(activeSubscription!.end_date).toLocaleDateString()}
+    </p>
+  </div>
+</div>
+
                 </div>
               ) : activeSubscription ? (
                 // Abonnement existant mais expiré
