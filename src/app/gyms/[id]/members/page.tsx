@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, Plus } from 'lucide-react';
+import { ArrowLeft, Plus, Calendar, Phone } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { LoadingButton } from '@/components/LoadingButton';
@@ -75,11 +75,13 @@ function MembersPage() {
     const formData = new FormData(e.currentTarget as HTMLFormElement);
     setSearch(formData.get('q') as string);
   };
-     const handleMemberClick = (memberId: string, e: React.MouseEvent) => {
+  
+  const handleMemberClick = (memberId: string, e: React.MouseEvent) => {
     e.preventDefault();
     setNavigatingMemberId(memberId);
     router.push(`/gyms/${gymId}/members/${memberId}`);
   };
+  
   const getImageUrl = (url: string | null) => {
     if (!url) return '';
     
@@ -92,8 +94,16 @@ function MembersPage() {
     return `/api/image-proxy?url=${encodeURIComponent(fullUrl)}`;
   };
 
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('fr-FR', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric'
+    });
+  };
+
   return (
-    <div className="p-4 sm:p-6 max-w-6xl mx-auto space-y-6">
+    <div className="p-4 sm:p-6 max-w-7xl mx-auto space-y-6">
       {/* Header section */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <Link
@@ -168,93 +178,141 @@ function MembersPage() {
             <CardHeader>
               <CardTitle className="text-lg sm:text-xl">Liste des membres</CardTitle>
             </CardHeader>
-           <CardContent>
-  {initialLoading ? (
-    <div className="flex justify-center py-8">
-      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-400"></div>
-    </div>
-  ) : members.length > 0 ? (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-      {members.map((member) => {
-        const activeSubscription = member.member_subscriptions?.find(
-          (sub: any) => new Date(sub.end_date) > new Date()
-        );
-
-        return (
-          <Link
-            key={member.id}
-            href={`/gyms/${gymId}/members/${member.id}`}
-            className="group"
-            onClick={(e) => handleMemberClick(member.id, e)}
-          >
-            <Card
-              className={`transition-all hover:scale-[1.03] hover:shadow-2xl border border-gray-100 bg-white/90 backdrop-blur-md rounded-2xl overflow-hidden ${
-                navigatingMemberId === member.id
-                  ? 'opacity-70 pointer-events-none'
-                  : ''
-              }`}
-            >
-              <CardContent className="p-6 flex items-center gap-6">
-                {navigatingMemberId === member.id ? (
-                  <div className="flex items-center justify-center w-20 h-20">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
-                  </div>
-                ) : (
-                  <Avatar className="relative h-20 w-20 sm:h-24 sm:w-24 ring-4 ring-green-500/20 border-2 border-white shadow-lg transition-transform duration-300 group-hover:scale-105">
-                    <AvatarImage
-                      src={getImageUrl(member.avatar_url)}
-                      className="object-cover h-full w-full rounded-full"
-                    />
-                    <AvatarFallback className="bg-gradient-to-r from-green-500 to-emerald-600 text-white text-3xl font-semibold">
-                      {member.full_name
-                        .split(' ')
-                        .map((n: string) => n[0])
-                        .join('')}
-                    </AvatarFallback>
-                    <span className="absolute inset-0 rounded-full ring-2 ring-white/20 animate-pulse"></span>
-                  </Avatar>
-                )}
-
-                <div className="flex-1 min-w-0">
-                  <h3 className="font-bold text-gray-900 text-lg sm:text-xl truncate group-hover:text-green-700 transition-colors">
-                    {member.full_name}
-                  </h3>
-                  <p className="text-sm sm:text-base text-gray-600 truncate">
-                    {member.email || 'Aucun email'}
-                  </p>
+            <CardContent>
+              {initialLoading ? (
+                <div className="flex justify-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-400"></div>
                 </div>
+              ) : members.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                  {members.map((member) => {
+                    const activeSubscription = member.member_subscriptions?.find(
+                      (sub: any) => new Date(sub.end_date) > new Date()
+                    );
 
-                {activeSubscription && !navigatingMemberId && (
-                  <Badge
-                    variant="secondary"
-                    className="ml-2 text-xs sm:text-sm bg-green-200 text-green-800"
-                  >
-                    Actif
-                  </Badge>
-                )}
-              </CardContent>
-            </Card>
-          </Link>
-        );
-      })}
-    </div>
-  ) : (
-    <div className="text-center py-8 sm:py-12 space-y-2">
-      <p className="text-gray-500 text-sm sm:text-base">
-        Aucun membre trouvé {search && `pour "${search}"`}
-      </p>
-      <Button asChild variant="link" className="text-green-600">
-        <Link href={`/gyms/${gymId}/members/new`}>Ajouter un membre</Link>
-      </Button>
-    </div>
-  )}
-</CardContent>
+                    const initials = member.full_name
+                      .split(' ')
+                      .map((n: string) => n[0])
+                      .join('')
+                      .toUpperCase();
 
+                    return (
+                      <Link
+                        key={member.id}
+                        href={`/gyms/${gymId}/members/${member.id}`}
+                        className="group block"
+                        onClick={(e) => handleMemberClick(member.id, e)}
+                      >
+                        <Card
+                          className={`h-full transition-all duration-300 hover:scale-[1.02] hover:shadow-xl border border-gray-200 bg-white rounded-xl overflow-hidden ${
+                            navigatingMemberId === member.id
+                              ? 'opacity-70 pointer-events-none'
+                              : ''
+                          }`}
+                        >
+                          <CardContent className="p-5">
+                            {navigatingMemberId === member.id ? (
+                              <div className="flex items-center justify-center py-8">
+                                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
+                              </div>
+                            ) : (
+                              <>
+                                {/* Header avec avatar et statut */}
+                                <div className="flex items-start justify-between mb-4">
+                                  <div className="flex items-center gap-3">
+                                    <Avatar className="h-14 w-14 ring-2 ring-green-500/20 border-2 border-white shadow-md">
+                                      <AvatarImage
+                                        src={getImageUrl(member.avatar_url)}
+                                        className="object-cover h-full w-full"
+                                      />
+                                      <AvatarFallback className="bg-gradient-to-r from-green-500 to-emerald-600 text-white font-semibold">
+                                        {initials}
+                                      </AvatarFallback>
+                                    </Avatar>
+                                    <div className="min-w-0">
+                                      <h3 className="font-bold text-gray-900 text-base leading-tight truncate group-hover:text-green-700 transition-colors">
+                                        {member.full_name}
+                                      </h3>
+                                      {activeSubscription && (
+                                        <Badge
+                                          variant="secondary"
+                                          className="mt-1 text-xs bg-green-100 text-green-800 border-green-200"
+                                        >
+                                          Abonnement actif
+                                        </Badge>
+                                      )}
+                                    </div>
+                                  </div>
+                                </div>
+
+                                {/* Informations de contact */}
+                                <div className="space-y-3">
+                                  {member.email && (
+                                    <div className="flex items-center gap-2 text-sm text-gray-600">
+                                      <div className="w-4 h-4 flex items-center justify-center">
+                                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                                        </svg>
+                                      </div>
+                                      <span className="truncate">{member.email}</span>
+                                    </div>
+                                  )}
+
+                                  {member.phone && (
+                                    <div className="flex items-center gap-2 text-sm text-gray-600">
+                                      <Phone className="h-4 w-4" />
+                                      <span>{member.phone}</span>
+                                    </div>
+                                  )}
+
+                                  <div className="flex items-center gap-2 text-sm text-gray-600">
+                                    <Calendar className="h-4 w-4" />
+                                    <span>Membre depuis {formatDate(member.created_at)}</span>
+                                  </div>
+                                </div>
+
+                                {/* Badge de navigation */}
+                                <div className="mt-4 pt-3 border-t border-gray-100">
+                                  <div className="flex justify-between items-center">
+                                    <span className="text-xs text-gray-500 group-hover:text-green-600 transition-colors">
+                                      Voir le profil
+                                    </span>
+                                    <div className="w-5 h-5 transform group-hover:translate-x-1 transition-transform">
+                                      <svg className="w-full h-full text-gray-400 group-hover:text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                                      </svg>
+                                    </div>
+                                  </div>
+                                </div>
+                              </>
+                            )}
+                          </CardContent>
+                        </Card>
+                      </Link>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="text-center py-12 space-y-4">
+                  <div className="w-16 h-16 mx-auto text-gray-400">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" />
+                    </svg>
+                  </div>
+                  <p className="text-gray-500 text-base">
+                    Aucun membre trouvé {search && `pour "${search}"`}
+                  </p>
+                  <Button asChild variant="link" className="text-green-600">
+                    <Link href={`/gyms/${gymId}/members/new`}>Ajouter le premier membre</Link>
+                  </Button>
+                </div>
+              )}
+            </CardContent>
           </Card>
         </div>
       </div>
     </div>
   );
-};
+}
 
 export default MembersPage;

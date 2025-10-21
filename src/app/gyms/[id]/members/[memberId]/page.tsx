@@ -192,23 +192,23 @@ export default async function MemberDetailPage({
             </div>
             
             {/* Badges d'information */}
-            <div className="flex flex-wrap gap-2 justify-center sm:justify-start">
-              {hasValidSubscription ? (
-                <Badge className="bg-green-100 text-green-800 hover:bg-green-100 text-sm py-1 px-3">
-                  <div className="flex items-center gap-1">
-                    <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                    Abonnement actif
-                  </div>
-                </Badge>
-              ) : (
-                <Badge variant="secondary" className="text-sm py-1 px-3">
-                  Sans abonnement
-                </Badge>
-              )}
-              <Badge variant="outline" className="text-sm py-1 px-3">
-                Membre depuis {new Date(member.created_at).toLocaleDateString('fr-FR', { month: 'short', year: 'numeric' })}
-              </Badge>
-            </div>
+           <div className="flex flex-wrap gap-2 justify-center sm:justify-start">
+  {hasValidSubscription ? (
+    <Badge className="bg-green-100 text-green-800 hover:bg-green-100 text-sm py-1 px-3">
+      <div className="flex items-center gap-1">
+        <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+        Abonnement actif
+      </div>
+    </Badge>
+  ) : (
+    <Badge variant="secondary" className="text-sm py-1 px-3">
+      Sans abonnement
+    </Badge>
+  )}
+  <Badge variant="outline" className="text-sm py-1 px-3 border-blue-200 text-blue-700 bg-blue-50 hover:bg-blue-100">
+    Membre depuis {new Date(member.created_at).toLocaleDateString('fr-FR', { month: 'short', year: 'numeric' })}
+  </Badge>
+</div>
           </div>
         </div>
       </div>
