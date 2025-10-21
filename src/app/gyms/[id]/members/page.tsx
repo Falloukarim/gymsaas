@@ -168,78 +168,88 @@ function MembersPage() {
             <CardHeader>
               <CardTitle className="text-lg sm:text-xl">Liste des membres</CardTitle>
             </CardHeader>
-            <CardContent>
-              {initialLoading ? (
-                <div className="flex justify-center py-8">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-400"></div>
-                </div>
-              ) : members.length > 0 ? (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
-                  {members.map((member) => {
-                    const activeSubscription = member.member_subscriptions?.find(
-                      (sub: any) => new Date(sub.end_date) > new Date()
-                    );
+           <CardContent>
+  {initialLoading ? (
+    <div className="flex justify-center py-8">
+      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-400"></div>
+    </div>
+  ) : members.length > 0 ? (
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+      {members.map((member) => {
+        const activeSubscription = member.member_subscriptions?.find(
+          (sub: any) => new Date(sub.end_date) > new Date()
+        );
 
-                    return (
-                      <Link
-                        key={member.id}
-                        href={`/gyms/${gymId}/members/${member.id}`}
-                        className="group"
-                        onClick={(e) => handleMemberClick(member.id, e)}
-                      >
-                        <Card className={`transition-all hover:scale-[1.02] hover:shadow-lg border border-white bg-green-1000 hover:bg-green-200 ${
-                          navigatingMemberId === member.id ? 'opacity-70 pointer-events-none' : ''
-                        }`}>
-                          <CardContent className="p-3 sm:p-4 flex items-center gap-3 sm:gap-4">
-                            {navigatingMemberId === member.id ? (
-                              <div className="flex items-center justify-center w-12 h-12">
-                                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-green-600"></div>
-                              </div>
-                            ) : (
-                              <Avatar className="h-10 w-10 sm:h-12 sm:w-12">
-                                <AvatarImage src={getImageUrl(member.avatar_url)} />
-                                <AvatarFallback className="bg-green-500 text-white">
-                                  {member.full_name
-                                    .split(' ')
-                                    .map((n: string) => n[0])
-                                    .join('')}
-                                </AvatarFallback>
-                              </Avatar>
-                            )}
+        return (
+          <Link
+            key={member.id}
+            href={`/gyms/${gymId}/members/${member.id}`}
+            className="group"
+            onClick={(e) => handleMemberClick(member.id, e)}
+          >
+            <Card
+              className={`transition-all hover:scale-[1.03] hover:shadow-2xl border border-gray-100 bg-white/90 backdrop-blur-md rounded-2xl overflow-hidden ${
+                navigatingMemberId === member.id
+                  ? 'opacity-70 pointer-events-none'
+                  : ''
+              }`}
+            >
+              <CardContent className="p-6 flex items-center gap-6">
+                {navigatingMemberId === member.id ? (
+                  <div className="flex items-center justify-center w-20 h-20">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
+                  </div>
+                ) : (
+                  <Avatar className="relative h-20 w-20 sm:h-24 sm:w-24 ring-4 ring-green-500/20 border-2 border-white shadow-lg transition-transform duration-300 group-hover:scale-105">
+                    <AvatarImage
+                      src={getImageUrl(member.avatar_url)}
+                      className="object-cover h-full w-full rounded-full"
+                    />
+                    <AvatarFallback className="bg-gradient-to-r from-green-500 to-emerald-600 text-white text-3xl font-semibold">
+                      {member.full_name
+                        .split(' ')
+                        .map((n: string) => n[0])
+                        .join('')}
+                    </AvatarFallback>
+                    <span className="absolute inset-0 rounded-full ring-2 ring-white/20 animate-pulse"></span>
+                  </Avatar>
+                )}
 
-                            <div className="flex-1 min-w-0">
-                              <h3 className="font-semibold text-black sm:text-base truncate group-hover:text-green-600">
-                                {member.full_name}
-                              </h3>
-                              <p className="text-xs sm:text-sm text-gray-500 truncate">
-                                {member.email || 'Aucun email'}
-                              </p>
-                            </div>
-
-                            {activeSubscription && !navigatingMemberId && (
-                              <Badge variant="secondary" className="ml-2 text-xs sm:text-sm bg-green-200 text-green-800">
-                                Actif
-                              </Badge>
-                            )}
-                          </CardContent>
-                        </Card>
-                      </Link>
-                    );
-                  })}
-                </div>
-              ) : (
-                <div className="text-center py-8 sm:py-12 space-y-2">
-                  <p className="text-gray-500 text-sm sm:text-base">
-                    Aucun membre trouvé {search && `pour "${search}"`}
+                <div className="flex-1 min-w-0">
+                  <h3 className="font-bold text-gray-900 text-lg sm:text-xl truncate group-hover:text-green-700 transition-colors">
+                    {member.full_name}
+                  </h3>
+                  <p className="text-sm sm:text-base text-gray-600 truncate">
+                    {member.email || 'Aucun email'}
                   </p>
-                  <Button asChild variant="link" className="text-green-600">
-                    <Link href={`/gyms/${gymId}/members/new`}>
-                      Ajouter un membre
-                    </Link>
-                  </Button>
                 </div>
-              )}
-            </CardContent>
+
+                {activeSubscription && !navigatingMemberId && (
+                  <Badge
+                    variant="secondary"
+                    className="ml-2 text-xs sm:text-sm bg-green-200 text-green-800"
+                  >
+                    Actif
+                  </Badge>
+                )}
+              </CardContent>
+            </Card>
+          </Link>
+        );
+      })}
+    </div>
+  ) : (
+    <div className="text-center py-8 sm:py-12 space-y-2">
+      <p className="text-gray-500 text-sm sm:text-base">
+        Aucun membre trouvé {search && `pour "${search}"`}
+      </p>
+      <Button asChild variant="link" className="text-green-600">
+        <Link href={`/gyms/${gymId}/members/new`}>Ajouter un membre</Link>
+      </Button>
+    </div>
+  )}
+</CardContent>
+
           </Card>
         </div>
       </div>
