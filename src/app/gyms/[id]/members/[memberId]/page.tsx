@@ -114,13 +114,16 @@ export default async function MemberDetailPage({
    
   const subscriptions = member.member_subscriptions || [];
   
-  // Logique améliorée pour la gestion des abonnements
-  const activeSubscription = subscriptions.find(isSubscription);
-  const subscriptionStatus = !activeSubscription
-    ? "expired"
-    : new Date(activeSubscription.end_date) < new Date()
-    ? "expired"
-    : "active";
+  // LOGIQUE CORRIGÉE - Même logique que la page liste des membres
+  const activeSubscription = subscriptions.find((sub: MemberSubscription) => {
+    // Vérifier si c'est un abonnement (pas une session)
+    const isSub = isSubscription(sub);
+    // Vérifier si l'abonnement est actif (même logique que la page liste)
+    const isActive = new Date(sub.end_date) > new Date();
+    return isSub && isActive;
+  });
+
+  const subscriptionStatus = activeSubscription ? "active" : "expired";
   const hasValidSubscription = subscriptionStatus === "active";
   
   const sessions = subscriptions.filter((sub: MemberSubscription) => !isSubscription(sub));
@@ -134,12 +137,10 @@ export default async function MemberDetailPage({
   const getImageUrl = (url: string | null) => {
     if (!url) return '';
     
-    // Vérifie si l'URL est déjà une URL complète
     if (url.startsWith('http')) {
       return `/api/image-proxy?url=${encodeURIComponent(url)}`;
     }
     
-    // Si c'est un chemin relatif, construisez l'URL complète
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
     const fullUrl = `${supabaseUrl}/storage/v1/object/public/avatars/${url}`;
     return `/api/image-proxy?url=${encodeURIComponent(fullUrl)}`;
@@ -147,7 +148,7 @@ export default async function MemberDetailPage({
 
   return (
     <div className="w-full px-4 py-6 sm:px-6 lg:px-8">
-      {/* Header avec bouton retour et infos membre - AVATAR TRÈS GRAND ET PRO */}
+      {/* Header avec bouton retour et infos membre */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-8 gap-6">
         <Link
           href={`/gyms/${gymId}/members`}
@@ -160,28 +161,27 @@ export default async function MemberDetailPage({
         {/* Section avatar et infos avec avatar très grand */}
         <div className="flex flex-col sm:flex-row items-center gap-6 text-center sm:text-left">
           {/* Avatar très grand et professionnel */}
-         <div className="relative">
-  <Avatar className="h-52 w-52 sm:h-56 sm:w-56 lg:h-60 lg:w-60 border-4 border-background shadow-2xl ring-8 ring-primary/20 transition-transform duration-300 hover:scale-105">
-    <AvatarImage 
-      src={getImageUrl(member.avatar_url)} 
-      className="object-cover h-full w-full rounded-full"
-      alt={`Photo de ${member.full_name}`}
-    />
-    <AvatarFallback className="bg-gradient-to-br from-primary to-primary/80 text-4xl sm:text-5xl lg:text-6xl font-extrabold text-white">
-      {initials}
-    </AvatarFallback>
-  </Avatar>
+          <div className="relative">
+            <Avatar className="h-52 w-52 sm:h-56 sm:w-56 lg:h-60 lg:w-60 border-4 border-background shadow-2xl ring-8 ring-primary/20 transition-transform duration-300 hover:scale-105">
+              <AvatarImage 
+                src={getImageUrl(member.avatar_url)} 
+                className="object-cover h-full w-full rounded-full"
+                alt={`Photo de ${member.full_name}`}
+              />
+              <AvatarFallback className="bg-gradient-to-br from-primary to-primary/80 text-4xl sm:text-5xl lg:text-6xl font-extrabold text-white">
+                {initials}
+              </AvatarFallback>
+            </Avatar>
 
-  {/* Badge de statut en overlay */}
-  {hasValidSubscription && (
-    <div className="absolute -bottom-3 -right-3">
-      <div className="bg-green-500 text-white text-sm sm:text-base font-semibold px-3 py-1 rounded-full shadow-xl border-2 border-white">
-        ✓ Actif
-      </div>
-    </div>
-  )}
-</div>
-
+            {/* Badge de statut en overlay */}
+            {hasValidSubscription && (
+              <div className="absolute -bottom-3 -right-3">
+                <div className="bg-green-500 text-white text-sm sm:text-base font-semibold px-3 py-1 rounded-full shadow-xl border-2 border-white">
+                  ✓ Actif
+                </div>
+              </div>
+            )}
+          </div>
           
           <div className="space-y-3">
             <div>
@@ -192,23 +192,23 @@ export default async function MemberDetailPage({
             </div>
             
             {/* Badges d'information */}
-           <div className="flex flex-wrap gap-2 justify-center sm:justify-start">
-  {hasValidSubscription ? (
-    <Badge className="bg-green-100 text-green-800 hover:bg-green-100 text-sm py-1 px-3">
-      <div className="flex items-center gap-1">
-        <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-        Abonnement actif
-      </div>
-    </Badge>
-  ) : (
-    <Badge variant="secondary" className="text-sm py-1 px-3">
-      Sans abonnement
-    </Badge>
-  )}
-  <Badge variant="outline" className="text-sm py-1 px-3 border-blue-200 text-blue-700 bg-blue-50 hover:bg-blue-100">
-    Membre depuis {new Date(member.created_at).toLocaleDateString('fr-FR', { month: 'short', year: 'numeric' })}
-  </Badge>
-</div>
+            <div className="flex flex-wrap gap-2 justify-center sm:justify-start">
+              {hasValidSubscription ? (
+                <Badge className="bg-green-100 text-green-800 hover:bg-green-100 text-sm py-1 px-3">
+                  <div className="flex items-center gap-1">
+                    <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                    Abonnement actif
+                  </div>
+                </Badge>
+              ) : (
+                <Badge variant="secondary" className="text-sm py-1 px-3">
+                  Sans abonnement
+                </Badge>
+              )}
+              <Badge variant="outline" className="text-sm py-1 px-3 border-blue-200 text-blue-700 bg-blue-50 hover:bg-blue-100">
+                Membre depuis {new Date(member.created_at).toLocaleDateString('fr-FR', { month: 'short', year: 'numeric' })}
+              </Badge>
+            </div>
           </div>
         </div>
       </div>
@@ -261,7 +261,7 @@ export default async function MemberDetailPage({
             </CardContent>
           </Card>
 
-          {/* Carte Abonnement - LOGIQUE AMÉLIORÉE */}
+          {/* Carte Abonnement - LOGIQUE CORRIGÉE */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -282,49 +282,23 @@ export default async function MemberDetailPage({
                     <SubscriptionStatusBadge status={subscriptionStatus} />
                   </div>
                   
-             <div className="grid grid-cols-2 gap-4 p-4 bg-green-100 rounded-lg border border-green-300 shadow-sm">
-  <div>
-    <p className="text-sm font-medium text-green-800">Début</p>
-    <p className="text-base font-semibold text-green-900">
-      {new Date(activeSubscription!.start_date).toLocaleDateString()}
-    </p>
-  </div>
-  <div>
-    <p className="text-sm font-medium text-green-800">Fin</p>
-    <p className="text-base font-semibold text-green-900">
-      {new Date(activeSubscription!.end_date).toLocaleDateString()}
-    </p>
-  </div>
-</div>
-
+                  <div className="grid grid-cols-2 gap-4 p-4 bg-green-100 rounded-lg border border-green-300 shadow-sm">
+                    <div>
+                      <p className="text-sm font-medium text-green-800">Début</p>
+                      <p className="text-base font-semibold text-green-900">
+                        {new Date(activeSubscription!.start_date).toLocaleDateString()}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-green-800">Fin</p>
+                      <p className="text-base font-semibold text-green-900">
+                        {new Date(activeSubscription!.end_date).toLocaleDateString()}
+                      </p>
+                    </div>
+                  </div>
                 </div>
-              ) : activeSubscription ? (
-                // Abonnement existant mais expiré
-            <div className="space-y-4">
-  {/* Type et description */}
-  <div className="flex justify-between items-center">
-    <div>
-      <p className="font-semibold text-xl text-gray-900">
-        {activeSubscription.subscriptions?.type}
-      </p>
-      <p className="text-sm text-gray-600">
-        {activeSubscription.subscriptions?.description}
-      </p>
-    </div>
-    <SubscriptionStatusBadge status={subscriptionStatus} />
-  </div>
-  
-  {/* Bloc date expirée / début-fin */}
-  <div className="p-4 bg-amber-200 rounded-lg border border-amber-300 shadow-sm">
-    <p className="text-sm font-medium text-amber-800">Expiré le</p>
-    <p className="text-lg font-semibold text-amber-900">
-      {new Date(activeSubscription.end_date).toLocaleDateString()}
-    </p>
-  </div>
-</div>
-
               ) : (
-                // Aucun abonnement trouvé
+                // Aucun abonnement actif trouvé
                 <div className="flex flex-col items-center text-center space-y-3 py-6">
                   <Activity className="h-12 w-12 text-muted-foreground" />
                   <p className="text-muted-foreground font-medium">Aucun abonnement actif</p>
@@ -338,7 +312,7 @@ export default async function MemberDetailPage({
                   gymId={gymId}
                   memberId={memberId}
                   hasActiveSubscription={hasValidSubscription}
-                  hasLastSubscription={!!activeSubscription}
+                  hasLastSubscription={!!subscriptions.find(isSubscription)}
                 />
               </div>
             </CardContent>
