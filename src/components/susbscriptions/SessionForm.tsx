@@ -40,7 +40,7 @@ export default function SessionForm({
           id="price"
           name="price"
           min="0"
-          step="100"
+          step="50"
           defaultValue="5000"
           required
         />
